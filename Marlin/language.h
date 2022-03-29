@@ -109,6 +109,8 @@
 
 // Common serial messages
 #define MSG_MARLIN "Marlin"
+#define MSG_FW_NAME	"CreatBot"
+#define MSG_FW	" Firmware: "
 
 // Serial Console Messages (do not translate those!)
 
@@ -136,7 +138,7 @@
 #define MSG_INVALID_EXTRUDER                "Invalid extruder"
 #define MSG_INVALID_SOLENOID                "Invalid solenoid"
 #define MSG_ERR_NO_THERMISTORS              "No thermistors - no temperature"
-#define MSG_M115_REPORT                     "FIRMWARE_NAME:Marlin " DETAILED_BUILD_VERSION " SOURCE_CODE_URL:" SOURCE_CODE_URL " PROTOCOL_VERSION:" PROTOCOL_VERSION " MACHINE_TYPE:" MACHINE_NAME " EXTRUDER_COUNT:" STRINGIFY(EXTRUDERS) " UUID:" MACHINE_UUID
+#define MSG_M115_REPORT                     "FIRMWARE_NAME:CreatBot " DETAILED_BUILD_VERSION " SOURCE_CODE_URL:" SOURCE_CODE_URL " PROTOCOL_VERSION:" PROTOCOL_VERSION " MACHINE_TYPE:" MACHINE_NAME " EXTRUDER_COUNT:" STRINGIFY(EXTRUDERS) " UUID:" MACHINE_UUID
 #define MSG_COUNT_X                         " Count X:"
 #define MSG_COUNT_A                         " Count A:"
 #define MSG_ERR_KILLED                      "Printer halted. kill() called!"
@@ -255,6 +257,26 @@
 #define MSG_DEBUG_COMMUNICATION             "COMMUNICATION"
 #define MSG_DEBUG_LEVELING                  "LEVELING"
 
+// Add by LYN
+#define MSG_REG_SN_TIME_EXPIRED    					"Time expired !"
+#define MSG_REG_SN_SUCESS										"Registration success !"
+#define MSG_START_SERIAL_PRINT							"Start print from serial"
+#define MSG_STOP_SERIAL_PRINT								"Stop print from serial"
+#define MSG_DOING_FILE											"Now doing file: "
+#define MSG_FRESH_FILE											"Now fresh file: "
+#define MSG_USB_PRINTING_BYTE								"USB Disk printing byte "
+#define MSG_USB_NOT_PRINTING								"Not USB Disk printing"
+#define MSG_USB_INSERT											"USB Disk insert"
+#define MSG_USB_REMOVE											"USB Disk remove"
+#define MSG_USB_READY												" ready"
+#define MSG_USB_ERR_FIND_FILE								"Find file, not dir"
+#define MSG_USB_ERR_MISS_DIR								"Can't find subdir"
+#define MSG_USB_ERR_OPEN_DIR								"Can't open subdir"
+#define MSG_CH376_ERR_CONN									"CH376 connection error"
+#define MSG_CH376_ERR_MODE									"CH376 mode setting error"
+#define MSG_CH376_ERR_UNKNOW								"CH376 unknown error"
+// Add end
+
 // LCD Menu Messages
 
 #define LANGUAGE_INCL_(M) STRINGIFY_(language_##M.h)
@@ -292,6 +314,7 @@
 #define MSG_DIAM_E4 " 4"
 #define MSG_DIAM_E5 " 5"
 
+#include "language_CreatBot.h"
 #include INCLUDE_LANGUAGE
 
 #if DISABLED(SIMULATE_ROMFONT) \
@@ -303,7 +326,8 @@
  && DISABLED(DISPLAY_CHARSET_ISO10646_TR) \
  && DISABLED(DISPLAY_CHARSET_ISO10646_PL) \
  && DISABLED(DISPLAY_CHARSET_ISO10646_CZ) \
- && DISABLED(DISPLAY_CHARSET_ISO10646_SK)
+ && DISABLED(DISPLAY_CHARSET_ISO10646_SK) \
+ && DISABLED(DISPLAY_CHARSET_CREATBOT_CN)
   #define DISPLAY_CHARSET_ISO10646_1 // use the better font on full graphic displays.
 #endif
 

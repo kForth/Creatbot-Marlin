@@ -51,6 +51,7 @@ public:
   void release();
   void openAndPrintFile(const char *name);
   void startFileprint();
+  void pauseSDPrint();				// By LYN
   void stopSDPrint();
   void getStatus();
   void printingHasFinished();
@@ -79,7 +80,7 @@ public:
     #endif
   #endif
 
-  FORCE_INLINE void pauseSDPrint() { sdprinting = false; }
+  //(By LYN) FORCE_INLINE void pauseSDPrint() { sdprinting = false; }
   FORCE_INLINE bool isFileOpen() { return file.isOpen(); }
   FORCE_INLINE bool eof() { return sdpos >= filesize; }
   FORCE_INLINE int16_t get() { sdpos = file.curPosition(); return (int16_t)file.read(); }
@@ -87,10 +88,15 @@ public:
   FORCE_INLINE uint8_t percentDone() { return (isFileOpen() && filesize) ? sdpos / ((filesize + 99) / 100) : 0; }
   FORCE_INLINE char* getWorkDirName() { workDir.getFilename(filename); return filename; }
 
+  FORCE_INLINE float percentDoneF() { return (isFileOpen() && filesize) ? (float)sdpos / filesize * 100 : 0; }	// By LYN
+  FORCE_INLINE uint32_t getSdPos() { return sdpos; }															// By LYN
+
 public:
   bool saving, logging, sdprinting, cardOK, filenameIsDir;
   char filename[FILENAME_LENGTH], longFilename[LONG_FILENAME_LENGTH];
   int autostart_index;
+  uint8_t lastPercentDone;		// By LYN
+  bool isPauseState;			// By LYN
 private:
   SdFile root, *curDir, workDir, workDirParents[MAX_DIR_DEPTH];
   uint8_t workDirDepth;
@@ -168,6 +174,7 @@ extern CardReader card;
 
 #define IS_SD_PRINTING (card.sdprinting)
 #define IS_SD_FILE_OPEN (card.isFileOpen())
+#define HAS_SD_PRINT (card.sdprinting || card.isPauseState)		// By LYN
 
 #if PIN_EXISTS(SD_DETECT)
   #if ENABLED(SD_DETECT_INVERTED)
@@ -184,6 +191,7 @@ extern CardReader card;
 
 #define IS_SD_PRINTING (false)
 #define IS_SD_FILE_OPEN (false)
+#define HAS_SD_PRINT (false)									// By LYN
 
 #endif // SDSUPPORT
 

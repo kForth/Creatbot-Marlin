@@ -20,13 +20,13 @@
  *
  */
 
+#include "Marlin.h"
 #include "cardreader.h"
 
 #include "ultralcd.h"
 #include "stepper.h"
 #include "language.h"
 
-#include "Marlin.h"
 
 #if ENABLED(SDSUPPORT)
 
@@ -57,6 +57,9 @@ CardReader::CardReader() {
   #endif // SDPOWER
 
   next_autostart_ms = millis() + 5000;
+  
+  lastPercentDone = 100;		// By LYN
+  isPauseState = false;			// By LYN
 }
 
 char *createFilename(char *buffer, const dir_t &p) { //buffer > 12characters
@@ -123,7 +126,8 @@ void CardReader::lsDive(const char *prepend, SdFile parent, const char * const m
       if (pn0 == DIR_NAME_DELETED || pn0 == '.') continue;
       if (longFilename[0] == '.') continue;
 
-      if (!DIR_IS_FILE_OR_SUBDIR(&p) || (p.attributes & DIR_ATT_HIDDEN)) continue;
+//      if (!DIR_IS_FILE_OR_SUBDIR(&p) || (p.attributes & DIR_ATT_HIDDEN)) continue;	// By LYN
+      if (!DIR_IS_FILE_OR_SUBDIR(&p) || (p.attributes & DIR_ATT_SYSTEM)) continue;		// By LYN
 
       filenameIsDir = DIR_IS_SUBDIR(&p);
 
@@ -273,6 +277,7 @@ void CardReader::setroot() {
   }*/
   workDir = root;
   curDir = &workDir;
+  workDirDepth = 0;		// By LYN
   #if ENABLED(SDCARD_SORT_ALPHA)
     presort();
   #endif
@@ -294,14 +299,24 @@ void CardReader::openAndPrintFile(const char *name) {
 void CardReader::startFileprint() {
   if (cardOK) {
     sdprinting = true;
+    isPauseState = false;		// By LYN
     #if ENABLED(SDCARD_SORT_ALPHA)
       flush_presort();
     #endif
   }
 }
 
+// Add By LYN
+void CardReader::pauseSDPrint() {
+  if (sdprinting) {
+    sdprinting = false;
+  	isPauseState = true;
+  }
+}
+
 void CardReader::stopSDPrint() {
   sdprinting = false;
+  isPauseState = false;			// By LYN
   if (isFileOpen()) file.close();
 }
 
@@ -310,19 +325,26 @@ void CardReader::openLogFile(char* name) {
   openFile(name, false);
 }
 
+
+// Modify By LYN
 void CardReader::getAbsFilename(char *t) {
   uint8_t cnt = 0;
-  *t = '/'; t++; cnt++;
   for (uint8_t i = 0; i < workDirDepth; i++) {
     workDirParents[i].getFilename(t); //SDBaseFile.getfilename!
-    while (*t && cnt < MAXPATHNAMELENGTH) { t++; cnt++; } //crawl counter forward.
+    while (*t) { t++; cnt++; } //crawl counter forward.
+    if(!workDirParents[i].isRoot()){ *t = '/'; t++; cnt++; }
   }
+  workDir.getFilename(t);
+  while (*t) { t++; cnt++; }
+  if(!workDir.isRoot()){ *t = '/'; t++; cnt++; }
+
   if (cnt < MAXPATHNAMELENGTH - (FILENAME_LENGTH))
     file.getFilename(t);
   else
     t[0] = 0;
 }
 
+// Modify By LYN
 void CardReader::openFile(char* name, bool read, bool push_current/*=false*/) {
 
   if (!cardOK) return;
@@ -372,6 +394,7 @@ void CardReader::openFile(char* name, bool read, bool push_current/*=false*/) {
   char *dirname_start, *dirname_end;
 
   if (name[0] == '/') {
+  	setroot();
     dirname_start = &name[1];
     while (dirname_start != NULL) {
       dirname_end = strchr(dirname_start, '/');
@@ -382,17 +405,7 @@ void CardReader::openFile(char* name, bool read, bool push_current/*=false*/) {
         strncpy(subdirname, dirname_start, dirname_end - dirname_start);
         subdirname[dirname_end - dirname_start] = 0;
         SERIAL_ECHOLN(subdirname);
-        if (!myDir.open(curDir, subdirname, O_READ)) {
-          SERIAL_PROTOCOLPGM(MSG_SD_OPEN_FILE_FAIL);
-          SERIAL_PROTOCOL(subdirname);
-          SERIAL_PROTOCOLCHAR('.');
-          return;
-        }
-        else {
-          //SERIAL_ECHOLNPGM("dive ok");
-        }
-
-        curDir = &myDir;
+        chdir(subdirname);
         dirname_start = dirname_end + 1;
       }
       else { // the remainder after all /fsa/fdsa/ is the filename
@@ -402,6 +415,7 @@ void CardReader::openFile(char* name, bool read, bool push_current/*=false*/) {
         break;
       }
     }
+    if (!fname[0]) return;
   }
   else { //relative path
     curDir = &workDir;
@@ -863,6 +877,7 @@ void CardReader::updir() {
 void CardReader::printingHasFinished() {
   stepper.synchronize();
   file.close();
+  if(isPauseState) isPauseState = false;		// By LYN
   if (file_subcall_ctr > 0) { // Heading up to a parent file that called current as a procedure.
     file_subcall_ctr--;
     openFile(proc_filenames[file_subcall_ctr], true, true);

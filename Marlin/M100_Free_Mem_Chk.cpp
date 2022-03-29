@@ -114,7 +114,7 @@ int16_t count_test_bytes(const char * const ptr) {
       print_hex_word((uint16_t)ptr);      // Print the address
       SERIAL_CHAR(':');
       for (uint8_t i = 0; i < 16; i++) {  // and 16 data bytes
-        if (i == 8) SERIAL_CHAR('-');
+        if (i == 8) { SERIAL_CHAR('-'); SERIAL_CHAR(' '); }
         print_hex_byte(ptr[i]);
         SERIAL_CHAR(' ');
       }
@@ -122,7 +122,7 @@ int16_t count_test_bytes(const char * const ptr) {
       SERIAL_CHAR('|');                   // Point out non test bytes
       for (uint8_t i = 0; i < 16; i++) {
         char ccc = (char)ptr[i]; // cast to char before automatically casting to char on assignment, in case the compiler is broken
-        if (&ptr[i] >= (const char*)command_queue && &ptr[i] < (const char*)(command_queue + sizeof(command_queue))) { // Print out ASCII in the command buffer area
+        if (&ptr[i] >= (const char*)command_queue && &ptr[i] < (const char*)(command_queue + BUFSIZE)) { // Print out ASCII in the command buffer area
           if (!WITHIN(ccc, ' ', 0x7E)) ccc = ' ';
         }
         else { // If not in the command buffer area, flag bytes that don't match the test byte

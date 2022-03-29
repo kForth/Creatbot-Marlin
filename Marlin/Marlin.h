@@ -51,11 +51,7 @@
   #include "stopwatch.h"
 #endif
 
-void idle(
-  #if ENABLED(ADVANCED_PAUSE_FEATURE)
-    bool no_stepper_sleep = false  // pass true to keep steppers from disabling on timeout
-  #endif
-);
+void idle(bool no_stepper_sleep = false);		// pass true to keep steppers from disabling on timeout
 
 void manage_inactivity(bool ignore_stepper_queue = false);
 
@@ -67,7 +63,8 @@ void manage_inactivity(bool ignore_stepper_queue = false);
   #define  enable_X() do{ X_ENABLE_WRITE( X_ENABLE_ON); X2_ENABLE_WRITE( X_ENABLE_ON); }while(0)
   #define disable_X() do{ X_ENABLE_WRITE(!X_ENABLE_ON); X2_ENABLE_WRITE(!X_ENABLE_ON); axis_known_position[X_AXIS] = false; }while(0)
 #elif HAS_X_ENABLE
-  #define  enable_X() X_ENABLE_WRITE( X_ENABLE_ON)
+//  #define  enable_X() X_ENABLE_WRITE( X_ENABLE_ON)
+  #define  enable_X() do{ bool hasEnable = X_ENABLE_READ == X_ENABLE_ON; X_ENABLE_WRITE( X_ENABLE_ON ); if(!hasEnable) safe_delay(500); }while(0)
   #define disable_X() do{ X_ENABLE_WRITE(!X_ENABLE_ON); axis_known_position[X_AXIS] = false; }while(0)
 #else
   #define  enable_X() NOOP
@@ -78,7 +75,8 @@ void manage_inactivity(bool ignore_stepper_queue = false);
   #define  enable_Y() do{ Y_ENABLE_WRITE( Y_ENABLE_ON); Y2_ENABLE_WRITE(Y_ENABLE_ON); }while(0)
   #define disable_Y() do{ Y_ENABLE_WRITE(!Y_ENABLE_ON); Y2_ENABLE_WRITE(!Y_ENABLE_ON); axis_known_position[Y_AXIS] = false; }while(0)
 #elif HAS_Y_ENABLE
-  #define  enable_Y() Y_ENABLE_WRITE( Y_ENABLE_ON)
+//  #define  enable_Y() Y_ENABLE_WRITE( Y_ENABLE_ON)
+  #define  enable_Y() do{ bool hasEnable = Y_ENABLE_READ == Y_ENABLE_ON; Y_ENABLE_WRITE( Y_ENABLE_ON ); if(!hasEnable) safe_delay(500); }while(0)
   #define disable_Y() do{ Y_ENABLE_WRITE(!Y_ENABLE_ON); axis_known_position[Y_AXIS] = false; }while(0)
 #else
   #define  enable_Y() NOOP
@@ -198,6 +196,7 @@ inline bool IsStopped() { return !Running; }
 
 bool enqueue_and_echo_command(const char* cmd, bool say_ok=false); // Add a single command to the end of the buffer. Return false on failure.
 void enqueue_and_echo_commands_P(const char * const cmd);          // Set one or more commands to be prioritized over the next Serial/SD command.
+void enqueue_and_echo_commands(const char * const cmd);
 void clear_command_queue();
 
 extern millis_t previous_cmd_ms;
@@ -493,5 +492,156 @@ FORCE_INLINE bool position_is_reachable_by_probe_xy(const float &lx, const float
 FORCE_INLINE bool position_is_reachable_xy(const float &lx, const float &ly) {
   return position_is_reachable_raw_xy(RAW_X_POSITION(lx), RAW_Y_POSITION(ly));
 }
+
+/*************** By LYN *******************/
+#if ENABLED(ULTIPANEL)
+	#define USER_OPERATE		(LCD_OPERATE)		// operate encoder
+#elif ENABLED(DWIN_LCD)
+	#define USER_OPERATE		(DWIN_TOUCH || dwin_getVar()->valid)		// touch a screen
+													//(DWIN_TOUCH && !DWIN_IS_PAGE(PAGE_SHUTDOWN_HOTEMP))
+#else
+	#define USER_OPERATE		false
+#endif
+
+#if ENABLED(SDSUPPORT)
+	#include "cardreader.h"
+	#define HAS_READER							true
+	#define FILE_READER							card
+	#define TOUCH_FILE(index)				FILE_READER.getfilename(index)
+	#define TOUCH_WORKDIR						FILE_READER.getWorkDirName()
+	#define GET_FILE_NR							FILE_READER.getnrfilenames()
+	#define CUR_FILE_IS_DIR					FILE_READER.filenameIsDir
+	#define FILE_IS_OPEN						FILE_READER.isFileOpen()
+	#define FILE_IS_IDLE						(!HAS_SD_PRINT)
+	#define FILE_IS_PRINT						IS_SD_PRINTING
+	#define FILE_IS_PAUSE						FILE_READER.isPauseState
+	#define FILE_START_PRINT				FILE_READER.startFileprint()
+	#define FILE_PAUSE_PRINT				FILE_READER.pauseSDPrint()
+	#define FILE_STOP_PRINT					FILE_READER.stopSDPrint()
+	#define READER_STATE						IS_SD_INSERTED
+	#define READER_CONN							(IS_SD_INSERTED == 1)
+	#define READER_VALID						FILE_READER.cardOK
+#elif ENABLED(UDISKSUPPORT)
+	#include "UDiskReader.h"
+	#define HAS_READER							true
+	#define FILE_READER							UDisk
+	#define TOUCH_FILE(index)				FILE_READER.selectFile(index)
+	#define TOUCH_WORKDIR						FILE_READER.selectWorkDir()
+	#define GET_FILE_NR							FILE_READER.getNr()
+	#define CUR_FILE_IS_DIR					IS_UDISK_DIR
+	#define FILE_IS_OPEN						IS_UDISK_FILE_OPEN
+	#define FILE_IS_IDLE						IS_UDISK_IDLE
+	#define FILE_IS_PRINT						IS_UDISK_PRINT
+	#define FILE_IS_PAUSE						IS_UDISK_PAUSE
+	#define FILE_START_PRINT				FILE_READER.startPrint()
+	#define FILE_PAUSE_PRINT				FILE_READER.pausePrint()
+	#define FILE_STOP_PRINT					FILE_READER.stopPrint()
+	#define READER_STATE						UDISK_STATE
+	#define READER_CONN							IS_UDISK_CONN
+	#define READER_VALID						IS_UDISK_OK
+#else
+	#define HAS_READER							false
+#endif
+
+#if HAS_AUTO_FAN
+	extern int extruder_auto_fan_speed;
+#endif
+
+#ifdef HAS_AIR_FAN
+	extern int air_fan_speed;
+#endif
+
+#ifdef REG_SN
+	extern float regSN;
+	#ifdef REG_USE_HARDWARE
+		#include "Sequence.h"
+		#define REG_PASS			(checkReg(regSN))
+	#else
+		#define REG_PASS			(regSN == REG_SN)
+	#endif
+	#define LIMITED_USE		(!REG_PASS && ELAPSED(usedTime, TOTAL_TIME_LIMIT))
+#endif
+extern uint32_t	usedTime;
+
+#ifdef QUICK_PAUSE
+	extern bool invalidLoop;
+	extern float pausePos[XYZE];
+	extern float pauseSpeed;
+	extern uint32_t pauseByte;
+	extern float lastPos[XYZE];
+	#ifdef HAS_LEVELING
+		extern bool pauseLeveling;
+	#endif
+#endif
+
+#ifdef WIFI_SUPPORT
+	extern char hostName[24];
+#endif
+
+#define TOOLS_NUM						(MAX_EXTRUDERS + 3)
+#ifdef ACCIDENT_DETECT
+	#define TOOLS_INDEX_BED		MAX_EXTRUDERS
+	#define TOOLS_INDEX_FAN		(MAX_EXTRUDERS + 1)
+	#define TOOLS_INDEX_HOT		(MAX_EXTRUDERS + 2)
+	extern bool moduleIsReady;
+	extern bool isAccidentToPrinting;
+	extern bool isAccident;
+	extern char lastFilename[MAXPATHNAMELENGTH];
+	extern int lastToolsState[TOOLS_NUM];
+#endif
+
+extern bool isUnloadingFilament;
+extern bool isFilamentUnloaded;
+
+#if HAS_LEVELING
+  extern bool probeDone;
+#endif
+
+extern PowerState powerState;
+
+extern bool	isSerialPrinting;
+
+#define FW_STR_LEN	11				// Vx.x.xxxxxx
+extern char versionFW[FW_STR_LEN + 1];
+
+
+void updateStateStrings();
+
+#if HAS_BUZZER
+	#define MY_BEEPER
+	void MyBeeper(uint8_t num);
+	void finishTaskBeeper();
+#endif
+
+#ifdef QUICK_PAUSE
+	uint32_t getGcodePos();
+	void saveLastState();
+	bool quickPausePrintJob();
+	bool quickReusePrintJob();
+	void quickStopPrintJob();
+#endif
+
+#if defined(FILAMENT_CHANGE) || defined(FILAMENT_DETECT)
+	bool pauseToUnloadFilament();
+#endif
+
+#ifdef ACCIDENT_DETECT
+	void preheaToolsState();
+	void openFileFromAccident();
+	void resumePrintFromAccident();
+	void accidentToResume();
+	void accidentToResume_Home();
+	void accidentToCancel();
+#endif
+
+
+#ifdef DEBUG_FREE
+extern "C" {
+	int freeMemory();
+}
+#endif
+
+/******************************************/
+
 
 #endif // MARLIN_H

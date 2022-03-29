@@ -294,6 +294,10 @@ void Stepper::wake_up() {
  *   COREXY: X_AXIS=A_AXIS and Y_AXIS=B_AXIS
  *   COREXZ: X_AXIS=A_AXIS and Z_AXIS=C_AXIS
  *   COREYZ: Y_AXIS=B_AXIS and Z_AXIS=C_AXIS
+ *
+ *   H*X: X_AXIS=A_AXIS
+ *   H*Y: Y_AXIS=B_AXIS
+ *   H*Z: Z_AXIS=C_AXIS
  */
 void Stepper::set_directions() {
 
@@ -762,6 +766,22 @@ void Stepper::isr() {
 
   // If current block is finished, reset pointer
   if (all_steps_done) {
+	#if ENABLED(QUICK_PAUSE)
+  	// when only one plan is rest and this plan is from a file.
+  	// we save the last state for quick_pause.
+  	// Eg. Filament broken while toggle dual extruder.
+  	if((planner.movesplanned() == 1) && (current_block->filePos)){
+  		pauseSpeed = current_block->block_speed;
+  		pauseByte = current_block->filePos;
+  	}
+
+  	count_position[E_AXIS] = current_block->block_realE;	//reset the real E position.
+		#ifdef DEBUG_CMD
+  		SERIAL_ECHO("			move done @ ");
+  		SERIAL_ECHO(current_block->filePos);
+  		report_positions();
+		#endif
+	#endif
     current_block = NULL;
     planner.discard_current_block();
   }
@@ -1102,7 +1122,7 @@ void Stepper::init() {
 /**
  * Block until all buffered steps are executed
  */
-void Stepper::synchronize() { while (planner.blocks_queued()) idle(); }
+void Stepper::synchronize() { while (planner.blocks_queued()) idle(true); }
 
 /**
  * Set the stepper positions directly in steps
@@ -1140,6 +1160,9 @@ void Stepper::set_position(const long &a, const long &b, const long &c, const lo
     count_position[X_AXIS] = a;
     count_position[Y_AXIS] = b;
     count_position[Z_AXIS] = c;
+		#if IS_H
+    	count_position[H_AXIS_M] = HM_DELTA_SET + HS_DELTA_SET;		// replace the wrong value
+		#endif
   #endif
 
   count_position[E_AXIS] = e;
@@ -1147,12 +1170,14 @@ void Stepper::set_position(const long &a, const long &b, const long &c, const lo
 }
 
 void Stepper::set_position(const AxisEnum &axis, const long &v) {
+	synchronize();	// By LYN
   CRITICAL_SECTION_START;
   count_position[axis] = v;
   CRITICAL_SECTION_END;
 }
 
 void Stepper::set_e_position(const long &e) {
+	synchronize();	// By LYN
   CRITICAL_SECTION_START;
   count_position[E_AXIS] = e;
   CRITICAL_SECTION_END;
@@ -1188,6 +1213,15 @@ float Stepper::get_axis_position_mm(AxisEnum axis) {
     }
     else
       axis_steps = position(axis);
+	#elif IS_H
+    if (axis == H_AXIS_M){
+    	//a = x   		->   x = a
+    	//b = x + y		->   y = b - a
+    	CRITICAL_SECTION_START;
+    	axis_steps = count_position[H_AXIS_M] - UNIFY_STEP(count_position[H_AXIS_S]);
+      CRITICAL_SECTION_END;
+    } else
+    	axis_steps = position(axis);
   #else
     axis_steps = position(axis);
   #endif
@@ -1200,13 +1234,41 @@ void Stepper::finish_and_disable() {
 }
 
 void Stepper::quick_stop() {
+#if DISABLED(QUICK_PAUSE)
   #if ENABLED(AUTO_BED_LEVELING_UBL) && ENABLED(ULTIPANEL)
     if (!ubl_lcd_map_control)
       cleaning_buffer_counter = 5000;
   #else
     cleaning_buffer_counter = 5000;
   #endif
+#endif
   DISABLE_STEPPER_DRIVER_INTERRUPT();
+#if ENABLED(QUICK_PAUSE)
+	// calculate and reset the current real E position. ( real_E - (plan_count - plan_completed) / plan_count * (plan_E / plan_E_flow) )
+  if(current_block){
+  	count_position[E_AXIS] =
+  			current_block->block_realE -
+				(long)((current_block->step_event_count - step_events_completed) * (current_block->steps[E_AXIS]) / (current_block->step_event_count * current_block->block_flow));
+  }
+
+	#ifdef DEBUG_CMD
+  if(current_block){
+  	SERIAL_ECHO("			move stop @ ");
+  	SERIAL_ECHO(current_block->filePos);
+  	report_positions();
+
+		SERIAL_ECHO("				Current complete:	");
+		SERIAL_ECHO(step_events_completed);
+		SERIAL_ECHO(" of ");
+		SERIAL_ECHOLN(current_block->step_event_count);
+  }
+	#endif
+
+	saveLastState();			// save the last position and speed.
+	invalidLoop = true;		// (By LYN) most of the time, printer will stop with a new plan begin.
+												// After that, the new plan should be ignore,
+												// or printer will have a needless plan
+#endif
   while (planner.blocks_queued()) planner.discard_current_block();
   current_block = NULL;
   ENABLE_STEPPER_DRIVER_INTERRUPT();
@@ -1219,11 +1281,19 @@ void Stepper::endstop_triggered(AxisEnum axis) {
 
   #if IS_CORE
 
+  if (axis == CORE_AXIS_1 || axis == CORE_AXIS_2) {
     endstops_trigsteps[axis] = 0.5f * (
       axis == CORE_AXIS_2 ? CORESIGN(count_position[CORE_AXIS_1] - count_position[CORE_AXIS_2])
                           : count_position[CORE_AXIS_1] + count_position[CORE_AXIS_2]
     );
+  } else
 
+  	endstops_trigsteps[axis] = count_position[axis];
+	#elif IS_H
+  if (axis == H_AXIS_M){
+  	endstops_trigsteps[axis] = count_position[H_AXIS_M] - UNIFY_STEP(count_position[H_AXIS_S]);
+  } else
+    endstops_trigsteps[axis] = count_position[axis];
   #else // !COREXY && !COREXZ && !COREYZ
 
     endstops_trigsteps[axis] = count_position[axis];
@@ -1240,26 +1310,29 @@ void Stepper::report_positions() {
              zpos = count_position[Z_AXIS];
   CRITICAL_SECTION_END;
 
-  #if CORE_IS_XY || CORE_IS_XZ || IS_SCARA
+  #if CORE_IS_XY || CORE_IS_XZ || IS_SCARA || HM_IS_X
     SERIAL_PROTOCOLPGM(MSG_COUNT_A);
   #else
     SERIAL_PROTOCOLPGM(MSG_COUNT_X);
   #endif
   SERIAL_PROTOCOL(xpos);
 
-  #if CORE_IS_XY || CORE_IS_YZ || IS_SCARA
+  #if CORE_IS_XY || CORE_IS_YZ || IS_SCARA || HM_IS_Y
     SERIAL_PROTOCOLPGM(" B:");
   #else
     SERIAL_PROTOCOLPGM(" Y:");
   #endif
   SERIAL_PROTOCOL(ypos);
 
-  #if CORE_IS_XZ || CORE_IS_YZ
+  #if CORE_IS_XZ || CORE_IS_YZ	|| HM_IS_Z
     SERIAL_PROTOCOLPGM(" C:");
   #else
     SERIAL_PROTOCOLPGM(" Z:");
   #endif
   SERIAL_PROTOCOL(zpos);
+
+  SERIAL_PROTOCOLPGM(" E:");
+  SERIAL_PROTOCOL(count_position[E_AXIS]);
 
   SERIAL_EOL();
 }

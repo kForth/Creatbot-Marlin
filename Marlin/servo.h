@@ -83,8 +83,8 @@
 // Say which 16 bit timers can be used and in what order
 #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__)
   //#define _useTimer1 // Timer 1 is used by the stepper ISR
-  #define _useTimer3
-  #define _useTimer4
+//(By LYN, Reserved for PWM)  #define _useTimer3
+//(By LYN, Reserved for PWM)  #define _useTimer4
   #if !HAS_MOTOR_CURRENT_PWM
     #define _useTimer5 // Timer 5 is used for motor current PWM and can't be used for servos.
   #endif

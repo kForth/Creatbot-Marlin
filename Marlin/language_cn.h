@@ -27,6 +27,11 @@
  * See also http://marlinfw.org/docs/development/lcd_language.html
  *
  */
+
+#ifdef DISPLAY_CHARSET_CREATBOT_CN
+	#define LANGUAGE_CN_H
+#endif
+
 #ifndef LANGUAGE_CN_H
 #define LANGUAGE_CN_H
 

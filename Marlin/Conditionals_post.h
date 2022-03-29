@@ -96,6 +96,52 @@
     #endif
   #endif
 
+	//HM means H type Main axis
+	//HS means H type Second axis
+	#define HM_IS_X (ENABLED(HYX) || ENABLED(HZX))
+	#define HM_IS_Y (ENABLED(HXY) || ENABLED(HZY))
+	#define HM_IS_Z (ENABLED(HXZ) || ENABLED(HYZ))
+	#define HS_IS_X (ENABLED(HXY) || ENABLED(HXZ))
+	#define HS_IS_Y (ENABLED(HYX) || ENABLED(HYZ))
+	#define HS_IS_Z (ENABLED(HZX) || ENABLED(HZY))
+	#define IS_H (HM_IS_X || HM_IS_Y || HM_IS_Z)
+	#if IS_H
+//		#define HXY_DIFF_STEP			//Different steps of the two motors require stepping uniformity (TODO 会导致精度缺失，待解决)
+	#ifdef HXY_DIFF_STEP
+		#define H_UNIFY_FACTOR		(0.4)		// axis_steps_per_mm[H_AXIS_M]/axis_steps_per_mm[H_AXIS_S]
+		#define UNIFY_STEP(value)	(long)(value * H_UNIFY_FACTOR)
+	#else
+		#define UNIFY_STEP(value)	(value)
+	#endif
+
+		#if HM_IS_X
+			#define H_AXIS_M				A_AXIS
+			#define HM_DELTA_SET		a
+			#define HM_DELTA_PLAN		da
+		#elif HM_IS_Y
+			#define H_AXIS_M				B_AXIS
+			#define HM_DELTA_SET		b
+			#define HM_DELTA_PLAN		db
+		#elif HM_IS_Z
+			#define H_AXIS_M				C_AXIS
+			#define HM_DELTA_SET		c
+			#define HM_DELTA_PLAN		dc
+		#endif
+		#if HS_IS_X
+			#define H_AXIS_S				X_AXIS
+			#define HS_DELTA_SET		UNIFY_STEP(a)
+			#define HS_DELTA_PLAN		UNIFY_STEP(da)
+		#elif HS_IS_Y
+			#define H_AXIS_S				Y_AXIS
+			#define HS_DELTA_SET		UNIFY_STEP(b)
+			#define HS_DELTA_PLAN		UNIFY_STEP(db)
+		#elif HS_IS_Z
+			#define H_AXIS_S				Z_AXIS
+			#define HS_DELTA_SET		UNIFY_STEP(c)
+			#define HS_DELTA_PLAN		UNIFY_STEP(dc)
+		#endif
+	#endif
+
   /**
    * No adjustable bed on non-cartesians
    */
@@ -229,7 +275,7 @@
   /**
    * Override here because this is set in Configuration_adv.h
    */
-  #if ENABLED(ULTIPANEL) && DISABLED(ELB_FULL_GRAPHIC_CONTROLLER)
+  #if (ENABLED(ULTIPANEL) || ENABLED(DWIN_LCD)) && DISABLED(ELB_FULL_GRAPHIC_CONTROLLER)
     #undef SD_DETECT_INVERTED
   #endif
 
@@ -343,6 +389,18 @@
   #elif TEMP_SENSOR_BED > 0
     #define THERMISTORBED TEMP_SENSOR_BED
     #define BED_USES_THERMISTOR
+  #endif
+
+  #if TEMP_SENSOR_CHAMBER <= -2
+    #error "MAX6675 / MAX31855 Thermocouples not supported for TEMP_SENSOR_CHAMBER"
+  #elif TEMP_SENSOR_CHAMBER == -1
+    #define CHAMBER_USES_AD595
+  #elif TEMP_SENSOR_CHAMBER == 0
+    #undef CHAMBER_MINTEMP
+    #undef CHAMBER_MAXTEMP
+  #elif TEMP_SENSOR_CHAMBER > 0
+    #define THERMISTORCHAMBER TEMP_SENSOR_CHAMBER
+    #define CHAMBER_USES_THERMISTOR
   #endif
 
   /**
@@ -559,6 +617,7 @@
   #define HAS_TEMP_4 (PIN_EXISTS(TEMP_4) && TEMP_SENSOR_4 != 0 && TEMP_SENSOR_4 > -2)
   #define HAS_TEMP_HOTEND (HAS_TEMP_0 || ENABLED(HEATER_0_USES_MAX6675))
   #define HAS_TEMP_BED (PIN_EXISTS(TEMP_BED) && TEMP_SENSOR_BED != 0 && TEMP_SENSOR_BED > -2)
+  #define HAS_TEMP_CHAMBER (PIN_EXISTS(TEMP_CHAMBER) && TEMP_SENSOR_CHAMBER != 0 && TEMP_SENSOR_CHAMBER > -2)
 
   // Heaters
   #define HAS_HEATER_0 (PIN_EXISTS(HEATER_0))
@@ -567,6 +626,7 @@
   #define HAS_HEATER_3 (PIN_EXISTS(HEATER_3))
   #define HAS_HEATER_4 (PIN_EXISTS(HEATER_4))
   #define HAS_HEATER_BED (PIN_EXISTS(HEATER_BED))
+  #define HAS_HEATER_CHAMBER (PIN_EXISTS(HEATER_CHAMBER))
 
   // Thermal protection
   #define HAS_THERMALLY_PROTECTED_BED (ENABLED(THERMAL_PROTECTION_BED) && HAS_TEMP_BED && HAS_HEATER_BED)
@@ -664,6 +724,9 @@
     #endif
     #define WRITE_HEATER_BED(v) WRITE(HEATER_BED_PIN, (v) ^ HEATER_BED_INVERTING)
   #endif
+	#if HAS_HEATER_CHAMBER
+		#define WRITE_HEATER_CHAMBER(v) WRITE(HEATER_CHAMBER_PIN, v)
+	#endif
 
   /**
    * Up to 3 PWM fans

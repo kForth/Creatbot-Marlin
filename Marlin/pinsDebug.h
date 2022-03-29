@@ -55,6 +55,16 @@ bool endstop_monitor_flag = false;
   static const char TXD_NAME[] PROGMEM = { "TXD" };
 #endif
 
+#ifdef DWIN_LCD
+  static const char RXD_NAME3[] PROGMEM = { "RXD3<DWIN>" };
+  static const char TXD_NAME3[] PROGMEM = { "TXD3<DWIN>" };
+#endif
+
+#ifdef WIFI_SUPPORT
+  static const char RXD_NAME1[] PROGMEM = { "RXD1<WIFI>" };
+  static const char TXD_NAME1[] PROGMEM = { "TXD1<WIFI>" };
+#endif
+
 /////////////////////////////////////////////////////////////////////////////
 
 // second pass - create the array
@@ -97,8 +107,18 @@ const PinInfo pin_array[] PROGMEM = {
     #endif
   #endif
 
+	#ifdef DWIN_LCD
+			{ RXD_NAME3, 15, true },
+			{ TXD_NAME3, 14, true },
+	#endif
+
+	#ifdef WIFI_SUPPORT
+			{ RXD_NAME1, 19, true },
+			{ TXD_NAME1, 18, true },
+	#endif
+
   #include "pinsDebug_list.h"
-  #line 102
+  #line 122
 
 };
 

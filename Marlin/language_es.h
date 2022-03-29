@@ -32,7 +32,7 @@
 
 #define DISPLAY_CHARSET_ISO10646_1
 
-#define WELCOME_MSG                         MACHINE_NAME _UxGT(" lista.")
+#define WELCOME_MSG                         MACHINE_NAME _UxGT(" PREPARADA.")
 #define MSG_BACK                            _UxGT("Atras")
 #define MSG_SD_INSERTED                     _UxGT("Tarjeta colocada")
 #define MSG_SD_REMOVED                      _UxGT("Tarjeta retirada")
