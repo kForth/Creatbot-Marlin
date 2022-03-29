@@ -1,7 +1,14 @@
 # Marlin 3D Printer Firmware
-<img align="right" src="../../raw/1.1.x/buildroot/share/pixmaps/logo/marlin-250.png" />
+
+## Creatbot F430
+[<img align="right" height="150" src="https://www.creatbot.com/images/creatbot_logo_en.png" />](https://www.creatbot.com/)
+
+This is source code for the original marlin-based firmware running on the [Creatbot F430](https://www.creatbot.com/en/creatbot-f430.html). The source code was provided to me by Creatbot upon request and has been uploaded here without modification.
+
+Notable differences from Marlin include a non-standard LCD touchscreen and heated build volume.
 
 ## Marlin 1.1
+<img align="right" src="../../raw/1.1.x/buildroot/share/pixmaps/logo/marlin-250.png" />
 
 Marlin 1.1 represents an evolutionary leap over Marlin 1.0.2. It is the result of over two years of effort by several volunteers around the world who have paid meticulous and sometimes obsessive attention to every detail. For this release we focused on code quality, performance, stability, and overall user experience. Several new features have also been added, many of which require no extra hardware.
 
