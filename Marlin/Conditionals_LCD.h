@@ -260,7 +260,7 @@
 
   #if ENABLED(DOGLCD) // Change number of lines to match the DOG graphic display
     #ifndef LCD_WIDTH
-      #define LCD_WIDTH 22
+      #define LCD_WIDTH 21		//(By LYN, default is 22)
     #endif
     #ifndef LCD_HEIGHT
       #define LCD_HEIGHT 5
@@ -418,7 +418,9 @@
     #ifndef NUM_SERVOS
       #define NUM_SERVOS (Z_ENDSTOP_SERVO_NR + 1)
     #endif
-    #undef DEACTIVATE_SERVOS_AFTER_MOVE
+		#ifdef BL_TOUCH_SIGNAL_SELF_FILTER	// BY LYN
+			#undef DEACTIVATE_SERVOS_AFTER_MOVE
+		#endif
     #if NUM_SERVOS == 1
       #undef SERVO_DELAY
       #define SERVO_DELAY { 50 }

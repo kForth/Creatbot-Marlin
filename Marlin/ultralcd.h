@@ -33,7 +33,8 @@
   extern int16_t lcd_preheat_hotend_temp[2], lcd_preheat_bed_temp[2], lcd_preheat_fan_speed[2];
 
   int16_t lcd_strlen(const char* s);
-  int16_t lcd_strlen_P(const char* s);
+//  int16_t lcd_strlen_P(const char* s);
+  float lcd_strlen_P(const char* s);
   void lcd_update();
   void lcd_init();
   bool lcd_hasstatus();
@@ -163,6 +164,19 @@
                                             )
 
   #elif ENABLED(NEWPANEL)
+		#if ENABLED(MY_KEYPAD)
+			#define BTN_MY_Z_UP								0x40
+			#define BTN_MY_INC								0x30
+			#define	 BTN_MY_SD								0x20
+			#define BTN_MY_BED								0x10
+			#define BTN_MY_OK									0xF0
+			#define BTN_MY_HOME 							0x80
+			#define BTN_MY_Z_DOWN							0x70
+			#define BTN_MY_DEC								0x60
+			#define BTN_MY_PAUSE							0x50
+			#define MY_KEYPAD_PRESSED					(buttons > 0x0F)
+		#endif
+		#define LCD_OPERATE	 (buttons > 0)
     #define LCD_CLICKED (buttons & EN_C)
   #else
     #define LCD_CLICKED false

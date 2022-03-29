@@ -531,13 +531,15 @@
   #define MSG_CONTRAST                        _UxGT("LCD contrast")
 #endif
 #ifndef MSG_STORE_EEPROM
-  #define MSG_STORE_EEPROM                    _UxGT("Store settings")
+//  #define MSG_STORE_EEPROM                    _UxGT("Store settings")
+  #define MSG_STORE_EEPROM                    _UxGT("Save settings")			// By LYN
 #endif
 #ifndef MSG_LOAD_EEPROM
   #define MSG_LOAD_EEPROM                     _UxGT("Load settings")
 #endif
 #ifndef MSG_RESTORE_FAILSAFE
-  #define MSG_RESTORE_FAILSAFE                _UxGT("Restore failsafe")
+//  #define MSG_RESTORE_FAILSAFE                _UxGT("Restore failsafe")
+  #define MSG_RESTORE_FAILSAFE                _UxGT("Factory setting")		// By LYN
 #endif
 #ifndef MSG_INIT_EEPROM
   #define MSG_INIT_EEPROM                     _UxGT("Initialize EEPROM")

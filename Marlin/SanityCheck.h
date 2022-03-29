@@ -525,7 +525,25 @@ static_assert(1 >= 0
   #if ENABLED(COREZY)
     + 1
   #endif
-  , "Please enable only one of DELTA, MORGAN_SCARA, MAKERARM_SCARA, COREXY, COREYX, COREXZ, COREZX, COREYZ, or COREZY."
+	#if ENABLED(HXY)
+		+ 1
+	#endif
+	#if ENABLED(HYX)
+		+ 1
+	#endif
+	#if ENABLED(HXZ)
+		+ 1
+	#endif
+	#if ENABLED(HZX)
+		+ 1
+	#endif
+	#if ENABLED(HYZ)
+		+ 1
+	#endif
+	#if ENABLED(HZY)
+		+ 1
+	#endif
+  , "Please enable only one of DELTA, MORGAN_SCARA, MAKERARM_SCARA, COREXY, COREYX, COREXZ, COREZX, COREYZ, COREZY, HXY, HYX, HXZ, HZX, HYZ or HZY."
 );
 
 /**
@@ -1238,6 +1256,9 @@ static_assert(1 >= 0
   #if ENABLED(ANET_KEYPAD_LCD)
     + 1
   #endif
+	#if ENABLED(DWIN_LCD)		// By LYN
+		+ 1
+	#endif
   , "Please select no more than one LCD controller option."
 );
 
@@ -1384,3 +1405,65 @@ static_assert(COUNT(sanity_arr_3) <= XYZE_N, "DEFAULT_MAX_ACCELERATION has too m
     #endif
   #endif
 #endif // SPINDLE_LASER_ENABLE
+
+/**
+ * CreatBot Sanity Check
+ */
+
+#if ENABLED(NTC) && ENABLED(KTC)
+	#error "You cannot have NTC and KTC both."
+#endif
+
+#if DISABLED(NTC) && DISABLED(KTC)
+	#error "You should defined NTC or KTC."
+#endif
+
+#if ENABLED(SDSUPPORT) && ENABLED(UDISKSUPPORT)
+	#error "You cannot have SD and USB both."
+#endif //SDSUPPORT && UDISKSUPPORT
+
+#if ENABLED(QUICK_PAUSE) && DISABLED(SDSUPPORT) && DISABLED(UDISKSUPPORT)
+	#error "QUICK_PAUSE need SD/UDisk support."
+#endif
+
+#if ENABLED(QUICK_PAUSE) && ENABLED(ADVANCED_PAUSE_FEATURE)
+	#error "QUICK_PAUSE and ADVANCED_PAUSE_FEATURE is incompatible."
+#endif
+
+#if DISABLED(QUICK_PAUSE)
+	#if ENABLED(FILAMENT_CHANGE)
+		#error "FILAMENT_CHANGE FEATURE need QUICK_PAUSE."
+	#elif ENABLED(ACCIDENT_DETECT)
+		#error "ACCIDENT_DETECT FEATURE need QUICK_PAUSE."
+	#endif
+#endif
+
+#if ENABLED(HOTWIND_SYSTEM) && EXTRUDERS > 2
+	#error "For now, HOTWIND used the HEATER_2_PIN"
+#endif
+
+#if (MODEL == F160  || MODEL == F200 || MODEL == F220) && EXTRUDERS > 1
+	#error "F160 has only one extruder."
+#endif
+
+#if DISABLED(LCD12864)
+	#if ENABLED(MY_KEYPAD)
+		#error "MY_KEYPAD need a LCD12864"
+	#endif
+#endif
+
+#if DISABLED(LCD480272)
+	#if ENABLED(UDISKSUPPORT)
+		#error "UDISKSUPPORT need a LCD480272"
+	#endif
+	#if ENABLED(HAS_AIR_FAN)
+		#error "AIR_FILTER_FAN need a LCD480272"
+	#endif
+	#if ENABLED(HOTWIND_SYSTEM)
+		#error "HOTWIND_SYSTEM need a LCD480272"
+	#endif
+	#if ENABLED(WIFI_SUPPORT)
+		#error "WIFI_SUPPORT need a LCD480272"
+	#endif
+#endif
+

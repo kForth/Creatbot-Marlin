@@ -162,6 +162,61 @@ struct duration_t {
       return 6;
     }
   }
+
+  /**
+   * @Autor CreatBot LYN
+   * @param buffer The array pointed to must be able to accommodate 13 bytes
+   *
+   * Output examples:
+   *  123456789012 (strlen)
+   *  [9999:59:59]
+   *  <99:59:59>
+   */
+	void toTimeREG(char *buffer, char prefixChar = '\0', char suffixChar = '\0') const {
+		uint16_t	h = this->hour() % 10000,
+							m = this->minute() % 60,
+							s = this->second() % 60;
+		if((prefixChar == '\0') || (suffixChar == '\0'))
+			sprintf_P(buffer, PSTR("%u:%02u:%02u"), h, m, s);
+		else
+			sprintf_P(buffer, PSTR("%c%u:%02u:%02u%c"), prefixChar, h, m, s, suffixChar);
+  }
+
+  /**
+   * @Autor CreatBot LYN
+   * @param buffer The array pointed to must be able to accommodate 9 bytes
+   *
+   * Output examples:
+   *  12345678 (strlen)
+   *  99995959
+   *  010101
+   */
+	void toTimeDWIN(char *buffer, uint8_t h_len) const {
+		uint16_t	h = this->hour() % 10000,
+							m = this->minute() % 60,
+							s = this->second() % 60;
+		if(h_len == 4)
+			sprintf_P(buffer, PSTR("%04u%02u%02u"), h, m, s);
+		else if(h_len == 2)
+			sprintf_P(buffer, PSTR("%02u%02u%02u"), h % 100, m, s);
+		else
+			sprintf_P(buffer, PSTR("%u%02u%02u"), h, m, s);
+	}
+
+
+	/**
+	 * @Autor CreatBot LYN
+	 * @param buffer The array pointed to must be able to accommodate 6 bytes
+	 *
+	 * Output examples:
+	 * 12345 (strlen)
+	 * 02:59
+	 */
+	void toTimeShutDown(char *buffer) const {
+		uint16_t	m = this->minute() % 60,
+							s = this->second() % 60;
+		sprintf_P(buffer, PSTR("%02u:%02u"), m, s);
+	}
 };
 
 #endif // __DURATION_T__

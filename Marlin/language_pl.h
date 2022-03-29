@@ -42,4 +42,9 @@
   #include "language_pl-HD44780.h"
 #endif
 
+#ifdef DWIN_LCD
+	#undef WELCOME_MSG
+	#define WELCOME_MSG			_UxGT("Drukarka ") MACHINE_NAME " jest gotowa"
+#endif
+
 #endif // LANGUAGE_PL_H

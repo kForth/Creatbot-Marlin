@@ -28,7 +28,8 @@
 #elif THERMISTOR_ID == -2
   #define THERMISTOR_NAME "MAX6675"
 #elif THERMISTOR_ID == -1
-  #define THERMISTOR_NAME "AD595"
+//By LYN #define THERMISTOR_NAME "AD595"
+  #define THERMISTOR_NAME "AD597"		// By LYN
 
 // Standard thermistors
 #elif THERMISTOR_ID == 1

@@ -154,6 +154,10 @@ float Planner::previous_speed[NUM_AXIS],
   volatile uint32_t Planner::block_buffer_runtime_us = 0;
 #endif
 
+#if ENABLED(QUICK_PAUSE)
+  extern float feedrate_mm_s;
+#endif
+
 /**
  * Class and Instance Methods
  */
@@ -664,7 +668,10 @@ void Planner::check_axes_activity() {
 
       #if ENABLED(ENABLE_LEVELING_FADE_HEIGHT)
         const float c = bilinear_z_offset(logical);
-        logical[Z_AXIS] = (z_fade_height * (RAW_Z_POSITION(logical[Z_AXIS]) - c)) / (z_fade_height - c);
+        if(z_fade_height)
+        	logical[Z_AXIS] = (z_fade_height * (RAW_Z_POSITION(logical[Z_AXIS]) - c)) / (z_fade_height - c);
+        else
+        	logical[Z_AXIS] -= c;
       #else
         logical[Z_AXIS] -= bilinear_z_offset(logical);
       #endif
@@ -686,6 +693,20 @@ void Planner::check_axes_activity() {
  *  extruder    - target extruder
  */
 void Planner::_buffer_line(const float &a, const float &b, const float &c, const float &e, float fr_mm_s, const uint8_t extruder) {
+
+	#ifdef DEBUG_CMD
+		SERIAL_ECHO("		buffer line @ ");
+		SERIAL_ECHO(getGcodePos());
+		SERIAL_ECHO("	:	");
+		SERIAL_ECHO(a);
+		SERIAL_ECHO("	");
+		SERIAL_ECHO(b);
+		SERIAL_ECHO("	");
+		SERIAL_ECHO(c);
+		SERIAL_ECHO("	");
+		SERIAL_ECHO(e);
+		SERIAL_ECHO("	");
+	#endif
 
   // The target position of the tool in absolute steps
   // Calculate target position in absolute steps
@@ -797,6 +818,21 @@ void Planner::_buffer_line(const float &a, const float &b, const float &c, const
     if (dc < 0) SBI(dm, Z_HEAD);                // ...and Z
     if (db + dc < 0) SBI(dm, B_AXIS);           // Motor B direction
     if (CORESIGN(db - dc) < 0) SBI(dm, C_AXIS); // Motor C direction
+	#elif IS_H
+		#if HM_IS_X
+			if (da < 0) SBI(dm, X_HEAD);
+			if (db < 0) SBI(dm, Y_AXIS);
+			if (dc < 0) SBI(dm, Z_AXIS);
+		#elif HM_IS_Y
+			if (da < 0) SBI(dm, X_AXIS);
+      if (db < 0) SBI(dm, Y_HEAD);
+      if (dc < 0) SBI(dm, Z_AXIS);
+		#elif HM_IS_Z
+			if (da < 0) SBI(dm, X_AXIS);
+			if (db < 0) SBI(dm, Y_AXIS);
+			if (dc < 0) SBI(dm, Z_HEAD);
+		#endif
+		if(HM_DELTA_PLAN + HS_DELTA_PLAN < 0) SBI(dm, H_AXIS_M);
   #else
     if (da < 0) SBI(dm, X_AXIS);
     if (db < 0) SBI(dm, Y_AXIS);
@@ -804,7 +840,16 @@ void Planner::_buffer_line(const float &a, const float &b, const float &c, const
   #endif
   if (de < 0) SBI(dm, E_AXIS);
 
+#if ENABLED(QUICK_PAUSE)
+  float esteps_float;
+  if(getGcodePos()){
+    esteps_float = de * volumetric_multiplier[extruder] * flow_percentage[extruder] * 0.01;
+  } else {
+    esteps_float = de * volumetric_multiplier[extruder];
+  }
+#else
   const float esteps_float = de * volumetric_multiplier[extruder] * flow_percentage[extruder] * 0.01;
+#endif
   const int32_t esteps = abs(esteps_float) + 0.5;
 
   // Calculate the buffer head after we push this byte
@@ -812,13 +857,36 @@ void Planner::_buffer_line(const float &a, const float &b, const float &c, const
 
   // If the buffer is full: good! That means we are well ahead of the robot.
   // Rest here until there is room in the buffer.
+#if ENABLED(QUICK_PAUSE)
+  while ((block_buffer_tail == next_buffer_head) && !invalidLoop) idle();
+
+	if(invalidLoop){
+	#ifdef DEBUG_CMD
+		SERIAL_ECHOLN("discard");
+	#endif
+		return;
+	}
+
+#else
   while (block_buffer_tail == next_buffer_head) idle();
+#endif
 
   // Prepare to set up new block
   block_t* block = &block_buffer[block_buffer_head];
 
   // Clear all flags, including the "busy" bit
   block->flag = 0;
+
+	#if ENABLED(QUICK_PAUSE)
+		block->filePos = getGcodePos();
+		block->block_speed = feedrate_mm_s;
+		if(getGcodePos()){
+			block->block_flow = flow_percentage[extruder] * 0.01;
+		} else{
+			block->block_flow = 1;
+		}
+		block->block_realE = target[E_AXIS];
+	#endif
 
   // Set direction bits
   block->direction_bits = dm;
@@ -842,13 +910,25 @@ void Planner::_buffer_line(const float &a, const float &b, const float &c, const
     block->steps[X_AXIS] = labs(da);
     block->steps[Y_AXIS] = labs(db);
     block->steps[Z_AXIS] = labs(dc);
+		#if IS_H
+			block->steps[H_AXIS_M] = labs(HM_DELTA_PLAN + HS_DELTA_PLAN);		// replace the wrong value
+		#endif
   #endif
 
   block->steps[E_AXIS] = esteps;
   block->step_event_count = MAX4(block->steps[X_AXIS], block->steps[Y_AXIS], block->steps[Z_AXIS], esteps);
 
   // Bail if this is a zero-length block
+#ifdef DEBUG_CMD
+  if (block->step_event_count < MIN_STEPS_PER_SEGMENT){
+  	SERIAL_ECHOLN("ignore");
+  	return;
+  } else {
+  	SERIAL_ECHOLN("complete");
+  }
+#else
   if (block->step_event_count < MIN_STEPS_PER_SEGMENT) return;
+#endif
 
   // For a mixing extruder, get a magnified step_event_count for each
   #if ENABLED(MIXING_EXTRUDER)
@@ -894,6 +974,17 @@ void Planner::_buffer_line(const float &a, const float &b, const float &c, const
     #if DISABLED(Z_LATE_ENABLE)
       if (block->steps[Z_AXIS]) enable_Z();
     #endif
+		#if IS_H
+			if(block->steps[H_AXIS_M]){   // When M axis is move, The S axis must enable to prevent S axis is move.
+				#if HS_IS_X
+					enable_X();
+				#elif HS_IS_Y
+					enable_Y();
+				#elif HS_IS_Z
+					enable_Z();
+				#endif
+			}
+		#endif
   #endif
 
   // Enable extruder(s)
@@ -1025,6 +1116,22 @@ void Planner::_buffer_line(const float &a, const float &b, const float &c, const
       delta_mm[B_AXIS] = (db + dc) * steps_to_mm[B_AXIS];
       delta_mm[C_AXIS] = CORESIGN(db - dc) * steps_to_mm[C_AXIS];
     #endif
+	#elif IS_H
+    float delta_mm[Z_HEAD + 1];
+		#if HM_IS_X
+			delta_mm[X_HEAD] = da * steps_to_mm[A_AXIS];
+			delta_mm[Y_AXIS] = db * steps_to_mm[Y_AXIS];
+			delta_mm[Z_AXIS] = dc * steps_to_mm[Z_AXIS];
+		#elif HM_IS_Y
+			delta_mm[X_AXIS] = da * steps_to_mm[X_AXIS];
+			delta_mm[Y_HEAD] = db * steps_to_mm[B_AXIS];
+			delta_mm[Z_AXIS] = dc * steps_to_mm[Z_AXIS];
+		#elif HM_IS_Z
+			delta_mm[X_AXIS] = da * steps_to_mm[X_AXIS];
+			delta_mm[Y_AXIS] = db * steps_to_mm[Y_AXIS];
+			delta_mm[Z_HEAD] = dc * steps_to_mm[C_AXIS];
+		#endif
+		delta_mm[H_AXIS_M] = (HM_DELTA_PLAN + HS_DELTA_PLAN) * steps_to_mm[H_AXIS_M];
   #else
     float delta_mm[XYZE];
     delta_mm[X_AXIS] = da * steps_to_mm[X_AXIS];
@@ -1044,6 +1151,14 @@ void Planner::_buffer_line(const float &a, const float &b, const float &c, const
         sq(delta_mm[X_HEAD]) + sq(delta_mm[Y_AXIS]) + sq(delta_mm[Z_HEAD])
       #elif CORE_IS_YZ
         sq(delta_mm[X_AXIS]) + sq(delta_mm[Y_HEAD]) + sq(delta_mm[Z_HEAD])
+			#elif IS_H
+				#if HM_IS_X
+					sq(delta_mm[X_HEAD]) + sq(delta_mm[Y_AXIS]) + sq(delta_mm[Z_AXIS])
+				#elif HM_IS_Y
+					sq(delta_mm[X_AXIS]) + sq(delta_mm[Y_HEAD]) + sq(delta_mm[Z_AXIS])
+				#elif HM_IS_Z
+					sq(delta_mm[X_AXIS]) + sq(delta_mm[Y_AXIS]) + sq(delta_mm[Z_HEAD])
+				#endif
       #else
         sq(delta_mm[X_AXIS]) + sq(delta_mm[Y_AXIS]) + sq(delta_mm[Z_AXIS])
       #endif
@@ -1497,7 +1612,7 @@ void Planner::set_position_mm(const AxisEnum axis, const float &v) {
   #if ENABLED(LIN_ADVANCE)
     position_float[axis] = v;
   #endif
-  stepper.set_position(axis, v);
+  stepper.set_position(axis, position[axis]);
   previous_speed[axis] = 0.0;
 }
 

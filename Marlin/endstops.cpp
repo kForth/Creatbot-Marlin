@@ -256,7 +256,8 @@ void Endstops::update() {
 
   #define UPDATE_ENDSTOP(AXIS,MINMAX) do { \
       UPDATE_ENDSTOP_BIT(AXIS, MINMAX); \
-      if (TEST_ENDSTOP(_ENDSTOP(AXIS, MINMAX)) && stepper.current_block->steps[_AXIS(AXIS)] > 0) { \
+      /*if (TEST_ENDSTOP(_ENDSTOP(AXIS, MINMAX)) && stepper.current_block->steps[_AXIS(AXIS)] > 0) { \ By LYN*/\
+      if (TEST_ENDSTOP(_ENDSTOP(AXIS, MINMAX))) { \
         _ENDSTOP_HIT(AXIS, MINMAX); \
         stepper.endstop_triggered(_AXIS(AXIS)); \
       } \
@@ -284,6 +285,13 @@ void Endstops::update() {
     #define D_(N) stepper.motor_direction(CORE_AXIS_##N)
   #endif
 
+	#if IS_H
+		#define S_M stepper.current_block->steps[H_AXIS_M]
+		#define S_S UNIFY_STEP(stepper.current_block->steps[H_AXIS_S])
+		#define D_M stepper.motor_direction(H_AXIS_M)
+		#define D_S stepper.motor_direction(H_AXIS_S)
+	#endif
+
   #if CORE_IS_XY || CORE_IS_XZ
     /**
      * Head direction in -X axis for CoreXY and CoreXZ bots.
@@ -299,6 +307,9 @@ void Endstops::update() {
     #endif
     #define X_MOVE_TEST ( S_(1) != S_(2) || (S_(1) > 0 && D_(1) X_CMP D_(2)) )
     #define X_AXIS_HEAD X_HEAD
+	#elif HM_IS_X
+		#define X_MOVE_TEST ( S_M != S_S || ((S_M > 0) && (D_M != D_S)) )
+		#define X_AXIS_HEAD X_HEAD
   #else
     #define X_MOVE_TEST stepper.current_block->steps[X_AXIS] > 0
     #define X_AXIS_HEAD X_AXIS
@@ -319,6 +330,9 @@ void Endstops::update() {
     #endif
     #define Y_MOVE_TEST ( S_(1) != S_(2) || (S_(1) > 0 && D_(1) Y_CMP D_(2)) )
     #define Y_AXIS_HEAD Y_HEAD
+	#elif HM_IS_Y
+		#define Y_MOVE_TEST ( S_M != S_S || ((S_M > 0) && (D_M != D_S)) )
+		#define Y_AXIS_HEAD Y_HEAD
   #else
     #define Y_MOVE_TEST stepper.current_block->steps[Y_AXIS] > 0
     #define Y_AXIS_HEAD Y_AXIS
@@ -339,6 +353,9 @@ void Endstops::update() {
     #endif
     #define Z_MOVE_TEST ( S_(1) != S_(2) || (S_(1) > 0 && D_(1) Z_CMP D_(2)) )
     #define Z_AXIS_HEAD Z_HEAD
+	#elif HM_IS_Z
+		#define Z_MOVE_TEST ( S_M != S_S || ((S_M > 0) && (D_M != D_S)) )
+		#define Z_AXIS_HEAD Z_HEAD
   #else
     #define Z_MOVE_TEST stepper.current_block->steps[Z_AXIS] > 0
     #define Z_AXIS_HEAD Z_AXIS

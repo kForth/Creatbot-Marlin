@@ -187,6 +187,15 @@
   #endif
 #endif
 
+#ifdef THERMISTORCHAMBER
+	#define CHAMBERTABLE TT_NAME(THERMISTORCHAMBER)
+	#define CHAMBERTABLE_LEN COUNT(CHAMBERTABLE)
+#else
+	#ifdef CHAMBER_USES_THERMISTOR
+		#error "No chamber thermistor table specified"
+	#endif
+#endif
+
 // Set the high and low raw values for the heaters
 // For thermistors the highest temperature results in the lowest ADC value
 // For thermocouples the highest temperature results in the highest ADC value
@@ -243,6 +252,15 @@
     #define HEATER_BED_RAW_HI_TEMP 16383
     #define HEATER_BED_RAW_LO_TEMP 0
   #endif
+#endif
+#ifndef HEATER_CHAMBER_RAW_HI_TEMP
+	#ifdef CHAMBER_USES_THERMISTOR
+		#define HEATER_CHAMBER_RAW_HI_TEMP 0
+		#define HEATER_CHAMBER_RAW_LO_TEMP	16383
+	#else
+		#define HEATER_CHAMBER_RAW_HI_TEMP 16383
+		#define HEATER_CHAMBER_RAW_LO_TEMP	0
+	#endif
 #endif
 
 #endif // THERMISTORTABLES_H_

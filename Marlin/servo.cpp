@@ -59,8 +59,8 @@
 
 #include "servo.h"
 
-#define usToTicks(_us)    (( clockCyclesPerMicrosecond()* _us) / 8)     // converts microseconds to tick (assumes prescale of 8)  // 12 Aug 2009
-#define ticksToUs(_ticks) (( (unsigned)_ticks * 8)/ clockCyclesPerMicrosecond() ) // converts from ticks back to microseconds
+#define usToTicks(_us)    (( clockCyclesPerMicrosecond()* (_us)) / 8)     // converts microseconds to tick (assumes prescale of 8)  // 12 Aug 2009
+#define ticksToUs(_ticks) (( (unsigned)(_ticks) * 8)/ clockCyclesPerMicrosecond() ) // converts from ticks back to microseconds
 
 #define TRIM_DURATION       2                               // compensation ticks to trim adjust for digitalWrite delays // 12 August 2009
 
@@ -242,10 +242,12 @@ static bool isTimerActive(timer16_Sequence_t timer) {
 Servo::Servo() {
   if (ServoCount < MAX_SERVOS) {
     this->servoIndex = ServoCount++;                    // assign a servo index to this instance
-    servo_info[this->servoIndex].ticks = usToTicks(DEFAULT_PULSE_WIDTH);   // store default values  - 12 Aug 2009
+//By LYN    servo_info[this->servoIndex].ticks = usToTicks(DEFAULT_PULSE_WIDTH);   // store default values  - 12 Aug 2009
+    servo_info[this->servoIndex].ticks = usToTicks(DEFAULT_PULSE_WIDTH - TRIM_DURATION);   // By LYN
   }
   else
     this->servoIndex = INVALID_SERVO;  // too many servos
+  this->min = this->max = 0;	//By LYN
 }
 
 int8_t Servo::attach(int pin) {

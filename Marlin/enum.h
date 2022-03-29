@@ -29,7 +29,7 @@
  * Axis indices as enumerated constants
  *
  * Special axis:
- *  - A_AXIS and B_AXIS are used by COREXY printers
+ *  - A_AXIS and B_AXIS are used by COREXY printers or HXY printers
  *  - X_HEAD and Y_HEAD is used for systems that don't have a 1:1 relationship
  *    between X_AXIS and X Head movement, like CoreXY bots
  */
@@ -185,5 +185,17 @@ enum LCDViewAction {
 #if ENABLED(CNC_WORKSPACE_PLANES)
   enum WorkspacePlane { PLANE_XY, PLANE_ZX, PLANE_YZ };
 #endif
+
+/**
+ * Power State (By LYN)
+ */
+enum PowerState{
+	POWER_SHUTTING,
+	POWER_COOLING,
+	POWER_TIMING_OFF_IDLE,
+	POWER_TIMING_OFF_HEATING,
+	POWER_TIMING_OFF_FILAMENT_ERROR,
+	POWER_NORMAL
+};
 
 #endif // __ENUM_H__
