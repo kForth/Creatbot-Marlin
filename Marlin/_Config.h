@@ -1,8 +1,6 @@
 #ifndef CREATBOT_CONFIG_H
 #define CREATBOT_CONFIG_H
 
-#define MAKE_BEGIN
-
 #define OEM CreatBot
 #define MODEL F430
 #define EXTRUDERS 2
@@ -11,127 +9,8 @@
 //#define NTC
 
 #define MAKE_BATCH
-#ifdef MAKE_BATCH
-//  #define MAKE_LCD                  2         // 0 is 2004, 1 is 12864, 2 is 480272
-//  #define MAKE_SYSTEM               1         // 0 is Normal, 1 is CoreXY, 2 is Linear guide, 3 is HXY
-//  #define MAKE_FILE_TYPE            1         // 0 is SD Card, 1 is USB Disk
-//  #define MAKE_HOTEND_SERIES        0         // 0 is D_SERIES, 1 is F_SERIES
-//  #define MAKE_NEAR_FEED
-//  #define MAKE_Z_1604
-//  #define MAKE_D_SERIES_USE_175
-//  #define MAKE_MY_KEYPAD
-//  #define MAKE_POWER_MANAGEMENT
-//  #define MAKE_NOT_AUTO_SHUTDOWN
-//  #define MAKE_HOTWIND
-//  #define MAKE_AUTO_LEVELING
-//  #define MAKE_WIFI_SUPPORT
-//  #define MAKE_Y_DUAL_STEPPER
-//  #define MAKE_F_SERIES_ALLOW_500
-//  #define MAKE_F_SERIES_BOARD_VERSION_LT_V95
-
-  #undef MAKE_BEGIN
-#else // not MAKE_BATCH
-
-/******屏幕配置******/
-//  #define LCD2004
-//  #define LCD12864
-  #define LCD480272
-
-/******运动架构******/
-//  #define COREXY
-  #define LINEAR_GUIDE
-//  #define HXY
-
-/******存储支持******/
-//  #define SDSUPPORT
-  #define UDISKSUPPORT
-
-/******喷头系列******/
-  #define D_SERIES
-//  #define F_SERIES
-
-//  #define NEAR_FEED                 //近端送丝
-//  #define Z_1604                    //丝杆参数
-//  #define MY_KEYPAD                 //键盘支持
-  #define QUICK_PAUSE               //快速暂停
-  #define FILAMENT_CHANGE           //更换耗材
-  #define FILAMENT_DETECT           //耗材检测
-  #define POWER_MANAGEMENT          //电源管理
-  #define ACCIDENT_DETECT           //断电续打
-//  #define HAS_AIR_FAN               //过滤风扇
-//  #define HOTWIND_SYSTEM            //热风系统
-//  #define AUTO_BED_LEVELING         //自动调平
-//  #define WIFI_SUPPORT              //支持WIFI
-//  #define COLOR_LED                 //灯光支持
-//  #define Y_DUAL_STEPPER_DRIVERS    //电机双Y
-//  #define MIXING_EXTRUDER						//混合喷头
-
-  #ifdef D_SERIES
-//    #define D_SERIES_USE_175        //送丝机1.75
-  #elif defined(F_SERIES)
-//    #define F_SERIES_ALLOW_500      //温度上限500度
-  #endif
-//  #define NOT_AUTO_SHUTDOWN         //禁用自动关机
-
-#endif // MAKE_BATCH
 
 #include "_ModelInfo.h"
-/************************************************************************************/
-
-
-/*********************************** DEBUG OPTION ***********************************/
-//#define BAUDRATE 115200
-
-//#define REG_SN 000.00
-
-//#define TEMP_ADJUST
-//#define DEBUG_FREE
-
-#define BL_TOUCH_SIGNAL_SELF_FILTER
-
-#ifdef QUICK_PAUSE
-//  #define DEBUG_CMD
-#endif
-
-
-#ifndef NOT_AUTO_SHUTDOWN
-//  #define AUTO_SHUTDOWN_DEBUG
-#endif
-
-#ifdef DWIN_LCD
-//  #define DWIN_LCD_DEDUG
-//  #define DWIN_SERIAL_USE_BUILT_IN
-//  #define DWIN_HEX_OPERATE_USE_STR
-#endif
-
-#ifdef UDISKSUPPORT
-//  #define UDISK_DEBUG
-//  #define UDisk_IMPL_NOT_PNP
-#endif
-
-#ifdef WIFI_SUPPORT
-//  #define WIFI_IMPL_DEBUG
-//  #define WIFI_DEBUG
-  #ifdef WIFI_IMPL_DEBUG
-    #undef WIFI_DEBUG
-  #endif
-  #ifdef WIFI_DEBUG
-    #define STATE_ACTION_STRING_LEN 24
-  #endif
-#endif
-
-#ifdef REG_SN
-  #define TOTAL_TIME_LIMIT  720000 // seconds 200hour For Part-Payment
-//	#define REG_USE_HARDWARE
-  #ifdef REG_USE_HARDWARE
-    #define REG_PLULIC_KEY  0xFFFFFFFF  // 公钥
-  #endif
-#endif
-
-#ifdef HOTWIND_SYSTEM
-  #define HOTWIND_HYSTERESIS  2 //度
-#endif
-/************************************************************************************/
 
 #define STRING_VERSION "5.6"
 
