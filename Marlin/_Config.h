@@ -35,7 +35,7 @@
 #define BED_MAXTEMP 135
 
 #define PREHEAT_TEMP_HOTEND   210
-#define PREHEAT_TEMP_BED      45
+#define PREHEAT_TEMP_BED      60
 #define PREHEAT_FAN_SPEED     0
 
 #ifdef F_SERIES
