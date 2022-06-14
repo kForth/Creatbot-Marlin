@@ -188,7 +188,7 @@
 #ifdef HOTWIND_SYSTEM
   #define TEMP_SENSOR_CHAMBER     1     // NTC
   #define CHAMBER_MINTEMP         -12
-  #define CHAMBER_MAXTEMP         75
+  #define CHAMBER_MAXTEMP         85
   #define MAX_CHAMBER_POWER       255
   #define PREHEAT_TEMP_CHAMBER    0
 #else
