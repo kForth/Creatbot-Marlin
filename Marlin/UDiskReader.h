@@ -37,10 +37,6 @@ public:
 	void selectWorkDir();
 	void getAbsFilename(char *t);
 	void getAbsWorkPath(char *t);
-	
-	#if ENABLED(LONG_FILENAME_HOST_SUPPORT)
-  		void printLongPath(char *path);
-	#endif
 
 	void ls();
 	void setroot();
@@ -51,13 +47,11 @@ public:
 	void pausePrint();
 	void stopPrint();
 	void release();
-  	void openAndPrintFile(const char *name);
+  void openAndPrintFile(const char *name);
 	void getStatus();
 	void printingHasFinished();
 
 	void openFile(char *name, bool read = true, bool replace_current = true);
-  	void openLogFile(char* name);
-	void removeFile(char* name);
 	void closefile();
 	int16_t get();
 	void setIndex(long index);
