@@ -424,9 +424,10 @@
   #define DWIN_Z_MOVE_SCALE       5
 #endif //DWIN_LCD
 
+#define DEFAULT_AUTO_FAN_SPEED 0
 
 #ifdef HAS_AIR_FAN
-  #define DEFAULT_AIR_FAN_SPEED 255
+  #define DEFAULT_AIR_FAN_SPEED 0
 #endif
 
 #define MOTHERBOARD BOARD_CREATBOT
