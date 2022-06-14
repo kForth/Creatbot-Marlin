@@ -834,12 +834,12 @@ void return_default_button_action(){
 	#endif
 			{
 			if (thermalManager.hasHeat())
-				if (READER_VALID)
+				if (READER_OK)
 					GO_PAGE(PAGE_NORMAL_COOLDOWN_READER);
 				else
 					GO_PAGE(PAGE_NORMAL_COOLDOWN_NO_READER);
 			else
-				if (READER_VALID)
+				if (READER_OK)
 					GO_PAGE(PAGE_NORMAL_PREHEAT_READER);
 				else
 					GO_PAGE(PAGE_NORMAL_PREHEAT_NO_READER);
@@ -1912,7 +1912,7 @@ void pageControl() {
 		#endif
 
 			if(dwinReaderState != 0xFF){
-				if(READER_VALID){
+				if(READER_OK){
 					DWIN_MSG_P(DWIN_MSG_USB_READY);
 				#ifdef WIFI_SUPPORT
 					myWifi.actionSynPrinterInfo();

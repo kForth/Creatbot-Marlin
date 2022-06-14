@@ -380,52 +380,18 @@ void UDiskReader::setroot() {
 void UDiskReader::ls(){
 	setSeek(workDir);
 	UDiskImpl.listFile((uint8_t *)(&temp), list_print);
-	
-	/**
-	setroot();
-
-	USBFile tempFile; dir_t tempDir; 
-	vfat_t tempVfat[MAX_VFAT_ENTRIES]; uint8_t num = 0;
-	for (uint8_t i = 0; i < 0x10; i++) {
-		if (usb.dirInfoRead(i)) {
-			uint8_t d[sizeof(dir_t)+1] = { 0 };
-			if (usb.readBlock(d) == sizeof(dir_t)) {
-				tempDir = *((dir_t *)d);
-				if (tempDir.name[0] == NAME_FREE) break;
-				if (tempDir.name[0] == NAME_DELETED) continue;
-				if (tempDir.name[0] == NAME_DOT) continue;
-				//if (tempDir.name[8] != 'G' ||tempDir.name[9] == '~') continue;
-
-				if ((tempDir.attributes & MASK_LONG_NAME) == ATT_LONG_NAME) {
-					vfat_t temp = *((vfat_t*)d);
-					uint8_t seq = (temp.sequenceNumber & MASK_LONG_NAME_SEQ);
-
-					if (temp.sequenceNumber & MASK_LONG_NAME_END) {
-						num = seq;
-					}
-					if(seq - 1 < MAX_VFAT_ENTRIES){
-						tempVfat[seq - 1] = temp;
-					}
-					continue;
-				}
-
-				tempFile.set(&tempDir);
-				if (num) {
-					tempFile.setLongFilename(tempVfat, num);
-					num = 0;
-				}
-
-				if (tempFile.longFilename[0]) {
-					SERIAL_ECHOLN(tempFile.longFilename);
-				} else {
-					SERIAL_ECHOLN(tempFile.filename);
-				}
-
-			}
-		}
-	}
-	**/
 }
+
+#if ENABLED(LONG_FILENAME_HOST_SUPPORT)
+
+  /**
+   * Get a long pretty path based on a DOS 8.3 path
+   */
+  void UDiskReader::printLongPath(char *path) {
+    SERIAL_ECHOPGM("Full Path: "); SERIAL_ECHOLN(path);
+  }
+
+#endif // LONG_FILENAME_HOST_SUPPORT
 
 void UDiskReader::chdir(const char* path){
 	setSeek(workDir);
@@ -516,6 +482,11 @@ void UDiskReader::stopPrint(){
   if(isFileOpen) closefile();
 }
 
+void UDiskReader::openLogFile(char* name) {
+  logging = true;
+  openFile(name, false);
+}
+
 void UDiskReader::release(){
 	UDiskPrintState = false;
 	UDiskOK = false;
@@ -527,6 +498,14 @@ void UDiskReader::openAndPrintFile(const char *name){
 	for(char *c = &cmd[6]; *c; c++)	*c = tolower(*c);
 	enqueue_and_echo_command(cmd);
 	enqueue_and_echo_commands_P(PSTR("M6024"));
+}
+
+void UDiskReader::removeFile(char* name){
+	if(!UDiskOK) return;
+
+	stopPrint();
+
+	UDiskImpl.fileErase(name);
 }
 
 void UDiskReader::getStatus(){

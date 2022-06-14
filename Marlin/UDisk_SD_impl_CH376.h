@@ -37,8 +37,8 @@
 
 
 
-#define USB_READ						//允许USB读操作
-//#define USB_WRITE						//允许USB写操作
+#define USB_READ						//Allow USB reading operation
+#define USB_WRITE						//Allow USB writing operation
 
 #define ERR_USB_UNKNOWN			0xFA	//未知连接错误
 #define ERR_USB_MODE				0xFB	//初始化模式错误
@@ -142,76 +142,76 @@ public:
 	bool isDeviceState(hardwareState state) { return (deviceState == state); }
 
 	void init(const uint8_t mode, const uint8_t rstPin = SPI_RST_PIN, const uint8_t busyPin = SPI_BUSY_PIN, const uint8_t intPin = SPI_INT_PIN);
-	bool IsReady();																													//CH376初始化是否完成
-	bool IsDiskConnect();																										//检测UDisk是否连接
-	bool diskMount();																												//初始化UDisk
-	bool InterruptHandle();																									//UDisk中断处理句柄
+	bool IsReady();  //Is CH376 initialization?
+	bool IsDiskConnect(); //Detect whether Udisk is connected
+	bool diskMount();  //Initialization Udisk
+	bool InterruptHandle();	 //Udisk interrupt processing handle
 
 
 #if defined(USB_READ) || defined(USB_WRITE)
 
 #ifdef USB_READ
-	bool fileOpen(const char* name);																				//打开文件或目录
-	bool fileOpenPath(const char* name, uint8_t stopPos = 0xFF);						//打开多级文件或目录
-	uint8_t getPathLastDir(const char* name);																//获取路径最后一级目录的偏移
-	void listFile(uint8_t *buf, uint16_t index);															//枚举文件或目录
-	void listFile(uint8_t *buf, void(*callback)());													//枚举文件或目录
-	void listFile(uint8_t * buf, uint16_t(*callback)(), uint16_t index);			//枚举文件或目录
+	bool fileOpen(const char* name);  //Open the file or directory
+	bool fileOpenPath(const char* name, uint8_t stopPos = 0xFF);  //Open multi -level files or directory
+	uint8_t getPathLastDir(const char* name);  //Get the offset of the last level of the path
+	void listFile(uint8_t *buf, uint16_t index);  //Enumeration file or directory
+	void listFile(uint8_t *buf, void(*callback)());  //Enumeration file or directory
+	void listFile(uint8_t * buf, uint16_t(*callback)(), uint16_t index);  //Enumeration file or directory
 
-	uint32_t get_file_size();																								//获取当前文件大小
+	uint32_t get_file_size();  //Get the current file size
 
-	uint8_t readByte();																											//读下一个字节
+	uint8_t readByte();  //Read a byte
 #endif
 
 #ifdef USB_WRITE
-	bool fileCreate(const char* name);																				//创建文件
-	bool fileCreatePath(const char* name);																		//创建多级文件
-	bool dirCreate(const char* name);																				//创建目录
-	bool dirCreatePath(const char* name);																		//创建多级目录
-	bool fileErase(const char* name);																				//删除文件或目录
+	bool fileCreate(const char* name);  //Create a file
+	bool fileCreatePath(const char* name);  //Create multi -level files
+	bool dirCreate(const char* name);  //Create a directory
+	bool dirCreatePath(const char* name);  //Create a multi -level directory
+	bool fileErase(const char* name);  //Delete files or directory
 
-	void set_file_size(uint32_t size);																				//设置当前文件大小
+	void set_file_size(uint32_t size);  //Set the current file size
 #endif
 
-	bool fileClose(bool updateSize = false);																//关闭当前打开的文件或目录
+	bool fileClose(bool updateSize = false);  //Turn off the currently opened file or directory
 
-	bool dirInfoRead();																											//读取当前目录信息
-	bool dirInfoRead(uint8_t index);																					//读取扇区内指定索引号的目录信息
+	bool dirInfoRead();  //Read the current directory information
+	bool dirInfoRead(uint8_t index);  //Read the directory information of the specified index number in the sector
 
-	bool setOffset(uint32_t index);																					//设置当前文件指针偏移
-	uint32_t getOffset();																										//获取当前文件指针偏移
+	bool setOffset(uint32_t index);  //Set the current file pointer offset
+	uint32_t getOffset();  //Get the current file pointer offset
 
-	bool setSecOffset(uint32_t index);																			//设置扇区偏移
+	bool setSecOffset(uint32_t index);  //Set the sector offset
 
-	void setDirInfoLBA(uint32_t lba);																				//设置目录信息LBA
-	uint32_t getDirInfoLBA();																								//获取目录信息LBA
+	void setDirInfoLBA(uint32_t lba);  //Set directory information LBA
+	uint32_t getDirInfoLBA();  //Get the directory information LBA
 
-	uint32_t getCurOffSet();																									//获取当前指针偏移
+	uint32_t getCurOffSet();  //Get the current pointer offset
 
-	uint32_t getRootClus();																									//获取根簇号
-	void setStartClus(uint32_t cluster);																		//设置起始簇号
-	uint32_t getStartClus();																									//获取起始簇号
-	uint8_t getSecPerClus();																									//获取每簇扇区数
-	uint8_t getfileDirIndex();																								//获取目录信息索引
+	uint32_t getRootClus();  //Get the root cluster number
+	void setStartClus(uint32_t cluster);  //Set the start cluster number
+	uint32_t getStartClus();  //Get the start cluster number
+	uint8_t getSecPerClus();  //Get the number of sectors per sector
+	uint8_t getfileDirIndex();  //Get the directory information index
 
 #endif
 
 private:
-	void setTimeout(uint32_t waitTime);																			//设置动作超时时间
-	bool checkTimeout();																										//检测动作是否超时
+	void setTimeout(uint32_t waitTime);  //Set the action timeout time
+	bool checkTimeout();  //Detect whether the action timeout
 
-	uint8_t waitForInterrupt();																							//等待返回中断
-	void setRoot();																													//设置到根目录
-	void setToCurDir();																											//设置到当前目录
-	void setFileName(const char* name);																		//设置要操作的文件名
+	uint8_t waitForInterrupt();  //Waiting to return to interrupt
+	void setRoot();  //Set to the roots
+	void setToCurDir();  //Set to the current directory
+	void setFileName(const char* name);  //Set the file name to be operated
 
-	void writeVar8(uint8_t var, uint8_t data);
-	uint8_t readVar8(uint8_t var);
-	void writeVar32(uint8_t var, uint32_t data);
-	uint32_t readVar32(uint8_t var);
+	void writeVar8(uint8_t var, uint8_t data);  
+	uint8_t readVar8(uint8_t var);  
+	void writeVar32(uint8_t var, uint32_t data);  
+	uint32_t readVar32(uint8_t var);  
 
-	hardwareState deviceState;
-	uint32_t TimeoutTime;
+	hardwareState deviceState;  
+	uint32_t TimeoutTime;  
 };
 
 #endif // __UDISK_SD_IMPL_CH376_H__

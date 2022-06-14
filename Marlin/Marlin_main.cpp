@@ -6738,26 +6738,30 @@ inline void gcode_M17() {
   }
 #endif // ADVANCED_PAUSE_FEATURE
 
-#if ENABLED(SDSUPPORT)
+#if ENABLED(SDSUPPORT) || ENABLED(UDISKSUPPORT)
 
   /**
    * M20: List SD card to serial output
    */
   inline void gcode_M20() {
     SERIAL_PROTOCOLLNPGM(MSG_BEGIN_FILE_LIST);
-    card.ls();
+	  FILE_READER.ls();
     SERIAL_PROTOCOLLNPGM(MSG_END_FILE_LIST);
   }
 
   /**
    * M21: Init SD Card
    */
-  inline void gcode_M21() { card.initsd(); }
+  inline void gcode_M21() { 
+    READER_INIT;
+  }
 
   /**
    * M22: Release SD Card
    */
-  inline void gcode_M22() { card.release(); }
+  inline void gcode_M22() {
+    FILE_READER.release(); 
+  }
 
   /**
    * M23: Open a file
@@ -6765,7 +6769,7 @@ inline void gcode_M17() {
   inline void gcode_M23() {
     // Simplify3D includes the size, so zero out all spaces (#7227)
     for (char *fn = parser.string_arg; *fn; ++fn) if (*fn == ' ') *fn = '\0';
-    card.openFile(parser.string_arg, true);
+    FILE_READER.openFile(parser.string_arg, true);
   }
 
   /**
@@ -6776,7 +6780,7 @@ inline void gcode_M17() {
       resume_print();
     #endif
 
-    card.startFileprint();
+    FILE_START_PRINT;
     print_job_timer.start();
 
 		#ifdef DWIN_LCD
@@ -6788,7 +6792,7 @@ inline void gcode_M17() {
    * M25: Pause SD Print
    */
   inline void gcode_M25() {
-    card.pauseSDPrint();
+    FILE_PAUSE_PRINT;
     print_job_timer.pause();
 
     #if ENABLED(PARK_HEAD_ON_PAUSE)
@@ -6800,39 +6804,43 @@ inline void gcode_M17() {
    * M26: Set SD Card file index
    */
   inline void gcode_M26() {
-    if (card.cardOK && parser.seenval('S'))
-      card.setIndex(parser.value_long());
+    if (READER_OK && parser.seenval('S'))
+      FILE_READER.setIndex(parser.value_long());
   }
 
   /**
    * M27: Get SD Card status
    */
-  inline void gcode_M27() { card.getStatus(); }
+  inline void gcode_M27() {
+    FILE_READER.getStatus();
+  }
 
   /**
    * M28: Start SD Write
    */
-  inline void gcode_M28() { card.openFile(parser.string_arg, false); }
+  inline void gcode_M28() {
+    FILE_READER.openFile(parser.string_arg, false);
+  }
 
   /**
    * M29: Stop SD Write
    * Processed in write to file routine above
    */
   inline void gcode_M29() {
-    // card.saving = false;
+    // FILE_READER.saving = false;
   }
 
   /**
    * M30 <filename>: Delete SD Card file
    */
   inline void gcode_M30() {
-    if (card.cardOK) {
-      card.closefile();
-      card.removeFile(parser.string_arg);
+    if (READER_OK) {
+      FILE_READER.closefile();
+      FILE_READER.removeFile(parser.string_arg); //TODO
     }
   }
 
-#endif // SDSUPPORT
+#endif // ENABLED(SDSUPPORT) || ENABLED(UDISKSUPPORT)
 
 /**
  * M31: Get the time since the start of SD Print (or last M109)
@@ -6847,25 +6855,25 @@ inline void gcode_M31() {
   SERIAL_ECHOLNPAIR("Print time: ", buffer);
 }
 
-#if ENABLED(SDSUPPORT)
+#if ENABLED(SDSUPPORT) || ENABLED(UDISKSUPPORT)
 
   /**
    * M32: Select file and start SD Print
    */
   inline void gcode_M32() {
-    if (card.sdprinting)
+    if (FILE_IS_PRINT)
       stepper.synchronize();
 
     char* namestartpos = parser.string_arg;
     const bool call_procedure = parser.boolval('P');
 
-    if (card.cardOK) {
-      card.openFile(namestartpos, true, call_procedure);
+    if (READER_OK) {
+      FILE_READER.openFile(namestartpos, true, call_procedure);
 
       if (parser.seenval('S'))
-        card.setIndex(parser.value_long());
+        FILE_READER.setIndex(parser.value_long());
 
-      card.startFileprint();
+      FILE_START_PRINT;
 
       // Procedure calls count as normal print time.
       if (!call_procedure) print_job_timer.start();
@@ -6890,7 +6898,7 @@ inline void gcode_M31() {
      *   /Miscellaneous/Armchair/Armchair.gcode
      */
     inline void gcode_M33() {
-      card.printLongPath(parser.string_arg);
+      FILE_READER.printLongPath(parser.string_arg);
     }
 
   #endif
@@ -6913,10 +6921,10 @@ inline void gcode_M31() {
    * M928: Start SD Write
    */
   inline void gcode_M928() {
-    card.openLogFile(parser.string_arg);
+    FILE_READER.openLogFile(parser.string_arg);
   }
 
-#endif // SDSUPPORT
+#endif // ENABLED(SDSUPPORT) || ENABLED(UDISKSUPPORT)
 
 /**
  * Sensitive pin test for M42, M226
@@ -10739,7 +10747,7 @@ bool quickPausePrintJob(){
 bool quickReusePrintJob(){
 	STORE_SETTING(usedTime);
 
-	if(READER_VALID && FILE_IS_PAUSE && !planner.blocks_queued()
+	if(READER_OK && FILE_IS_PAUSE && !planner.blocks_queued()
 	#if ENABLED(FILAMENT_DETECT)
 		&& isFilamentReady
 	#endif
@@ -11153,73 +11161,82 @@ inline void gcode_M6014() {
 * List USB
 */
 inline void gcode_M6020() {
-	SERIAL_PROTOCOLLNPGM(MSG_BEGIN_FILE_LIST);
-	UDisk.ls();
-	SERIAL_PROTOCOLLNPGM(MSG_END_FILE_LIST);
+  gcode_M20();
+	// SERIAL_PROTOCOLLNPGM(MSG_BEGIN_FILE_LIST);
+	// UDisk.ls();
+	// SERIAL_PROTOCOLLNPGM(MSG_END_FILE_LIST);
 }
 
 /*
 * Init USB
 */
 inline void gcode_M6021() {
-	UDisk.release();
-	UDisk.refresh();
+  gcode_M21();
+	// UDisk.release();
+	// UDisk.refresh();
 }
 
 /*
 * Release USB
 */
 inline void gcode_M6022() {
-	UDisk.release();
+  gcode_M22();
+	// UDisk.release();
 }
 
 /*
 * Select USB file
 */
 inline void gcode_M6023() {
-	UDisk.openFile(parser.string_arg);
+  gcode_M23();
+	// UDisk.openFile(parser.string_arg);
 }
 
 /*
 * Start/resume USB print
 */
 inline void gcode_M6024() {
-	UDisk.startPrint();
-	print_job_timer.start();
-  #ifdef DWIN_LCD
-	return_default_button_action();
-  #endif //DWIN_LCD
+  gcode_M24();
+	// UDisk.startPrint();
+	// print_job_timer.start();
+  // #ifdef DWIN_LCD
+	// return_default_button_action();
+  // #endif //DWIN_LCD
 }
 
 /*
 * Pause USB print
 */
 inline void gcode_M6025() {
-	UDisk.pausePrint();
-  #ifdef DWIN_LCD
-	return_default_button_action();
-  #endif //DWIN_LCD
+  gcode_M25();
+	// UDisk.pausePrint();
+  // #ifdef DWIN_LCD
+	// return_default_button_action();
+  // #endif //DWIN_LCD
 }
 
 /*
 * Set USB position in bytes
 */
 inline void gcode_M6026() {
-	if (IS_UDISK_OK && parser.seen('S'))
-		UDisk.setIndex(parser.value_long());
+  gcode_M26();
+	// if (IS_UDISK_OK && parser.seen('S'))
+	// 	UDisk.setIndex(parser.value_long());
 }
 
 /*
 * Report USB print status
 */
 inline void gcode_M6027() {
-	UDisk.getStatus();
+  gcode_M27();
+	// UDisk.getStatus();
 }
 
 /*
 * Start USB write.
 */
 inline void gcode_M6028() {
+  gcode_M28();
 	//TODO M6028
 }
 
@@ -11227,6 +11244,7 @@ inline void gcode_M6028() {
 * Stop USB write.
 */
 inline void gcode_M6029() {
+  gcode_M29();
 	//TODO M6029
 }
 
@@ -11234,6 +11252,7 @@ inline void gcode_M6029() {
 * Delete file from USB.
 */
 inline void gcode_M6030() {
+  gcode_M30();
 	//TODO M6030
 }
 
@@ -11241,32 +11260,34 @@ inline void gcode_M6030() {
 * Select file and start SD print
 */
 inline void gcode_M6032() {
-	if (IS_UDISK_PRINT)
-		stepper.synchronize();
+  gcode_M32();
+// 	if (IS_UDISK_PRINT)
+// 		stepper.synchronize();
 
-	char* namestartpos = parser.string_arg;
-	bool call_procedure = parser.seen('P');
+// 	char* namestartpos = parser.string_arg;
+// 	bool call_procedure = parser.seen('P');
 
-	if (IS_UDISK_OK) {
-		UDisk.openFile(namestartpos, true, !call_procedure);
+// 	if (IS_UDISK_OK) {
+// 		UDisk.openFile(namestartpos, true, !call_procedure);
 
-		if(parser.seen('S'))
-			UDisk.setIndex(parser.value_long());
+// 		if(parser.seen('S'))
+// 			UDisk.setIndex(parser.value_long());
 
-		UDisk.startPrint();
+// 		UDisk.startPrint();
 
-		//procedure calls count as normal print time.
-		if (!call_procedure) print_job_timer.start();
-	}
-#ifdef DWIN_LCD
-	return_default_button_action();
-#endif
+// 		//procedure calls count as normal print time.
+// 		if (!call_procedure) print_job_timer.start();
+// 	}
+// #ifdef DWIN_LCD
+// 	return_default_button_action();
+// #endif
 }
 
 /*
 * Start USB write (logging)
 */
 inline void gcode_M6033() {
+  gcode_M928();
 	//TODO M6033
 }
 
@@ -12069,7 +12090,7 @@ void process_next_command() {
         gcode_M17();
         break;
 
-      #if ENABLED(SDSUPPORT)
+      #if ENABLED(SDSUPPORT) || ENABLED(UDISKSUPPORT)
         case 20: // M20: list SD card
           gcode_M20(); break;
         case 21: // M21: init SD card
@@ -12107,7 +12128,7 @@ void process_next_command() {
 
         case 928: // M928: Start SD write
           gcode_M928(); break;
-      #endif // SDSUPPORT
+      #endif // ENABLED(SDSUPPORT) || ENABLED(UDISKSUPPORT)
 
       case 31: // M31: Report time since the start of SD print or last M109
         gcode_M31(); break;

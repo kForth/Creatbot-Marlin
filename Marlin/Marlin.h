@@ -518,9 +518,10 @@ FORCE_INLINE bool position_is_reachable_xy(const float &lx, const float &ly) {
 	#define FILE_START_PRINT				FILE_READER.startFileprint()
 	#define FILE_PAUSE_PRINT				FILE_READER.pauseSDPrint()
 	#define FILE_STOP_PRINT					FILE_READER.stopSDPrint()
+  #define READER_INIT             FILE_READER.initsd()
 	#define READER_STATE						IS_SD_INSERTED
 	#define READER_CONN							(IS_SD_INSERTED == 1)
-	#define READER_VALID						FILE_READER.cardOK
+	#define READER_OK						    FILE_READER.cardOK
 #elif ENABLED(UDISKSUPPORT)
 	#include "UDiskReader.h"
 	#define HAS_READER							true
@@ -536,9 +537,10 @@ FORCE_INLINE bool position_is_reachable_xy(const float &lx, const float &ly) {
 	#define FILE_START_PRINT				FILE_READER.startPrint()
 	#define FILE_PAUSE_PRINT				FILE_READER.pausePrint()
 	#define FILE_STOP_PRINT					FILE_READER.stopPrint()
+  #define READER_INIT             FILE_READER.release();FILE_READER.refresh()
 	#define READER_STATE						UDISK_STATE
 	#define READER_CONN							IS_UDISK_CONN
-	#define READER_VALID						IS_UDISK_OK
+	#define READER_OK						    IS_UDISK_OK
 #else
 	#define HAS_READER							false
 #endif
