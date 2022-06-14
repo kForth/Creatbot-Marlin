@@ -1164,7 +1164,7 @@ void MarlinSettings::reset(bool init/* = false*/) {
   #endif
 
 	#if HAS_AUTO_FAN
-		extruder_auto_fan_speed = EXTRUDER_AUTO_FAN_SPEED;
+		extruder_auto_fan_speed = DEFAULT_AUTO_FAN_SPEED;
 	#endif
 
 	#ifdef HAS_AIR_FAN
