@@ -10615,7 +10615,10 @@ inline void gcode_M999() {
 * Pause print immediately.(By LYN)
 */
 inline void gcode_M6001() {
-	if(!FILE_IS_PAUSE)	return;
+	if(!FILE_IS_PAUSE && !isSerialPrinting)	return;
+  
+  if(print_job_timer.isRunning())
+    print_job_timer.pause();	// pause timer
 
 	if (!(axis_known_position[X_AXIS] && axis_known_position[Y_AXIS] && axis_known_position[Z_AXIS]))	return;
 
@@ -10653,7 +10656,7 @@ inline void gcode_M6001() {
 * Resume print from M6001.(By LYN)
 */
 inline void gcode_M6002() {
-	if(!FILE_IS_PAUSE) return;
+	if(!FILE_IS_PAUSE && !isSerialPrinting) return;
 
 	if (!(axis_known_position[X_AXIS] && axis_known_position[Y_AXIS] && axis_known_position[Z_AXIS])) 	return;
 
@@ -10686,6 +10689,8 @@ inline void gcode_M6002() {
 		// retraction the filament.
 		destination[E_AXIS] -= PAUSE_RETRACTION_LENGTH;
 		RUNPLAN(PAUSE_REUSE_SPEED_LIFT);
+
+		print_job_timer.start(); // start timer
 
 		#ifdef DWIN_LCD
 			HIDE_POPUP;
@@ -10725,7 +10730,6 @@ bool quickPausePrintJob(){
 	){
 		quickstop_stepper();							// quick stop
 		FILE_PAUSE_PRINT;									// pause file reader
-		print_job_timer.pause();					// pause timer
 		enqueue_and_echo_commands_P(PSTR("M6001"));
 		return true;
 	} else
@@ -10743,7 +10747,6 @@ bool quickReusePrintJob(){
 		gcode_M6002();										// move and sink the nozzle
 		FILE_READER.setIndex(pauseByte);	// set the reader index
 		FILE_START_PRINT;									// start file reader
-		print_job_timer.start();					// start timer
 		return true;
 	} else
 		return false;
