@@ -12,7 +12,7 @@
 
 #include "_ModelInfo.h"
 
-#define STRING_VERSION "5.6"
+#define STRING_VERSION "5.6.1"
 
 #if defined(F_SERIES) && not defined(F_SERIES_BOARD_VERSION_LT_V95)
   #define BOARD_VERSION_GT_V95     //F系列黄主板（主板版本大于9.5）
