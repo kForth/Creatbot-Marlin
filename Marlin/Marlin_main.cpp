@@ -10851,7 +10851,7 @@ inline void gcode_M6005() {
 	}
 
 	// test the filament
-	destination[E_AXIS] += ACCIDENT_E_RETRACTION + PAUSE_RETRACTION_LENGTH;
+	destination[E_AXIS] += ACCIDENT_E_RETRACTION;// + PAUSE_RETRACTION_LENGTH;
 	RUNPLAN(ACCIDENT_SPEED_TEST);
 
 	if (pausePos[E_AXIS] < 0){	// For toggle dual extruder and filament break.
