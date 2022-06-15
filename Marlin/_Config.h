@@ -416,6 +416,10 @@
   #endif
 #endif
 
+#ifdef HOTWIND_SYSTEM
+  #define HOTWIND_HYSTERESIS  2 //s
+#endif
+
 #ifdef MY_KEYPAD
   #define MY_KEYPAD_Z_MOVE_SCALE  5
 #endif //MY_KEYPAD
