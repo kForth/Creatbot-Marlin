@@ -789,7 +789,7 @@ void MarlinSettings::postprocess() {
 					CONFIG_TO_SETTING(lastPos);
 					CONFIG_TO_SETTING(lastToolsState);
 					CONFIG_TO_SETTING(lastFilename);
-				} else{
+				} else {
 					#ifdef HAS_LEVELING
 						pauseLeveling = false;
 					#endif
