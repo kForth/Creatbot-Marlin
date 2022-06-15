@@ -12,7 +12,7 @@
 
 #include "_ModelInfo.h"
 
-#define STRING_VERSION "5.6.1"
+#define CREATBOT_VERSION "5.6a"
 
 #if defined(F_SERIES) && not defined(F_SERIES_BOARD_VERSION_LT_V95)
   #define BOARD_VERSION_GT_V95     //F系列黄主板（主板版本大于9.5）
@@ -432,7 +432,6 @@
 
 #define MOTHERBOARD BOARD_CREATBOT
 
-#undef SHORT_BUILD_VERSION
 #undef DETAILED_BUILD_VERSION
 #undef STRING_DISTRIBUTION_DATE
 #undef PROTOCOL_VERSION
@@ -441,12 +440,11 @@
 #undef DEFAULT_MACHINE_UUID
 #undef WEBSITE_URL
 
-#define SHORT_BUILD_VERSION       STRING_VERSION
-#define DETAILED_BUILD_VERSION    SHORT_BUILD_VERSION " (LYN)"
+#define DETAILED_BUILD_VERSION    SHORT_BUILD_VERSION " (CreatBot)"
 #define STRING_DISTRIBUTION_DATE  __DATE__
 #define PROTOCOL_VERSION          "1.0"
 #define MACHINE_NAME              MachineName
-#define SOURCE_CODE_URL           "http://www.CreatBot.com/en/support.html"
+#define SOURCE_CODE_URL           "https://github.com/kForth/Creatbot-Marlin"
 #define DEFAULT_MACHINE_UUID      "00000000-0000-0000-0000-000000000000"
 #define WEBSITE_URL               "www.CreatBot.com"
 
