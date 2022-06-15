@@ -721,7 +721,7 @@ static void lcd_implementation_status_screen() {
 
 			/*************************** By LYN *********************************/
       u8g.setPrintPos(2,XYZ_BASELINE);
-      lcd_print(MachineURL);
+      lcd_print(WEBSITE_URL);
       /********************************************************************/
 
       #if DISABLED(XYZ_HOLLOW_FRAME)

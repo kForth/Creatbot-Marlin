@@ -12,12 +12,11 @@
 
 #include "_ModelInfo.h"
 
-#define CREATBOT_VERSION "5.6a"
+#define MOTHERBOARD BOARD_CREATBOT
 
 #if defined(F_SERIES) && not defined(F_SERIES_BOARD_VERSION_LT_V95)
   #define BOARD_VERSION_GT_V95     //F series yellow motherboard (motherboard version is greater than 9.5）
 #endif
-
 
 #ifdef KTC
   #define T_SENSENR   -1    // KTC
@@ -433,23 +432,5 @@
 #ifdef HAS_AIR_FAN
   #define DEFAULT_AIR_FAN_SPEED 0
 #endif
-
-#define MOTHERBOARD BOARD_CREATBOT
-
-#undef DETAILED_BUILD_VERSION
-#undef STRING_DISTRIBUTION_DATE
-#undef PROTOCOL_VERSION
-#undef MACHINE_NAME
-#undef SOURCE_CODE_URL
-#undef DEFAULT_MACHINE_UUID
-#undef WEBSITE_URL
-
-#define DETAILED_BUILD_VERSION    SHORT_BUILD_VERSION " (CreatBot)"
-#define STRING_DISTRIBUTION_DATE  __DATE__
-#define PROTOCOL_VERSION          "1.0"
-#define MACHINE_NAME              MachineName
-#define SOURCE_CODE_URL           "https://github.com/kForth/Creatbot-Marlin"
-#define DEFAULT_MACHINE_UUID      "00000000-0000-0000-0000-000000000000"
-#define WEBSITE_URL               "www.CreatBot.com"
 
 #endif //CREATBOT_CONFIG_H

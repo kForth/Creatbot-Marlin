@@ -103,12 +103,10 @@
 #undef pl
 
 #if MODEL == D600 || MODEL == D600_SE || MODEL == D600_Pro || MODEL == F300 || MODEL == F160 || MODEL == F200 || MODEL == F220 || MODEL == F260 || MODEL == F430 || MODEL == F1000|| MODEL == PEEK300
-  #define MachineName OEM_NAME " " MODEL_NAME
+  #define CREATBOT_MODEL OEM_NAME " " MODEL_NAME
 #else
-  #define MachineName OEM_NAME " " MODEL_NAME "0" STRINGIFY(EXTRUDERS)
+  #define CREATBOT_MODEL OEM_NAME " " MODEL_NAME "0" STRINGIFY(EXTRUDERS)
 #endif
-
-#define MachineURL "CREATBOT.COM"
 
 #define VER_POS VER_POS_1
 
