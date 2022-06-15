@@ -14246,7 +14246,7 @@ void disable_all_steppers() {
 #endif // HAVE_TMC2130
 
 /********************************************************** By LYN ***********************************************************/
-void getDateVersion(char *dataStr){
+void updateVersionString(char *dataStr){
 		static const char *month_names = "JanFebMarAprMayJunJulAugSepOctNovDec";
 		char s_month[5];
 		int month, day, year;
@@ -15238,7 +15238,7 @@ void setup() {
 //  SERIAL_ECHOLNPGM(SHORT_BUILD_VERSION);
 //  SERIAL_EOL();
 
-  getDateVersion(versionFW);
+  updateVersionString(versionFW);
   SERIAL_ECHOLNPAIR(MSG_FW, versionFW);
 
   #if defined(STRING_DISTRIBUTION_DATE) && defined(STRING_CONFIG_H_AUTHOR)
