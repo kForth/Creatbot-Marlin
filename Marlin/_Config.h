@@ -15,7 +15,7 @@
 #define CREATBOT_VERSION "5.6a"
 
 #if defined(F_SERIES) && not defined(F_SERIES_BOARD_VERSION_LT_V95)
-  #define BOARD_VERSION_GT_V95     //F系列黄主板（主板版本大于9.5）
+  #define BOARD_VERSION_GT_V95     //F series yellow motherboard (motherboard version is greater than 9.5）
 #endif
 
 
@@ -144,7 +144,7 @@
   #define Z_ENDSTOP_SERVO_NR 0
   #define DEACTIVATE_SERVOS_AFTER_MOVE
 
-  #define Z_SAFE_HOMING        // safe homing to prevent servo cann't probe the bed.
+  #define Z_SAFE_HOMING // safe homing to prevent servo cann't probe the bed.
 
   #if MODEL == DE || MODEL == DE_Plus
     #define PROBE_XY_NUM 5
