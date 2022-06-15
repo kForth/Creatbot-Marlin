@@ -14247,14 +14247,10 @@ void disable_all_steppers() {
 
 /********************************************************** By LYN ***********************************************************/
 void updateVersionString(char *dataStr){
-		static const char *month_names = "JanFebMarAprMayJunJulAugSepOctNovDec";
-		char s_month[5];
-		int month, day, year;
-
-		sscanf_P(STRING_DISTRIBUTION_DATE, PSTR("%s %d %d"), s_month, &day, &year);
-		month = (strstr(month_names, s_month)-month_names) / 3 + 1;
-
-		sprintf_P(dataStr, PSTR("V%s.%02d%02d%02d"), STRING_VERSION, (year % 100), month, day);
+  // Up to 10 Chars for LCD
+  // SHORT_BUILD_VERSION => 1.1.x = 5 chars
+  // CREATBOT_VERSION => 5.6 = 4 chars
+	sprintf_P(dataStr, PSTR("%s:%s"), SHORT_BUILD_VERSION, CREATBOT_VERSION);
 }
 
 void updateStateStrings(){
