@@ -141,6 +141,7 @@
   #define D_SERIES
   #define LCD12864
   #define SDSUPPORT
+  #define BOWDEN
   #define QUICK_PAUSE
   #define FILAMENT_CHANGE
   #define FILAMENT_DETECT
@@ -149,6 +150,7 @@
   #define D_SERIES
   #define LCD12864
   #define SDSUPPORT
+  #define BOWDEN
   #define MY_KEYPAD
   #define QUICK_PAUSE
   #define FILAMENT_CHANGE
@@ -160,6 +162,7 @@
   #define LCD12864
   #define COREXY
   #define SDSUPPORT
+  #define BOWDEN
   #define MY_KEYPAD
   #define QUICK_PAUSE
   #define FILAMENT_CHANGE
@@ -172,7 +175,6 @@
   #define LCD480272
   #define LINEAR_GUIDE
   #define UDISKSUPPORT
-  #define NEAR_FEED
   #define QUICK_PAUSE
   #define FILAMENT_CHANGE
   #define FILAMENT_DETECT
@@ -185,6 +187,7 @@
   #define LCD480272
   #define COREXY
   #define SDSUPPORT
+  #define BOWDEN
   #define QUICK_PAUSE
   #define FILAMENT_CHANGE
   #define FILAMENT_DETECT
@@ -196,7 +199,6 @@
   #define LCD480272
   #define LINEAR_GUIDE
   #define UDISKSUPPORT
-  #define NEAR_FEED
   #define QUICK_PAUSE
   #define FILAMENT_CHANGE
   #define FILAMENT_DETECT
@@ -211,7 +213,6 @@
   #define LCD480272
   #define LINEAR_GUIDE
   #define UDISKSUPPORT
-  #define NEAR_FEED
   #define QUICK_PAUSE
   #define FILAMENT_CHANGE
   #define FILAMENT_DETECT
@@ -226,7 +227,6 @@
   #define LCD480272
   #define COREXY
   #define UDISKSUPPORT
-  #define NEAR_FEED
   #define QUICK_PAUSE
   #define FILAMENT_CHANGE
   #define FILAMENT_DETECT
@@ -238,7 +238,6 @@
   #define LCD480272
   #define COREXY
   #define UDISKSUPPORT
-  #define NEAR_FEED
   #define QUICK_PAUSE
   #define FILAMENT_CHANGE
   #define FILAMENT_DETECT
@@ -252,7 +251,6 @@
   #define LCD480272
   #define LINEAR_GUIDE
   #define UDISKSUPPORT
-  #define NEAR_FEED
   #define QUICK_PAUSE
   #define FILAMENT_CHANGE
   #define FILAMENT_DETECT
@@ -267,7 +265,6 @@
   #define LCD480272
   #define LINEAR_GUIDE
   #define UDISKSUPPORT
-  #define NEAR_FEED
   #define QUICK_PAUSE
   #define FILAMENT_CHANGE
   #define FILAMENT_DETECT
@@ -282,7 +279,6 @@
   #define LCD480272
   #define LINEAR_GUIDE
   #define UDISKSUPPORT
-  #define NEAR_FEED
   #define QUICK_PAUSE
   #define FILAMENT_CHANGE
   #define FILAMENT_DETECT
@@ -297,7 +293,6 @@
   #define LCD480272
   #define LINEAR_GUIDE
   #define UDISKSUPPORT
-  #define NEAR_FEED
   #define QUICK_PAUSE
   #define FILAMENT_CHANGE
   #define FILAMENT_DETECT
@@ -313,7 +308,6 @@
   #define LCD480272
   #define HXY
   #define UDISKSUPPORT
-  #define NEAR_FEED
   #define QUICK_PAUSE
   #define FILAMENT_CHANGE
   #define FILAMENT_DETECT
@@ -330,7 +324,6 @@
   #define LINEAR_GUIDE
   #define UDISKSUPPORT
   // #define ULTRA_SERIAL
-  #define NEAR_FEED
   #define QUICK_PAUSE
   #define FILAMENT_CHANGE
   #define FILAMENT_DETECT

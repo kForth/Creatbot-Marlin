@@ -1997,9 +1997,6 @@ void updateData() {
 #ifdef POWER_MANAGEMENT
 	if(dwin_shutting_info[0]){
 		DWIN_MSG(dwin_shutting_info);
-	#ifdef AUTO_SHUTDOWN_DEBUG
-		SERIAL_ECHOLN(dwin_shutting_info);
-	#endif
 	}
 #endif
 }

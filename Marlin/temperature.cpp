@@ -876,11 +876,11 @@ void Temperature::manage_heater() {
   #endif // HAS_TEMP_BED
 
 	#if HAS_TEMP_CHAMBER
-		#ifdef HOTWIND_HYSTERESIS
+		#ifdef HEATED_CHAMBER_HYSTERESIS
 			if (WITHIN(current_temperature_chamber, CHAMBER_MINTEMP, CHAMBER_MAXTEMP)) {
 				if (current_temperature_chamber >= target_temperature_chamber)
 					soft_pwm_amount_chamber = 0;
-				else if (current_temperature_chamber <= target_temperature_chamber - (HOTWIND_HYSTERESIS))
+				else if (current_temperature_chamber <= target_temperature_chamber - (HEATED_CHAMBER_HYSTERESIS))
 					soft_pwm_amount_chamber = MAX_BED_POWER >> 1;
 			} else {
 				soft_pwm_amount_chamber = 0;
