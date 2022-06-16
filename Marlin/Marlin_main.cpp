@@ -838,7 +838,7 @@ bool isSerialPrinting = false;						// If the printer is printing from serial.
 	#endif
 #endif //POWER_MANAGEMENT
 
-char versionFW[FW_STR_LEN + 1] = {0};
+char versionFW[FW_STR_LEN] = {0};
 
 /*****************************************************************************************************/
 
@@ -14247,10 +14247,11 @@ void disable_all_steppers() {
 
 /********************************************************** By LYN ***********************************************************/
 void updateVersionString(char *dataStr){
-  // Up to 10 Chars for LCD
+  // Format: Vx.x.x/x.xc (11 chars, first char not show on LCD)
   // SHORT_BUILD_VERSION => 1.1.x = 5 chars
-  // CREATBOT_VERSION => 5.6 = 4 chars
-	sprintf_P(dataStr, PSTR("%s:%s"), SHORT_BUILD_VERSION, CREATBOT_VERSION);
+  // ':' = 1 char
+  // CREATBOT_VERSION => 5.6x = 4 chars
+	sprintf_P(dataStr, PSTR("V%s/%s"), SHORT_BUILD_VERSION, CREATBOT_VERSION);
 }
 
 void updateStateStrings(){

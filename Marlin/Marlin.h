@@ -601,9 +601,8 @@ extern PowerState powerState;
 
 extern bool	isSerialPrinting;
 
-#define FW_STR_LEN	11				// Vx.x.xxxxxx
-extern char versionFW[FW_STR_LEN + 1];
-
+#define FW_STR_LEN	11  // Vx.x.x/x.xc
+extern char versionFW[FW_STR_LEN];
 
 void updateStateStrings();
 
