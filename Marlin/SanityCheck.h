@@ -1410,14 +1410,6 @@ static_assert(COUNT(sanity_arr_3) <= XYZE_N, "DEFAULT_MAX_ACCELERATION has too m
  * CreatBot Sanity Check
  */
 
-#if ENABLED(NTC) && ENABLED(KTC)
-	#error "You cannot have NTC and KTC both."
-#endif
-
-#if DISABLED(NTC) && DISABLED(KTC)
-	#error "You should defined NTC or KTC."
-#endif
-
 #if ENABLED(SDSUPPORT) && ENABLED(UDISKSUPPORT)
 	#error "You cannot have SD and USB both."
 #endif //SDSUPPORT && UDISKSUPPORT

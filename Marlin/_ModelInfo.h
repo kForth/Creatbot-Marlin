@@ -24,22 +24,22 @@
   #if MODEL == DM_Mini
     #define X_MAX_POS 205
     #define Y_MAX_POS 205
-    #ifdef KTC
+    #ifdef TEMP_SENSOR == KTC
       #define Z_MAX_POS 250
-    #else // NTC
+    #else // TEMP_SENSOR == NTC
       #define Z_MAX_POS 255
     #endif
   #else
     #define X_MAX_POS 255
     #define Y_MAX_POS 255
     #if MODEL == DM
-      #ifdef KTC
+      #ifdef TEMP_SENSOR == KTC
         #define Z_MAX_POS 300
-      #else // NTC
+      #else // TEMP_SENSOR == NTC
         #define Z_MAX_POS 305
       #endif
     #else // MODEL == DM_Plus
-      #ifdef KTC
+      #ifdef TEMP_SENSOR == KTC
         #define Z_MAX_POS 450
       #else
         #define Z_MAX_POS 455
@@ -54,13 +54,13 @@
   #endif
   #define Y_MAX_POS 255
   #if MODEL == DX
-    #ifdef KTC
+    #ifdef TEMP_SENSOR == KTC
       #define Z_MAX_POS 300
-    #else // NTC
+    #else // TEMP_SENSOR == NTC
       #define Z_MAX_POS 305
     #endif
   #else // MODEL == DX_Plus
-    #ifdef KTC
+    #ifdef TEMP_SENSOR == KTC
       #define Z_MAX_POS 520
     #else
       #define Z_MAX_POS 525

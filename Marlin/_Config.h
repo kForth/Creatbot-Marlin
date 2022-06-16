@@ -1,19 +1,44 @@
 #ifndef CREATBOT_CONFIG_H
 #define CREATBOT_CONFIG_H
 
-#define OEM CreatBot
-#define LANGUAGE en
+//===========================================================================
+//============================== Printer Model ==============================
+//===========================================================================
 
+/**
+ * Select your printer model
+ *
+ * :[ 
+ *    DM_Mini, DM, DM_Plus, DX, DX_Plus, DE, DE_Plus,D600, D600_Mini, D600_SE,
+ *    D600_Pro, F160, F200, F220, F260, F300, F430, F1000, PEEK300 
+ *  ]
+ */
 #define MODEL F430
-#define EXTRUDERS 2
-#define KTC
-// #define NTC
 
 // Enable this for printers with a yellow motherboard (v9.5 or newer)
 // Leave this disabled for printers with a green motherboard (older than v9.5)
 //#define BOARD_VERSION_GT_V95
 
-#include "_ModelInfo.h"
+// This defines the number of extruders
+// :[1, 2, 3, 4, 5]
+#define EXTRUDERS 2
+
+// This defines the extruder temp sensor type
+// :[KTC, NTC]
+#define TEMP_SENSOR KTC
+
+/**
+ * LCD LANGUAGE
+ *
+ * Select the language to display on the LCD. These languages are available:
+ *
+ *    en, an, bg, ca, cn, cz, cz_utf8, de, el, el-gr, es, eu, fi, fr, gl, hr,
+ *    it, kana, kana_utf8, nl, pl, pt, pt_utf8, pt-br, pt-br_utf8, ru, sk_utf8,
+ *    tr, uk, zh_CN, zh_TW, test
+ *
+ * :{ 'en':'English', 'an':'Aragonese', 'bg':'Bulgarian', 'ca':'Catalan', 'cn':'Chinese', 'cz':'Czech', 'cz_utf8':'Czech (UTF8)', 'de':'German', 'el':'Greek', 'el-gr':'Greek (Greece)', 'es':'Spanish', 'eu':'Basque-Euskera', 'fi':'Finnish', 'fr':'French', 'gl':'Galician', 'hr':'Croatian', 'it':'Italian', 'kana':'Japanese', 'kana_utf8':'Japanese (UTF8)', 'nl':'Dutch', 'pl':'Polish', 'pt':'Portuguese', 'pt-br':'Portuguese (Brazilian)', 'pt-br_utf8':'Portuguese (Brazilian UTF8)', 'pt_utf8':'Portuguese (UTF8)', 'ru':'Russian', 'sk_utf8':'Slovak (UTF8)', 'tr':'Turkish', 'uk':'Ukrainian', 'zh_CN':'Chinese (Simplified)', 'zh_TW':'Chinese (Taiwan)', test':'TEST' }
+ */
+#define LANGUAGE en
 
 #define USE_AUTOMATIC_VERSIONING
 
@@ -21,6 +46,7 @@
 
 #define BL_TOUCH_SIGNAL_SELF_FILTER
 
+#include "_ModelInfo.h"
 
 //===========================================================================
 //============================= Thermal Settings ============================
@@ -50,13 +76,13 @@
     #define HEATER_3_MAXTEMP  465
   #endif
   #define BED_MAXTEMP         215
-#elif defined(KTC)
+#elif TEMP_SENSOR == KTC
   #define HEATER_0_MAXTEMP 415
   #define HEATER_1_MAXTEMP 415
   #define HEATER_2_MAXTEMP 415
   #define HEATER_3_MAXTEMP 415
   #define BED_MAXTEMP      135
-#else // defined(NTC)
+#else // TEMP_SENSOR == NTC
   #define HEATER_0_MAXTEMP 265
   #define HEATER_1_MAXTEMP 265
   #define HEATER_2_MAXTEMP 265
@@ -66,7 +92,7 @@
 
 // Heated Chamber
 #ifdef HEATED_CHAMBER
-  #define TEMP_SENSOR_CHAMBER     1 // NTC
+  #define TEMP_SENSOR_CHAMBER     NTC
   #define CHAMBER_MINTEMP         -12
   #define CHAMBER_MAXTEMP         85
   #define MAX_CHAMBER_POWER       255
@@ -75,40 +101,33 @@
   #define TEMP_SENSOR_CHAMBER     0
 #endif
 
-// Temp Sensor Type
-#ifdef KTC
-  #define T_SENSENR -1 // KTC
-#elif defined(NTC)
-  #define T_SENSENR 1 // NTC
-#endif
-
 // Set Temperature Sensors
 #if EXTRUDERS > 0
-  #define TEMP_SENSOR_0 T_SENSENR
+  #define TEMP_SENSOR_0 TEMP_SENSOR
 #else
   #define TEMP_SENSOR_0 0
 #endif
 #if EXTRUDERS > 1
-  #define TEMP_SENSOR_1 T_SENSENR
+  #define TEMP_SENSOR_1 TEMP_SENSOR
 #else
   #define TEMP_SENSOR_1 0
 #endif
 #if EXTRUDERS > 2
-  #define TEMP_SENSOR_2 T_SENSENR
+  #define TEMP_SENSOR_2 TEMP_SENSOR
 #else
   #define TEMP_SENSOR_2 0
 #endif
 #if EXTRUDERS > 3
-  #define TEMP_SENSOR_3 T_SENSENR
+  #define TEMP_SENSOR_3 TEMP_SENSOR
 #else
   #define TEMP_SENSOR_3 0
 #endif
 #if EXTRUDERS > 4
-  #define TEMP_SENSOR_4 T_SENSENR
+  #define TEMP_SENSOR_4 TEMP_SENSOR
 #else
   #define TEMP_SENSOR_4 0
 #endif
-#define TEMP_SENSOR_BED 1 // NTC
+#define TEMP_SENSOR_BED NTC
 
 //These defines help to calibrate the AD595 sensor in case you get wrong temperature measurements.
 //The measured temperature is defined as "actualTemp = (measuredTemp * TEMP_SENSOR_AD595_GAIN) + TEMP_SENSOR_AD595_OFFSET"

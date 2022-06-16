@@ -1,6 +1,8 @@
 #ifndef OEM_INFO_H
 #define OEM_INFO_H
 
+#define OEM_NAME "CreatBot"
+
 #define Other_MODEL   -1
 #define DM_Mini       1
 #define DM            2
@@ -32,7 +34,9 @@
 #define VER_POS_1    {2, 63}    // left-bottom
 #define VER_POS_2    {104, 7}   // right-top
 
-#define OEM_NAME "CreatBot"
+// Thermistor Types
+#define KTC -1
+#define NTC 1
 
 #if MODEL == DM_Mini
   #define MODEL_NAME "DM-"
