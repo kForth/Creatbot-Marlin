@@ -21,7 +21,7 @@ Developer Lyn Lee, 3 June 2015.
 
 int lcd_preheat_hotend_temp[EXTRUDERS];
 int lcd_preheat_bed_temp;
-#ifdef HOTWIND_SYSTEM
+#ifdef HEATED_CHAMBER
 	int lcd_preheat_chamber_temp;
 #endif
 int lcd_preheat_fan_speed;
@@ -178,7 +178,7 @@ void dwin_preheat(uint8_t target){
 #endif
 
 
-#ifdef HOTWIND_SYSTEM
+#ifdef HEATED_CHAMBER
 	#define DWIN_PREHEAT(endnum, temph, tempb, tempc, fan) do{\
 		if(temph > 0) thermalManager.setTargetHotend(temph, endnum);\
 		thermalManager.setTargetBed(tempb);\
@@ -199,7 +199,7 @@ void dwin_preheat(uint8_t target){
 			0,
 			0,
 			lcd_preheat_bed_temp,
-		#ifdef HOTWIND_SYSTEM
+		#ifdef HEATED_CHAMBER
 			0,
 		#endif
 			lcd_preheat_fan_speed
@@ -211,7 +211,7 @@ void dwin_preheat(uint8_t target){
 			0,
 			0,
 			lcd_preheat_bed_temp,
-		#ifdef HOTWIND_SYSTEM
+		#ifdef HEATED_CHAMBER
 			lcd_preheat_chamber_temp,
 		#endif
 			lcd_preheat_fan_speed
@@ -221,7 +221,7 @@ void dwin_preheat(uint8_t target){
 			target,
 			lcd_preheat_hotend_temp[target],
 			lcd_preheat_bed_temp,
-		#ifdef HOTWIND_SYSTEM
+		#ifdef HEATED_CHAMBER
 			lcd_preheat_chamber_temp,
 		#endif
 			lcd_preheat_fan_speed
@@ -1158,7 +1158,7 @@ void updateFanSpeed(uint8_t mode) {
 		FAN_SPEED_UPDATE(extruder_auto_fan_speed, TEMP_FAN_SPEED_ADDR);
 	}
 	else if (mode == AIR_FAN) {
-#ifdef HAS_AIR_FAN
+#ifdef CHAMBER_FAN
 		FAN_SPEED_UPDATE(air_fan_speed, AIR_FAN_SPEED_ADDR);
 #endif
 	}
@@ -1225,7 +1225,7 @@ void dwin_update_state_info() {
 	UPDATE_LCD(thermalManager.degTargetHotend(2), EX2_TAR_ADDR);
 #endif
 	UPDATE_LCD(thermalManager.degTargetBed(), BED_TAR_ADDR);
-#ifdef HOTWIND_SYSTEM
+#ifdef HEATED_CHAMBER
 	UPDATE_LCD(thermalManager.degTargetChamber(), CHAMBER_TAR_ADDR);
 #endif
 
@@ -1238,7 +1238,7 @@ void dwin_update_state_info() {
 	UPDATE_LCD_31(thermalManager.degHotend(2), EX2_CUR_ADDR);
 #endif
 	UPDATE_LCD_31(thermalManager.degBed(), BED_CUR_ADDR);
-#ifdef HOTWIND_SYSTEM
+#ifdef HEATED_CHAMBER
 	UPDATE_LCD_31(thermalManager.degChamber(), CHAMBER_CUR_ADDR);
 #endif
 
@@ -1271,7 +1271,7 @@ void dwin_update_setting_info() {
 	UPDATE_LCD(lcd_preheat_hotend_temp[2], PREHEAT_EXT_TEMP_ADDR_2);
 #endif
 	UPDATE_LCD(lcd_preheat_bed_temp, PREHEAT_BED_TEMP_ADDR);
-#ifdef HOTWIND_SYSTEM
+#ifdef HEATED_CHAMBER
 	UPDATE_LCD(lcd_preheat_chamber_temp, PREHEAT_CHAMBER_TEMP_ADDR);
 #endif
 
@@ -1776,7 +1776,7 @@ void resolveVar() {
 		else if (VAR_IS_ADDR(SET_PREHEAT_BED_TEMP_ADDR)) {			// preheat bed temp.
 			lcd_preheat_bed_temp = varValue;
 		}
-		#ifdef HOTWIND_SYSTEM
+		#ifdef HEATED_CHAMBER
 		else if (VAR_IS_ADDR(SET_PREHEAT_CHAMBER_TEMP_ADDR)){		// perheat chamber temp.
 			lcd_preheat_chamber_temp = varValue;
 		}
@@ -1799,7 +1799,7 @@ void resolveVar() {
 		}
 		#endif
 		else if (VAR_IS_ADDR(SET_AIR_FAN_SPEED_ADDR)) {				// air fan speed
-			#ifdef HAS_AIR_FAN
+			#ifdef CHAMBER_FAN
 			air_fan_speed = varValue * 2.55;
 			#endif
 		}

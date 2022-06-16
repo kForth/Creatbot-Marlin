@@ -247,8 +247,8 @@
  * M6009 - Set regSN																				(M6009 S0.00)
  * M6010 - Adjust the Z Value after adjust zprobe_zoffset		(Requires HAS_BED_PROBE)
  * M6011 - (like M106) Set Temp fan.												(Requires HAS_AUTO_FAN)
- * M6012 - (like M106) Set Air fan.													(Requires HAS_AIR_FAN)
- * M6013 - (like M140) Set Chamber Temp. 										(Requires HOTWIND_SYSTEM)
+ * M6012 - (like M106) Set Air fan.													(Requires CHAMBER_FAN)
+ * M6013 - (like M140) Set Chamber Temp. 										(Requires HEATED_CHAMBER)
  * M6014 - (include G29) Probe the bed.											(Requires HAS_LEVELING)
  * M6020 - (like M20) List USB
  * M6021 - (like M21) Init USB
@@ -766,10 +766,10 @@ XYZ_CONSTS_FROM_CONFIG(signed char, home_dir, HOME_DIR);
 
 /******************************************* By LYN ************************************************/
 
-#ifdef HAS_AIR_FAN
+#ifdef CHAMBER_FAN
 	int air_fan_speed = DEFAULT_AIR_FAN_SPEED;			// the speed of air fan.
 	int preAirFanSpeed = 0;
-	#ifdef HOTWIND_SYSTEM
+	#ifdef HEATED_CHAMBER
 		bool air_fan_state = true;										// the state of air fan.
 	#endif
 #endif
@@ -11110,7 +11110,7 @@ inline void gcode_M6011() {
 }
 #endif
 
-#if ENABLED(HAS_AIR_FAN)
+#if ENABLED(CHAMBER_FAN)
 /*
  * Set Air fan.
  */
@@ -11121,7 +11121,7 @@ inline void gcode_M6012() {
 }
 #endif
 
-#if ENABLED(HOTWIND_SYSTEM)
+#if ENABLED(HEATED_CHAMBER)
 /*
  * Set Chamber Temp.
  */
@@ -12753,13 +12753,13 @@ void process_next_command() {
 					gcode_M6011();
 					break;
 
-			#if ENABLED(HAS_AIR_FAN)
+			#if ENABLED(CHAMBER_FAN)
 				case 6012:
 					gcode_M6012();
 					break;
 			#endif
 
-			#if ENABLED(HOTWIND_SYSTEM)
+			#if ENABLED(HEATED_CHAMBER)
 				case 6013:
 					gcode_M6013();
 					break;
@@ -14679,10 +14679,10 @@ void detectFilament() {
 }
 #endif // FILAMENT_DETECT
 
-#ifdef HAS_AIR_FAN
+#ifdef CHAMBER_FAN
 void detectAirFan() {
 	bool change = preAirFanSpeed != air_fan_speed;
-#ifdef HOTWIND_SYSTEM
+#ifdef HEATED_CHAMBER
 	bool should_cooldown = thermalManager.degChamber() > thermalManager.degTargetChamber();
 	if(air_fan_state ^ should_cooldown){
 		air_fan_state = should_cooldown;
@@ -14693,7 +14693,7 @@ void detectAirFan() {
 	if(change) {
 		preAirFanSpeed = air_fan_speed;
 		pinMode(AIR_FAN_PIN, OUTPUT);
-	#ifdef HOTWIND_SYSTEM
+	#ifdef HEATED_CHAMBER
 		if(!air_fan_state){
 			digitalWrite(AIR_FAN_PIN, LOW);
 			analogWrite(AIR_FAN_PIN, 0);
@@ -14840,7 +14840,7 @@ void customDetect() {
 #ifdef FILAMENT_DETECT
 	detectFilament();
 #endif
-#ifdef HAS_AIR_FAN
+#ifdef CHAMBER_FAN
 	detectAirFan();
 #endif
 #if defined(FILAMENT_CHANGE) || defined(FILAMENT_DETECT)

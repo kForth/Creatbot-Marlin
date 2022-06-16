@@ -172,7 +172,7 @@
     #define FILAMENT_DETECT
     #define POWER_MANAGEMENT
     #define ACCIDENT_DETECT
-    #define HAS_AIR_FAN
+    #define CHAMBER_FAN
   #elif MODEL == D600_Mini
     #define Z_1605
     #define F_SERIES
@@ -196,8 +196,8 @@
     #define FILAMENT_DETECT
     #define POWER_MANAGEMENT
     #define ACCIDENT_DETECT
-    #define HAS_AIR_FAN
-    #define HOTWIND_SYSTEM
+    #define CHAMBER_FAN
+    #define HEATED_CHAMBER
     #define AUTO_BED_LEVELING
   #elif MODEL == D600_Pro
     #define Z_1605
@@ -211,8 +211,8 @@
     #define FILAMENT_DETECT
     #define POWER_MANAGEMENT
     #define ACCIDENT_DETECT
-    #define HAS_AIR_FAN
-    #define HOTWIND_SYSTEM
+    #define CHAMBER_FAN
+    #define HEATED_CHAMBER
     #define AUTO_BED_LEVELING
   #elif MODEL == F300
     #define Z_1605
@@ -226,7 +226,7 @@
     #define FILAMENT_DETECT
     #define POWER_MANAGEMENT
     #define ACCIDENT_DETECT
-    #define HAS_AIR_FAN
+    #define CHAMBER_FAN
   #elif MODEL == F160
     #define F_SERIES
     #define LCD480272
@@ -238,7 +238,7 @@
     #define FILAMENT_DETECT
     #define POWER_MANAGEMENT
     #define ACCIDENT_DETECT
-    #define HAS_AIR_FAN
+    #define CHAMBER_FAN
   //  #define WIFI_SUPPORT
   #elif MODEL == F200
     #define Z_1605
@@ -252,8 +252,8 @@
     #define FILAMENT_DETECT
     #define POWER_MANAGEMENT
     #define ACCIDENT_DETECT
-    #define HAS_AIR_FAN
-    #define HOTWIND_SYSTEM
+    #define CHAMBER_FAN
+    #define HEATED_CHAMBER
 //    #define AUTO_BED_LEVELING
   #elif MODEL == F220
     #define Z_1605
@@ -267,8 +267,8 @@
     #define FILAMENT_DETECT
     #define POWER_MANAGEMENT
     #define ACCIDENT_DETECT
-    #define HAS_AIR_FAN
-    #define HOTWIND_SYSTEM
+    #define CHAMBER_FAN
+    #define HEATED_CHAMBER
 //    #define AUTO_BED_LEVELING
   #elif MODEL == F260
     #define Z_1605
@@ -282,8 +282,8 @@
     #define FILAMENT_DETECT
     #define POWER_MANAGEMENT
     #define ACCIDENT_DETECT
-    #define HAS_AIR_FAN
-    #define HOTWIND_SYSTEM
+    #define CHAMBER_FAN
+    #define HEATED_CHAMBER
     #define AUTO_BED_LEVELING
   #elif MODEL == F430
     #define Z_1605
@@ -297,8 +297,8 @@
     #define FILAMENT_DETECT
     #define POWER_MANAGEMENT
     #define ACCIDENT_DETECT
-    #define HAS_AIR_FAN
-    #define HOTWIND_SYSTEM
+    #define CHAMBER_FAN
+    #define HEATED_CHAMBER
     #define AUTO_BED_LEVELING
   //  #define COLOR_LED
   #elif MODEL == PEEK300
@@ -313,8 +313,8 @@
     #define FILAMENT_DETECT
     #define POWER_MANAGEMENT
     #define ACCIDENT_DETECT
-    #define HAS_AIR_FAN
-    #define HOTWIND_SYSTEM
+    #define CHAMBER_FAN
+    #define HEATED_CHAMBER
     #define AUTO_BED_LEVELING
   //  #define COLOR_LED
   #elif MODEL == F1000
@@ -330,8 +330,8 @@
     #define FILAMENT_DETECT
     #define POWER_MANAGEMENT
     #define ACCIDENT_DETECT
-    #define HAS_AIR_FAN
-    #define HOTWIND_SYSTEM
+    #define CHAMBER_FAN
+    #define HEATED_CHAMBER
     #define AUTO_BED_LEVELING
 //    #define COLOR_LED
   #else
@@ -447,8 +447,8 @@
     #define NOT_AUTO_SHUTDOWN
   #endif
 
-  #if defined(MAKE_HOTWIND) && not defined(HOTWIND_SYSTEM)
-    #define HOTWIND_SYSTEM
+  #if defined(MAKE_HOTWIND) && not defined(HEATED_CHAMBER)
+    #define HEATED_CHAMBER
   #endif
 
   #if defined(MAKE_AUTO_LEVELING) && not defined(AUTO_BED_LEVELING)

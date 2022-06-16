@@ -464,7 +464,7 @@
 
 #define BED_PINS HEATER_BED_PIN, marlinAnalogInputToDigitalPin(TEMP_BED_PIN),
 
-#if ENABLED(HOTWIND_SYSTEM)
+#if ENABLED(HEATED_CHAMBER)
 	#define CHAMBER_PINS HEATER_CHAMBER_PIN, marlinAnalogInputToDigitalPin(TEMP_CHAMBER_PIN),
 #else
 	#define CHAMBER_PINS
