@@ -38,7 +38,7 @@
 
 
 #define USB_READ						//允许USB读操作
-//#define USB_WRITE						//允许USB写操作
+#define USB_WRITE						//允许USB写操作
 
 #define ERR_USB_UNKNOWN			0xFA	//未知连接错误
 #define ERR_USB_MODE				0xFB	//初始化模式错误

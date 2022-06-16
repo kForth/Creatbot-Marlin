@@ -635,6 +635,34 @@ void UDiskReader::closefile() {
 	saving = logging = false;
 }
 
+void UDiskReader::eraseFile(char * name){
+	UDiskImpl.fileErase(name);
+}
+
+bool UDiskReader::fileCreate(const char* name){
+	return UDiskImpl.fileCreate(name);
+}
+
+bool UDiskReader::fileCreatePath(const char* name){
+	return UDiskImpl.fileCreatePath(name);
+}
+
+bool UDiskReader::dirCreate(const char* name){
+	return UDiskImpl.dirCreate(name);
+}
+
+bool UDiskReader::dirCreatePath(const char* name){
+	return UDiskImpl.dirCreatePath(name);
+}
+
+bool UDiskReader::fileErase(const char* name){
+	return UDiskImpl.fileErase(name);
+}
+
+void UDiskReader::setFileSize(uint32_t size){
+	UDiskImpl.set_file_size(size);
+}
+
 int16_t UDiskReader::get(){
 	uint8_t get_char;
 

@@ -11241,6 +11241,7 @@ inline void gcode_M6029() {
 */
 inline void gcode_M6030() {
 	//TODO M6030
+  // UDisk.fileErase(parser.string_arg);
 }
 
 /*

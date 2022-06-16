@@ -47,7 +47,7 @@ public:
 	void pausePrint();
 	void stopPrint();
 	void release();
-  void openAndPrintFile(const char *name);
+  	void openAndPrintFile(const char *name);
 	void getStatus();
 	void printingHasFinished();
 
@@ -55,6 +55,14 @@ public:
 	void closefile();
 	int16_t get();
 	void setIndex(long index);
+	
+	void eraseFile(char *name);
+	bool fileCreate(const char* name);
+	bool fileCreatePath(const char* name);
+	bool dirCreate(const char* name);
+	bool dirCreatePath(const char* name);
+	bool fileErase(const char* name);
+	void setFileSize(uint32_t size);  
 	
 	bool UDiskPrintState, UDiskPauseState, UDiskConn, UDiskOK, isDir, isFileOpen, saving, logging;
 	char filename[FILENAME_LENGTH], longFilename[LONG_FILENAME_LENGTH];
