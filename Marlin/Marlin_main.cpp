@@ -10618,7 +10618,7 @@ inline void gcode_M999() {
 * Pause print immediately.(By LYN)
 */
 inline void gcode_M6001() {
-	if(!FILE_IS_PAUSE && !isSerialPrinting)	return;
+	if(!FILE_IS_PAUSE && !isSerialPrinting)	return; //Return if not paused and not printing over serial
   
   if(print_job_timer.isRunning())
     print_job_timer.pause();	// pause timer
@@ -10659,7 +10659,7 @@ inline void gcode_M6001() {
 * Resume print from M6001.(By LYN)
 */
 inline void gcode_M6002() {
-	if(!FILE_IS_PAUSE && !isSerialPrinting) return;
+	if(!FILE_IS_PAUSE && !isSerialPrinting) return; //Return if not paused and not printing over serial
 
 	if (!(axis_known_position[X_AXIS] && axis_known_position[Y_AXIS] && axis_known_position[Z_AXIS])) 	return;
 
@@ -10726,17 +10726,20 @@ inline void gcode_M6002() {
 bool quickPausePrintJob(){
 	STORE_SETTING(usedTime);
 
-	if(FILE_IS_PRINT
+	if((FILE_IS_PRINT || isSerialPrinting) // If printing from file or over serial
 	#if ENABLED(ACCIDENT_DETECT)
 		&& !isAccidentToPrinting
 	#endif
 	){
-		quickstop_stepper();							// quick stop
-		FILE_PAUSE_PRINT;									// pause file reader
+		quickstop_stepper();	// quick stop
+    if(FILE_IS_PRINT){
+      FILE_PAUSE_PRINT;   // pause file reader
+    }
 		enqueue_and_echo_commands_P(PSTR("M6001"));
 		return true;
-	} else
+	} else {
 		return false;
+  }
 }
 
 bool quickReusePrintJob(){
@@ -10806,7 +10809,7 @@ inline void gcode_M6003() {
 
 #if defined(FILAMENT_CHANGE) || defined(FILAMENT_DETECT)
 bool pauseToUnloadFilament(){
-  if((FILE_IS_PAUSE && !isPauseForFilament)					// pause but not change filament
+  if((FILE_IS_PAUSE && !isPauseForFilament) // Paused but not for filament change
   #if ENABLED(QUICK_PAUSE)
     || quickPausePrintJob()){
   #else
@@ -10822,7 +10825,7 @@ bool pauseToUnloadFilament(){
     return_default_button_action();
   #endif //DWIN_LCD
     return true;
-  } else {								// pause failure
+  } else {  // pause failure
     return false;
   }
 }
