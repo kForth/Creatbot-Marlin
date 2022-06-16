@@ -279,7 +279,8 @@
   #if MODEL == F1000
     #define Z_STEP_VALUE 1600
   #else
-    #define Z_STEP_VALUE 640
+    // #define Z_STEP_VALUE 640
+    #define Z_STEP_VALUE 638.0153 //Kestin
   #endif
 #else
   #if MODEL == F1000
@@ -307,7 +308,8 @@
   #elif MODEL == Other_MODEL
     #define DEFAULT_AXIS_STEPS_PER_UNIT   {128.0/3, 128.0/3, Z_STEP_VALUE, E_STEP_VALUE }
   #elif MODEL == F430 || MODEL == F260 || MODEL == F200 || MODEL == F220
-    #define DEFAULT_AXIS_STEPS_PER_UNIT   {78.7402, 131.2336, Z_STEP_VALUE, E_STEP_VALUE }
+    // #define DEFAULT_AXIS_STEPS_PER_UNIT   {78.7402, 131.2336, Z_STEP_VALUE, E_STEP_VALUE }
+    #define DEFAULT_AXIS_STEPS_PER_UNIT   {78.6816, 131.2591, Z_STEP_VALUE, E_STEP_VALUE } //Kestin
   #else
     #error "This MODEL don't have LINEAR_GUIDE system."
   #endif
