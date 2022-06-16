@@ -1438,7 +1438,7 @@ static_assert(COUNT(sanity_arr_3) <= XYZE_N, "DEFAULT_MAX_ACCELERATION has too m
 	#endif
 #endif
 
-#if ENABLED(HOTWIND_SYSTEM) && EXTRUDERS > 2
+#if ENABLED(HEATED_CHAMBER) && EXTRUDERS > 2
 	#error "For now, HOTWIND used the HEATER_2_PIN"
 #endif
 
@@ -1456,11 +1456,11 @@ static_assert(COUNT(sanity_arr_3) <= XYZE_N, "DEFAULT_MAX_ACCELERATION has too m
 	#if ENABLED(UDISKSUPPORT)
 		#error "UDISKSUPPORT need a LCD480272"
 	#endif
-	#if ENABLED(HAS_AIR_FAN)
+	#if ENABLED(CHAMBER_FAN)
 		#error "AIR_FILTER_FAN need a LCD480272"
 	#endif
-	#if ENABLED(HOTWIND_SYSTEM)
-		#error "HOTWIND_SYSTEM need a LCD480272"
+	#if ENABLED(HEATED_CHAMBER)
+		#error "HEATED_CHAMBER need a LCD480272"
 	#endif
 	#if ENABLED(WIFI_SUPPORT)
 		#error "WIFI_SUPPORT need a LCD480272"

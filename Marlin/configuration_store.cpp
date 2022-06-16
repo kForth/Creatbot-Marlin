@@ -399,7 +399,7 @@ void MarlinSettings::postprocess() {
 		#if ENABLED(DWIN_LCD)
 			SETTING_TO_CONFIG(lcd_preheat_hotend_temp);
 			SETTING_TO_CONFIG(lcd_preheat_bed_temp);
-			#ifdef HOTWIND_SYSTEM
+			#ifdef HEATED_CHAMBER
 				SETTING_TO_CONFIG(lcd_preheat_chamber_temp);
 			#endif
 			SETTING_TO_CONFIG(lcd_preheat_fan_speed);
@@ -503,7 +503,7 @@ void MarlinSettings::postprocess() {
 			SETTING_TO_CONFIG(extruder_auto_fan_speed);
 		#endif
 
-		#ifdef HAS_AIR_FAN
+		#ifdef CHAMBER_FAN
 			SETTING_TO_CONFIG(air_fan_speed);
 		#endif
 
@@ -660,7 +660,7 @@ void MarlinSettings::postprocess() {
 			#if ENABLED(DWIN_LCD)
 				CONFIG_TO_SETTING(lcd_preheat_hotend_temp);
 				CONFIG_TO_SETTING(lcd_preheat_bed_temp);
-				#ifdef HOTWIND_SYSTEM
+				#ifdef HEATED_CHAMBER
 					CONFIG_TO_SETTING(lcd_preheat_chamber_temp);
 				#endif
 				CONFIG_TO_SETTING(lcd_preheat_fan_speed);
@@ -763,7 +763,7 @@ void MarlinSettings::postprocess() {
 				CONFIG_TO_SETTING(extruder_auto_fan_speed);
 			#endif
 
-			#ifdef HAS_AIR_FAN
+			#ifdef CHAMBER_FAN
 				CONFIG_TO_SETTING(air_fan_speed);
 			#endif
 
@@ -1054,7 +1054,7 @@ void MarlinSettings::reset(bool init/* = false*/) {
 	#if ENABLED(DWIN_LCD)
     HOTEND_LOOP()	lcd_preheat_hotend_temp[e] = PREHEAT_TEMP_HOTEND;
     lcd_preheat_bed_temp = PREHEAT_TEMP_BED;
-		#ifdef HOTWIND_SYSTEM
+		#ifdef HEATED_CHAMBER
     	lcd_preheat_chamber_temp = PREHEAT_TEMP_CHAMBER;
 		#endif
     lcd_preheat_fan_speed = PREHEAT_FAN_SPEED;
@@ -1167,7 +1167,7 @@ void MarlinSettings::reset(bool init/* = false*/) {
 		extruder_auto_fan_speed = DEFAULT_AUTO_FAN_SPEED;
 	#endif
 
-	#ifdef HAS_AIR_FAN
+	#ifdef CHAMBER_FAN
 		if(init){
 			air_fan_speed = DEFAULT_AIR_FAN_SPEED;
 		}

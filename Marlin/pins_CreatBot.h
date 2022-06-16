@@ -165,7 +165,7 @@
 	#define ACCIDENT_PIN		84
 #endif
 
-#ifdef HAS_AIR_FAN
+#ifdef CHAMBER_FAN
 	#define AIR_FAN_PIN			10
 #endif
 
@@ -189,7 +189,7 @@
 	#define DS_DATA_PIN 64
 #endif
 
-#ifdef HOTWIND_SYSTEM
+#ifdef HEATED_CHAMBER
 	#define TEMP_CHAMBER_PIN			12
 	#define HEATER_CHAMBER_PIN		6			// TODO Fow now, This pin is temporary, should be replaced in future.
 #endif

@@ -547,7 +547,7 @@ FORCE_INLINE bool position_is_reachable_xy(const float &lx, const float &ly) {
 	extern int extruder_auto_fan_speed;
 #endif
 
-#ifdef HAS_AIR_FAN
+#ifdef CHAMBER_FAN
 	extern int air_fan_speed;
 #endif
 

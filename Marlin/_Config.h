@@ -65,7 +65,8 @@
   #endif
 #endif
 
-#ifdef HOTWIND_SYSTEM
+// Heated Chamber
+#ifdef HEATED_CHAMBER
   #define TEMP_SENSOR_CHAMBER     1     // NTC
   #define CHAMBER_MINTEMP         -12
   #define CHAMBER_MAXTEMP         85
@@ -75,7 +76,7 @@
   #define TEMP_SENSOR_CHAMBER     0
 #endif
 
-
+// Extruder Temp Sensors
 #if EXTRUDERS > 0
   #define TEMP_SENSOR_0 T_SENSENR
 #else
@@ -134,6 +135,15 @@
     #define  DEFAULT_Ki 1.26
     #define  DEFAULT_Kd 55
   #endif
+#endif // PIDTEMP
+
+#define PIDTEMPBED
+#if ENABLED(PIDTEMPBED)
+	// CreatBot
+	// 24V ??W silicone heater into
+	#define  DEFAULT_bedKp 345.78
+	#define  DEFAULT_bedKi 14.59
+	#define  DEFAULT_bedKd 2047.99
 #endif // PIDTEMP
 
 
@@ -417,7 +427,7 @@
   #endif
 #endif
 
-#ifdef HOTWIND_SYSTEM
+#ifdef HEATED_CHAMBER
   #define HOTWIND_HYSTERESIS  2 //s
 #endif
 
@@ -431,7 +441,7 @@
 
 #define DEFAULT_AUTO_FAN_SPEED 0
 
-#ifdef HAS_AIR_FAN
+#ifdef CHAMBER_FAN
   #define DEFAULT_AIR_FAN_SPEED 0
 #endif
 

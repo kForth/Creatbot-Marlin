@@ -120,9 +120,10 @@
 
 // The following define selects which electronics board you have.
 // Please choose the name from boards.h that matches your setup
-#ifndef MOTHERBOARD
-  #define MOTHERBOARD BOARD_RAMPS_14_EFB
-#endif
+// (redef in _Config.h) 
+// #ifndef MOTHERBOARD
+//   #define MOTHERBOARD BOARD_RAMPS_14_EFB
+// #endif
 
 // Optional custom name for your RepStrap or other custom machine
 // Displayed in the LCD "Ready" message
@@ -136,7 +137,7 @@
 
 // This defines the number of extruders
 // :[1, 2, 3, 4, 5]
-//(By LYN, redef in _Config.h) #define EXTRUDERS 1
+//(redef in _Config.h) #define EXTRUDERS 1
 
 // For Cyclops or any "multi-extruder" that shares a single nozzle.
 //#define SINGLENOZZLE
@@ -285,12 +286,12 @@
  *
  * :{ '0': "Not used", '1':"100k / 4.7k - EPCOS", '2':"200k / 4.7k - ATC Semitec 204GT-2", '3':"Mendel-parts / 4.7k", '4':"10k !! do not use for a hotend. Bad resolution at high temp. !!", '5':"100K / 4.7k - ATC Semitec 104GT-2 (Used in ParCan & J-Head)", '6':"100k / 4.7k EPCOS - Not as accurate as Table 1", '7':"100k / 4.7k Honeywell 135-104LAG-J01", '8':"100k / 4.7k 0603 SMD Vishay NTCS0603E3104FXT", '9':"100k / 4.7k GE Sensing AL03006-58.2K-97-G1", '10':"100k / 4.7k RS 198-961", '11':"100k / 4.7k beta 3950 1%", '12':"100k / 4.7k 0603 SMD Vishay NTCS0603E3104FXT (calibrated for Makibox hot bed)", '13':"100k Hisens 3950  1% up to 300°C for hotend 'Simple ONE ' & hotend 'All In ONE'", '20':"PT100 (Ultimainboard V2.x)", '51':"100k / 1k - EPCOS", '52':"200k / 1k - ATC Semitec 204GT-2", '55':"100k / 1k - ATC Semitec 104GT-2 (Used in ParCan & J-Head)", '60':"100k Maker's Tool Works Kapton Bed Thermistor beta=3950", '66':"Dyze Design 4.7M High Temperature thermistor", '70':"the 100K thermistor found in the bq Hephestos 2", '71':"100k / 4.7k Honeywell 135-104LAF-J01", '147':"Pt100 / 4.7k", '1047':"Pt1000 / 4.7k", '110':"Pt100 / 1k (non-standard)", '1010':"Pt1000 / 1k (non standard)", '-3':"Thermocouple + MAX31855 (only for sensor 0)", '-2':"Thermocouple + MAX6675 (only for sensor 0)", '-1':"Thermocouple + AD595",'998':"Dummy 1", '999':"Dummy 2" }
  */
-//(By LYN, redef in _Config.h) #define TEMP_SENSOR_0 1
-//(By LYN, redef in _Config.h) #define TEMP_SENSOR_1 0
-//(By LYN, redef in _Config.h) #define TEMP_SENSOR_2 0
-//(By LYN, redef in _Config.h) #define TEMP_SENSOR_3 0
-//(By LYN, redef in _Config.h) #define TEMP_SENSOR_4 0
-//(By LYN, redef in _Config.h) #define TEMP_SENSOR_BED 0
+//(redef in _Config.h) #define TEMP_SENSOR_0 1
+//(redef in _Config.h) #define TEMP_SENSOR_1 0
+//(redef in _Config.h) #define TEMP_SENSOR_2 0
+//(redef in _Config.h) #define TEMP_SENSOR_3 0
+//(redef in _Config.h) #define TEMP_SENSOR_4 0
+//(redef in _Config.h) #define TEMP_SENSOR_BED 0
 
 // Dummy thermistor constant temperature readings, for use with 998 and 999
 #define DUMMY_THERMISTOR_998_VALUE 25
@@ -314,22 +315,22 @@
 // The minimal temperature defines the temperature below which the heater will not be enabled It is used
 // to check that the wiring to the thermistor is not broken.
 // Otherwise this would lead to the heater being powered on all the time.
-#define HEATER_0_MINTEMP 1	//(By LYN, default is 5)
-#define HEATER_1_MINTEMP 1	//(By LYN, default is 5)
-#define HEATER_2_MINTEMP 1	//(By LYN, default is 5)
-#define HEATER_3_MINTEMP 1	//(By LYN, default is 5)
-#define HEATER_4_MINTEMP 1	//(By LYN, default is 5)
-#define BED_MINTEMP -12			//(By LYN, default is 5)
+#define HEATER_0_MINTEMP 1	//(default is 5)
+#define HEATER_1_MINTEMP 1	//(default is 5)
+#define HEATER_2_MINTEMP 1	//(default is 5)
+#define HEATER_3_MINTEMP 1	//(default is 5)
+#define HEATER_4_MINTEMP 1	//(default is 5)
+#define BED_MINTEMP -12			//(default is 5)
 
 // When temperature exceeds max temp, your heater will be switched off.
 // This feature exists to protect your hotend from overheating accidentally, but *NOT* from thermistor short/failure!
 // You should use MINTEMP for thermistor short/failure protection.
-//(By LYN, redef in _Config.h) #define HEATER_0_MAXTEMP 275
-//(By LYN, redef in _Config.h) #define HEATER_1_MAXTEMP 275
-//(By LYN, redef in _Config.h) #define HEATER_2_MAXTEMP 275
-//(By LYN, redef in _Config.h) #define HEATER_3_MAXTEMP 275
-//(By LYN, redef in _Config.h) #define HEATER_4_MAXTEMP 275
-//(By LYN, redef in _Config.h) #define BED_MAXTEMP 150
+//(redef in _Config.h) #define HEATER_0_MAXTEMP 275
+//(redef in _Config.h) #define HEATER_1_MAXTEMP 275
+//(redef in _Config.h) #define HEATER_2_MAXTEMP 275
+//(redef in _Config.h) #define HEATER_3_MAXTEMP 275
+//(redef in _Config.h) #define HEATER_4_MAXTEMP 275
+//(redef in _Config.h) #define BED_MAXTEMP 150
 
 //===========================================================================
 //============================= PID Settings ================================
@@ -337,10 +338,10 @@
 // PID Tuning Guide here: http://reprap.org/wiki/PID_Tuning
 
 // Comment the following line to disable PID and enable bang-bang.
-//(By LYN, redef in _Config.h) #define PIDTEMP
+//(redef in _Config.h) #define PIDTEMP
 #define BANG_MAX 255 // limits current to nozzle while in bang-bang mode; 255=full current
 #define PID_MAX BANG_MAX // limits current to nozzle while PID is active (see PID_FUNCTIONAL_RANGE below); 255=full current
-#if false && ENABLED(PIDTEMP) //(By LYN, redef in _Config.h)
+#if false && ENABLED(PIDTEMP) //(redef in _Config.h)
   //#define PID_AUTOTUNE_MENU // Add PID Autotune to the LCD "Temperature" menu to run M303 and apply the result.
   //#define PID_DEBUG // Sends debug data to the serial port.
   //#define PID_OPENLOOP 1 // Puts PID in open loop. M104/M140 sets the output power from 0 to PID_MAX
@@ -354,9 +355,9 @@
   // If you are using a pre-configured hotend then you can use one of the value sets by uncommenting it
 
   // Ultimaker
-//  #define  DEFAULT_Kp 22.2
-//  #define  DEFAULT_Ki 1.08
-//  #define  DEFAULT_Kd 114
+  #define  DEFAULT_Kp 22.2
+  #define  DEFAULT_Ki 1.08
+  #define  DEFAULT_Kd 114
 
   // MakerGear
   //#define  DEFAULT_Kp 7.0
@@ -367,11 +368,6 @@
   //#define  DEFAULT_Kp 63.0
   //#define  DEFAULT_Ki 2.25
   //#define  DEFAULT_Kd 440
-
-	// CreatBot
-  #define  DEFAULT_Kp 12.9
-  #define  DEFAULT_Ki 0.76
-  #define  DEFAULT_Kd 55
 
 #endif // PIDTEMP
 
@@ -387,7 +383,7 @@
 // If your configuration is significantly different than this and you don't understand the issues involved, you probably
 // shouldn't use bed PID until someone else verifies your hardware works.
 // If this is enabled, find your own PID constants below.
-#define PIDTEMPBED
+//(redef in _Config.h) #define PIDTEMPBED
 
 //#define BED_LIMIT_SWITCHING
 
@@ -397,7 +393,7 @@
 // so you shouldn't use it unless you are OK with PWM on your bed.  (see the comment on enabling PIDTEMPBED)
 #define MAX_BED_POWER 255 // limits duty cycle to bed; 255=full current
 
-#if ENABLED(PIDTEMPBED)
+#if false && ENABLED(PIDTEMPBED) //(redef in _Config.h) 
 
   //#define PID_BED_DEBUG // Sends debug data to the serial port.
 
@@ -413,12 +409,6 @@
   //#define  DEFAULT_bedKi 1.41
   //#define  DEFAULT_bedKd 1675.16
 
-	// CreatBot
-	// 24V ??W silicone heater into
-	#define  DEFAULT_bedKp 345.78
-	#define  DEFAULT_bedKi 14.59
-	#define  DEFAULT_bedKd 2047.99
-
   // FIND YOUR OWN: "M303 E-1 C8 S90" to run autotune on the bed at 90 degreesC for 8 cycles.
 #endif // PIDTEMPBED
 
@@ -429,11 +419,11 @@
 // or to allow moving the extruder regardless of the hotend temperature.
 // *** IT IS HIGHLY RECOMMENDED TO LEAVE THIS OPTION ENABLED! ***
 #define PREVENT_COLD_EXTRUSION
-#define EXTRUDE_MINTEMP 160	//(By LYN, default is 170)
+#define EXTRUDE_MINTEMP 160	//(default is 170)
 
 // This option prevents a single extrusion longer than EXTRUDE_MAXLENGTH.
 // Note that for Bowden Extruders a too-small value here may prevent loading.
-//(By LYN, default is uncomment) #define PREVENT_LENGTHY_EXTRUDE
+#define PREVENT_LENGTHY_EXTRUDE
 #define EXTRUDE_MAXLENGTH 200
 
 //===========================================================================
@@ -453,7 +443,7 @@
  */
 
 #define THERMAL_PROTECTION_HOTENDS // Enable thermal protection for all extruders
-//(By LYN, default is uncomment) #define THERMAL_PROTECTION_BED     // Enable thermal protection for the heated bed
+//(default is uncomment) #define THERMAL_PROTECTION_BED     // Enable thermal protection for the heated bed
 
 //===========================================================================
 //============================= Mechanical Settings =========================
@@ -501,13 +491,13 @@
 #endif
 
 // Mechanical endstop with COM to ground and NC to Signal uses "false" here (most common setup).
-#define X_MIN_ENDSTOP_INVERTING true // set to true to invert the logic of the endstop.			(By LYN, default is false)
-#define Y_MIN_ENDSTOP_INVERTING true // set to true to invert the logic of the endstop.			(By LYN, default is false)
-#define Z_MIN_ENDSTOP_INVERTING true // set to true to invert the logic of the endstop.			(By LYN, default is false)
-#define X_MAX_ENDSTOP_INVERTING true // set to true to invert the logic of the endstop.			(By LYN, default is false)
-#define Y_MAX_ENDSTOP_INVERTING true // set to true to invert the logic of the endstop.			(By LYN, default is false)
-#define Z_MAX_ENDSTOP_INVERTING true // set to true to invert the logic of the endstop.			(By LYN, default is false)
-#define Z_MIN_PROBE_ENDSTOP_INVERTING true // set to true to invert the logic of the probe.			(By LYN, default is false)
+#define X_MIN_ENDSTOP_INVERTING true // set to true to invert the logic of the endstop.			(default is false)
+#define Y_MIN_ENDSTOP_INVERTING true // set to true to invert the logic of the endstop.			(default is false)
+#define Z_MIN_ENDSTOP_INVERTING true // set to true to invert the logic of the endstop.			(default is false)
+#define X_MAX_ENDSTOP_INVERTING true // set to true to invert the logic of the endstop.			(default is false)
+#define Y_MAX_ENDSTOP_INVERTING true // set to true to invert the logic of the endstop.			(default is false)
+#define Z_MAX_ENDSTOP_INVERTING true // set to true to invert the logic of the endstop.			(default is false)
+#define Z_MIN_PROBE_ENDSTOP_INVERTING true // set to true to invert the logic of the probe.			(default is false)
 
 // Enable this feature if all enabled endstop pins are interrupt-capable.
 // This will remove the need to poll the interrupt pins, saving many CPU cycles.
@@ -538,14 +528,14 @@
  * Override with M92
  *                                      X, Y, Z, E0 [, E1[, E2[, E3[, E4]]]]
  */
-//(By LYN, redef in _Config.h) #define DEFAULT_AXIS_STEPS_PER_UNIT   { 80, 80, 4000, 500 }
+//(redef in _Config.h) #define DEFAULT_AXIS_STEPS_PER_UNIT   { 80, 80, 4000, 500 }
 
 /**
  * Default Max Feed Rate (mm/s)
  * Override with M203
  *                                      X, Y, Z, E0 [, E1[, E2[, E3[, E4]]]]
  */
-#define DEFAULT_MAX_FEEDRATE          { 300, 300, 10, 40 }		//(By LYN, default is {300, 300, 5, 25})
+#define DEFAULT_MAX_FEEDRATE          { 300, 300, 10, 40 }		//(default is {300, 300, 5, 25})
 
 /**
  * Default Max Acceleration (change/s) change = mm/s
@@ -553,7 +543,7 @@
  * Override with M201
  *                                      X, Y, Z, E0 [, E1[, E2[, E3[, E4]]]]
  */
-#define DEFAULT_MAX_ACCELERATION      { 2000, 2000, 100, 3000 }		//(By LYN, default is {3000,3000,100,10000})
+#define DEFAULT_MAX_ACCELERATION      { 2000, 2000, 100, 3000 }		//(default is {3000,3000,100,10000})
 
 /**
  * Default Acceleration (change/s) change = mm/s
@@ -563,9 +553,9 @@
  *   M204 R    Retract Acceleration
  *   M204 T    Travel Acceleration
  */
-#define DEFAULT_ACCELERATION          1500    //(By LYN, default is 3000) X, Y, Z and E acceleration for printing moves
-#define DEFAULT_RETRACT_ACCELERATION  1500    //(By LYN, default is 3000) E acceleration for retracts
-#define DEFAULT_TRAVEL_ACCELERATION   2000    //(By LYN, default is 3000) X, Y, Z acceleration for travel (non printing) moves
+#define DEFAULT_ACCELERATION          1500    //(default is 3000) X, Y, Z and E acceleration for printing moves
+#define DEFAULT_RETRACT_ACCELERATION  1500    //(default is 3000) E acceleration for retracts
+#define DEFAULT_TRAVEL_ACCELERATION   2000    //(default is 3000) X, Y, Z acceleration for travel (non printing) moves
 
 /**
  * Default Jerk (mm/s)
@@ -575,8 +565,8 @@
  * When changing speed and direction, if the difference is less than the
  * value set here, it may happen instantaneously.
  */
-#define DEFAULT_XJERK                 15.0		//(By LYN, default is 20.0)
-#define DEFAULT_YJERK                 15.0		//(By LYN, default is 20.0)
+#define DEFAULT_XJERK                 15.0		//(default is 20.0)
+#define DEFAULT_YJERK                 15.0		//(default is 20.0)
 #define DEFAULT_ZJERK                  0.4
 #define DEFAULT_EJERK                  5.0
 
@@ -692,18 +682,18 @@
  *      O-- FRONT --+
  *    (0,0)
  */
-//(By LYN, redef in _Config.h) #define X_PROBE_OFFSET_FROM_EXTRUDER 10  // X offset: -left  +right  [of the nozzle]
-//(By LYN, redef in _Config.h) #define Y_PROBE_OFFSET_FROM_EXTRUDER 10  // Y offset: -front +behind [the nozzle]
-//(By LYN, redef in _Config.h) #define Z_PROBE_OFFSET_FROM_EXTRUDER 0   // Z offset: -below +above  [the nozzle]
+//(redef in _Config.h) #define X_PROBE_OFFSET_FROM_EXTRUDER 10  // X offset: -left  +right  [of the nozzle]
+//(redef in _Config.h) #define Y_PROBE_OFFSET_FROM_EXTRUDER 10  // Y offset: -front +behind [the nozzle]
+//(redef in _Config.h) #define Z_PROBE_OFFSET_FROM_EXTRUDER 0   // Z offset: -below +above  [the nozzle]
 
 // X and Y axis travel speed (mm/m) between probes
-#define XY_PROBE_SPEED 4000		//(By LYN, default is 8000)
+#define XY_PROBE_SPEED 4000		//(default is 8000)
 
 // Speed for the first approach when double-probing (with PROBE_DOUBLE_TOUCH)
 #define Z_PROBE_SPEED_FAST HOMING_FEEDRATE_Z
 
 // Speed for the "accurate" probe of each point
-#define Z_PROBE_SPEED_SLOW (Z_PROBE_SPEED_FAST / 10)	//(By LYN, default is 2DIV)
+#define Z_PROBE_SPEED_SLOW (Z_PROBE_SPEED_FAST / 10)	//(default is 2DIV)
 
 // Use double touch for probing
 //#define PROBE_DOUBLE_TOUCH
@@ -722,7 +712,7 @@
  * Example: `M851 Z-5` with a CLEARANCE of 4  =>  9mm from bed to nozzle.
  *     But: `M851 Z+1` with a CLEARANCE of 2  =>  2mm from bed to nozzle.
  */
-#define Z_CLEARANCE_DEPLOY_PROBE    7 // (By LYN, 7 is for BLTouch) 10 // Z Clearance for Deploy/Stow
+#define Z_CLEARANCE_DEPLOY_PROBE    7 // (7 is for BLTouch) 10 // Z Clearance for Deploy/Stow
 #define Z_CLEARANCE_BETWEEN_PROBES  5 // Z Clearance between probe points
 
 // For M851 give a range for adjusting the Z probe offset
@@ -755,9 +745,9 @@
 // @section machine
 
 // Invert the stepper direction. Change (or reverse the motor connector) if an axis goes the wrong way.
-//(By LYN, redef in _Config.h) #define INVERT_X_DIR false
-//(By LYN, redef in _Config.h) #define INVERT_Y_DIR true
-//(By LYN, redef in _Config.h) #define INVERT_Z_DIR false
+//(redef in _Config.h) #define INVERT_X_DIR false
+//(redef in _Config.h) #define INVERT_Y_DIR true
+//(redef in _Config.h) #define INVERT_Z_DIR false
 
 // Enable this option for Toshiba stepper drivers
 //#define CONFIG_STEPPERS_TOSHIBA
@@ -787,16 +777,16 @@
 // @section machine
 
 // The size of the print bed
-//(By LYN, defined by Conditionals_post.h) #define X_BED_SIZE 200
-//(By LYN, defined by Conditionals_post.h) #define Y_BED_SIZE 200
+//(defined by Conditionals_post.h) #define X_BED_SIZE 200
+//(defined by Conditionals_post.h) #define Y_BED_SIZE 200
 
 // Travel limits (mm) after homing, corresponding to endstop positions.
-//(By LYN, redef in _Config.h) #define X_MIN_POS 0
-//(By LYN, redef in _Config.h) #define Y_MIN_POS 0
-//(By LYN, redef in _Config.h) #define Z_MIN_POS 0
-//(By LYN, redef in _Config.h) #define X_MAX_POS X_BED_SIZE
-//(By LYN, redef in _Config.h) #define Y_MAX_POS Y_BED_SIZE
-//(By LYN, redef in _Config.h) #define Z_MAX_POS 200
+//(redef in _Config.h) #define X_MIN_POS 0
+//(redef in _Config.h) #define Y_MIN_POS 0
+//(redef in _Config.h) #define Z_MIN_POS 0
+//(redef in _Config.h) #define X_MAX_POS X_BED_SIZE
+//(redef in _Config.h) #define Y_MAX_POS Y_BED_SIZE
+//(redef in _Config.h) #define Z_MAX_POS 200
 
 // If enabled, axes won't move below MIN_POS in response to movement commands.
 #define MIN_SOFTWARE_ENDSTOPS
@@ -884,14 +874,14 @@
 #if ENABLED(AUTO_BED_LEVELING_LINEAR) || ENABLED(AUTO_BED_LEVELING_BILINEAR)
 
   // Set the number of grid points per dimension.
-  #define GRID_MAX_POINTS_X PROBE_XY_NUM		//(By LYN, default is 3)
+  #define GRID_MAX_POINTS_X PROBE_XY_NUM		//(default is 3)
   #define GRID_MAX_POINTS_Y GRID_MAX_POINTS_X
 
   // Set the boundaries for probing (where the probe can reach).
-//(By LYN, redef in _Config.h)   #define LEFT_PROBE_BED_POSITION 15
-//(By LYN, redef in _Config.h)   #define RIGHT_PROBE_BED_POSITION 170
-//(By LYN, redef in _Config.h)   #define FRONT_PROBE_BED_POSITION 20
-//(By LYN, redef in _Config.h)   #define BACK_PROBE_BED_POSITION 170
+//(redef in _Config.h)   #define LEFT_PROBE_BED_POSITION 15
+//(redef in _Config.h)   #define RIGHT_PROBE_BED_POSITION 170
+//(redef in _Config.h)   #define FRONT_PROBE_BED_POSITION 20
+//(redef in _Config.h)   #define BACK_PROBE_BED_POSITION 170
 
   // The Z probe minimum outer margin (to validate G29 parameters).
   #define MIN_PROBE_EDGE 10
@@ -1012,7 +1002,7 @@
 
 // Homing speeds (mm/m)
 #define HOMING_FEEDRATE_XY (50*60)
-#define HOMING_FEEDRATE_Z  (20*60)		//(By LYN, default is 4*60)
+#define HOMING_FEEDRATE_Z  (20*60)		//(default is 4*60)
 
 //=============================================================================
 //============================= Additional Features ===========================
@@ -1028,7 +1018,7 @@
 // M501 - reads parameters from EEPROM (if you need reset them after you changed them temporarily).
 // M502 - reverts to the default "factory settings".  You still need to store them in EEPROM afterwards if you want to.
 //
-#define EEPROM_SETTINGS // (By LYN, default is comment) Enable for M500 and M501 commands
+#define EEPROM_SETTINGS // (default is comment) Enable for M500 and M501 commands
 //#define DISABLE_M503    // Saves ~2700 bytes of PROGMEM. Disable for release!
 //#define EEPROM_CHITCHAT   // Give feedback on EEPROM commands. Disable to save PROGMEM.
 
@@ -1038,7 +1028,7 @@
 // When enabled Marlin will send a busy status message to the host
 // every couple of seconds when it can't accept commands.
 //
-//(By LYN, default is uncomment) #define HOST_KEEPALIVE_FEATURE        // Disable this if your host doesn't like keepalive messages
+//(default is uncomment) #define HOST_KEEPALIVE_FEATURE        // Disable this if your host doesn't like keepalive messages
 #define DEFAULT_KEEPALIVE_INTERVAL 2  // Number of seconds between "busy" messages. Set with M113.
 #define BUSY_WHILE_HEATING            // Some hosts require "busy" messages even during heating
 
@@ -1060,12 +1050,12 @@
 // @section temperature
 
 // Preheat Constants
-#define PREHEAT_1_TEMP_HOTEND 210		//(By LYN, default is 180)
-#define PREHEAT_1_TEMP_BED     45		//(By LYN, default is 70)
+#define PREHEAT_1_TEMP_HOTEND 210		//(default is 180)
+#define PREHEAT_1_TEMP_BED     45		//(default is 70)
 #define PREHEAT_1_FAN_SPEED     0 // Value from 0 to 255
 
-#define PREHEAT_2_TEMP_HOTEND 240		//(By LYN, default is 240)
-#define PREHEAT_2_TEMP_BED     60		//(By LYN, default is 110)
+#define PREHEAT_2_TEMP_HOTEND 240		//(default is 240)
+#define PREHEAT_2_TEMP_BED     60		//(default is 110)
 #define PREHEAT_2_FAN_SPEED     0 // Value from 0 to 255
 
 /**
@@ -1196,7 +1186,7 @@
  *
  * :{ 'en':'English', 'an':'Aragonese', 'bg':'Bulgarian', 'ca':'Catalan', 'cn':'Chinese', 'cz':'Czech', 'cz_utf8':'Czech (UTF8)', 'de':'German', 'el':'Greek', 'el-gr':'Greek (Greece)', 'es':'Spanish', 'eu':'Basque-Euskera', 'fi':'Finnish', 'fr':'French', 'gl':'Galician', 'hr':'Croatian', 'it':'Italian', 'kana':'Japanese', 'kana_utf8':'Japanese (UTF8)', 'nl':'Dutch', 'pl':'Polish', 'pt':'Portuguese', 'pt-br':'Portuguese (Brazilian)', 'pt-br_utf8':'Portuguese (Brazilian UTF8)', 'pt_utf8':'Portuguese (UTF8)', 'ru':'Russian', 'sk_utf8':'Slovak (UTF8)', 'tr':'Turkish', 'uk':'Ukrainian', 'zh_CN':'Chinese (Simplified)', 'zh_TW':'Chinese (Taiwan)', test':'TEST' }
  */
-//(By LYN, redef in _Config.h) #define LCD_LANGUAGE en
+//(redef in _Config.h) #define LCD_LANGUAGE en
 
 /**
  * LCD Character Set
@@ -1667,7 +1657,7 @@
 // Delay (in milliseconds) before the next move will start, to give the servo time to reach its target angle.
 // 300ms is a good value but you can try less delay.
 // If the servo can't reach the requested position, increase it.
-#define SERVO_DELAY { 200 }		//(By LYN, our servo's speed at 90ms/60deg, so 135ms/90deg.)
+#define SERVO_DELAY { 200 }		//(our servo's speed at 90ms/60deg, so 135ms/90deg.)
 
 // Servo deactivation
 //
