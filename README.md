@@ -3,7 +3,23 @@
 ## Creatbot v5.6
 [<img align="right" height="150" src="https://www.creatbot.com/images/creatbot_logo_en.png" />](https://www.creatbot.com/)
 
-This is source code for the original marlin-based firmware running on the [Creatbot F430](https://www.creatbot.com/en/creatbot-f430.html) and others. The unmodified source code can be found on the Creatbot-v5.6 branch.
+This is the source code for the modified firmware running on my [Creatbot F430](https://www.creatbot.com/en/creatbot-f430.html). The unmodified source code can be found on the Creatbot-v5.6 branch.
+
+### Improvements
+ - [x] Increase Auto-Shutdown times to 1hr.
+ - [x] Increase CHAMBER_MAXTEMP to 85 to avoid OVERTEMP shutoff at max power.
+ - [x] Don't purge extruder when resuming print.
+ - [x] Tweak default steps/mm to real tuned values.
+ - [x] Tweak default preheat settings.
+ - [x] Set default fan speeds to 0.
+ - [ ] Make USB Disk behave the same as typical SD Card
+ - [ ] Enable pause/resume commands while printing over serial.
+ - [ ] Enable Filament Runout Sensor while printing over serial.
+ - [ ] Enable use of genuine BL Touch probes (may be a hardware problem).
+ - [ ] Upgrade to Marlin 1.1.7
+ - [ ] Upgrade to Marlin 1.1.8
+ - [ ] Upgrade to Marlin 1.1.9
+ - [ ] Upgrade to Marlin 2.1.x (LCD needs a lot of rework)
 
 ## Marlin 1.1
 <img align="right" src="../../raw/1.1.x/buildroot/share/pixmaps/logo/marlin-250.png" />
