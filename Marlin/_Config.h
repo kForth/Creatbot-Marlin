@@ -8,14 +8,13 @@
 #define KTC
 //#define NTC
 
+// Enable this for printers with a yellow motherboard (v9.5 or newer)
+// Leave this disabled for printers with a green motherboard (older than v9.5)
+//#define BOARD_VERSION_GT_V95
 
 #include "_ModelInfo.h"
 
 #define MOTHERBOARD BOARD_CREATBOT
-
-#if defined(F_SERIES) && not defined(F_SERIES_BOARD_VERSION_LT_V95)
-  #define BOARD_VERSION_GT_V95     //F series yellow motherboard (motherboard version is greater than 9.5）
-#endif
 
 #define BL_TOUCH_SIGNAL_SELF_FILTER
 
