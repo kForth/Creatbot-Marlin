@@ -12714,126 +12714,111 @@ void process_next_command() {
 /***************************** By LYN *******************************/
 			#if ENABLED(QUICK_PAUSE)
 				case 6001:
-					gcode_M6001();
-					break;
+					gcode_M6001(); break;
 
 				case 6002:
-					gcode_M6002();
-					break;
+					gcode_M6002(); break;
 			#endif // QUICK_PAUSE
 
 			case 6003:
-				gcode_M6003();
-				break;
+				gcode_M6003(); break;
 
 			#if ENABLED(ACCIDENT_DETECT)
 				case 6004:
-					gcode_M6004();
-					break;
+					gcode_M6004(); break;
 
 				case 6005:
-					gcode_M6005();
-					break;
+					gcode_M6005(); break;
 			#endif //ACCIDENT_DETECT
 
 			case 6006:
-				gcode_M6006();
-				break;
+				gcode_M6006(); break;
 
 			case 6007:
-				gcode_M6007();
-				break;
+				gcode_M6007(); break;
 
 			case 6008:
-				gcode_M6008();
-				break;
+				gcode_M6008(); break;
 
 			#ifdef REG_SN
 				case 6009:
-					gcode_M6009();
-					break;
+					gcode_M6009(); break;
 			#endif
 
 			#if HAS_BED_PROBE
 				case 6010:
-					gcode_M6010();
-					break;
+					gcode_M6010(); break;
 			#endif
 
 				case 6011:
-					gcode_M6011();
-					break;
+					gcode_M6011(); break;
 
 			#if ENABLED(CHAMBER_FAN)
 				case 6012:
-					gcode_M6012();
-					break;
+					gcode_M6012(); break;
 			#endif
 
 			#if ENABLED(HEATED_CHAMBER)
 				case 6013:
-					gcode_M6013();
-					break;
+					gcode_M6013(); break;
 			#endif
 
 			#if HAS_LEVELING
 				case 6014:
-					gcode_M6014();
-					break;
+					gcode_M6014(); break;
 			#endif
 
 			#if ENABLED(UDISKSUPPORT)
+        case 20: // M20: list SD card
 				case 6020:
-					gcode_M6020();
-					break;
+					gcode_M6020(); break;
 
+        case 21: // M21: init SD card
 				case 6021:
-					gcode_M6021();
-					break;
+					gcode_M6021(); break;
 
+        case 22: // M22: release SD card
 				case 6022:
-					gcode_M6022();
-					break;
+					gcode_M6022(); break;
 
+        case 23: // M23: Select file
 				case 6023:
-					gcode_M6023();
-					break;
+					gcode_M6023(); break;
 
+        case 24: // M24: Start SD print
 				case 6024:
-					gcode_M6024();
-					break;
+					gcode_M6024(); break;
 
+        case 25: // M25: Pause SD print
 				case 6025:
-					gcode_M6025();
-					break;
+					gcode_M6025(); break;
 
+        case 26: // M26: Set SD index
 				case 6026:
-					gcode_M6026();
-					break;
+					gcode_M6026(); break;
 
+        case 27: // M27: Get SD status
 				case 6027:
-					gcode_M6027();
-					break;
+					gcode_M6027(); break;
 
+        case 28: // M28: Start SD write
 				case 6028:
-					gcode_M6028();
-					break;
+					gcode_M6028(); break;
 
+        case 29: // M29: Stop SD write
 				case 6029:
-					gcode_M6029();
-					break;
+					gcode_M6029(); break;
 
+        case 30: // M30 <filename> Delete File
 				case 6030:
-					gcode_M6030();
-					break;
+					gcode_M6030(); break;
 
+        case 32: // M32: Select file and start SD print
 				case 6032:
-					gcode_M6032();
-					break;
+					gcode_M6032(); break;
 
 				case 6033:
-					gcode_M6033();
-					break;
+        	gcode_M6033(); break;
 			#endif //UDISKSUPPORT
 /********************************************************************/
     }
