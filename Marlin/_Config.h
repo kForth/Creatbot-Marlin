@@ -2,11 +2,12 @@
 #define CREATBOT_CONFIG_H
 
 #define OEM CreatBot
+#define LANGUAGE en
+
 #define MODEL F430
 #define EXTRUDERS 2
-#define LANGUAGE en
 #define KTC
-//#define NTC
+// #define NTC
 
 // Enable this for printers with a yellow motherboard (v9.5 or newer)
 // Leave this disabled for printers with a green motherboard (older than v9.5)
