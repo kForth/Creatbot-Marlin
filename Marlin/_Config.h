@@ -8,7 +8,6 @@
 #define KTC
 //#define NTC
 
-#define MAKE_BATCH
 
 #include "_ModelInfo.h"
 
@@ -196,9 +195,6 @@
     #else
       #define PROBE_XY_NUM 5
     #endif
-    #ifdef MAKE_Y_DUAL_STEPPER
-      #undef BLTOUCH
-    #endif
     #ifdef BLTOUCH
       #ifdef LINEAR_GUIDE
         #define X_PROBE_OFFSET_FROM_EXTRUDER 36
@@ -311,11 +307,7 @@
   #elif MODEL == Other_MODEL
     #define DEFAULT_AXIS_STEPS_PER_UNIT   {128.0/3, 128.0/3, Z_STEP_VALUE, E_STEP_VALUE }
   #elif MODEL == F430 || MODEL == F260 || MODEL == F200 || MODEL == F220
-    #ifdef MAKE_Y_DUAL_STEPPER
-      #define DEFAULT_AXIS_STEPS_PER_UNIT   {78.7402, 52.4934, Z_STEP_VALUE, E_STEP_VALUE }
-    #else
-      #define DEFAULT_AXIS_STEPS_PER_UNIT   {78.7402, 131.2336, Z_STEP_VALUE, E_STEP_VALUE }
-    #endif
+    #define DEFAULT_AXIS_STEPS_PER_UNIT   {78.7402, 131.2336, Z_STEP_VALUE, E_STEP_VALUE }
   #else
     #error "This MODEL don't have LINEAR_GUIDE system."
   #endif
