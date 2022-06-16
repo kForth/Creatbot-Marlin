@@ -18,6 +18,8 @@
   #define BOARD_VERSION_GT_V95     //F series yellow motherboard (motherboard version is greater than 9.5）
 #endif
 
+#define BL_TOUCH_SIGNAL_SELF_FILTER
+
 #ifdef KTC
   #define T_SENSENR   -1    // KTC
   #define HEATER_0_MAXTEMP 415
