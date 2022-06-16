@@ -11170,6 +11170,7 @@ inline void gcode_M6020() {
 inline void gcode_M6021() {
 	UDisk.release();
 	UDisk.refresh();
+	SERIAL_PROTOCOLLNPGM(MSG_SD_CARD_OK);
 }
 
 /*
