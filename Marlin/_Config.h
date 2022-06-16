@@ -15,6 +15,8 @@
 
 #include "_ModelInfo.h"
 
+#define USE_AUTOMATIC_VERSIONING
+
 #define MOTHERBOARD BOARD_CREATBOT
 
 #define BL_TOUCH_SIGNAL_SELF_FILTER
