@@ -21,54 +21,52 @@
 
 #define BL_TOUCH_SIGNAL_SELF_FILTER
 
-#ifdef KTC
-  #define T_SENSENR   -1    // KTC
-  #define HEATER_0_MAXTEMP 415
-  #define HEATER_1_MAXTEMP 415
-  #define HEATER_2_MAXTEMP 415
-  #define HEATER_3_MAXTEMP 415
-#elif defined(NTC)
-  #define T_SENSENR   1     // NTC
-  #define HEATER_0_MAXTEMP 265
-  #define HEATER_1_MAXTEMP 265
-  #define HEATER_2_MAXTEMP 265
-  #define HEATER_3_MAXTEMP 265
-#endif
-#define BED_MAXTEMP 135
 
-#define PREHEAT_TEMP_HOTEND   210
-#define PREHEAT_TEMP_BED      60
-#define PREHEAT_FAN_SPEED     0
+//===========================================================================
+//============================= Thermal Settings ============================
+//===========================================================================
+
+// Preheat Constants
+#if defined(F_SERIES) && defined(F_SERIES_ALLOW_500)
+  #define PREHEAT_TEMP_HOTEND   400
+  #define PREHEAT_TEMP_BED      120
+  #define PREHEAT_FAN_SPEED     0
+#else
+  #define PREHEAT_TEMP_HOTEND   210
+  #define PREHEAT_TEMP_BED      60
+  #define PREHEAT_FAN_SPEED     0
+#endif
 
 #ifdef F_SERIES
-  #undef HEATER_0_MAXTEMP
-  #undef HEATER_1_MAXTEMP
-  #undef HEATER_2_MAXTEMP
-  #undef HEATER_3_MAXTEMP
-  #undef BED_MAXTEMP
   #ifdef F_SERIES_ALLOW_500
     #define HEATER_0_MAXTEMP  515
     #define HEATER_1_MAXTEMP  515
     #define HEATER_2_MAXTEMP  515
     #define HEATER_3_MAXTEMP  515
-    #define BED_MAXTEMP       215
-
-    #undef PREHEAT_TEMP_HOTEND
-    #undef PREHEAT_TEMP_BED
-    #define PREHEAT_TEMP_HOTEND   400
-    #define PREHEAT_TEMP_BED      120
   #else
     #define HEATER_0_MAXTEMP  465
     #define HEATER_1_MAXTEMP  465
     #define HEATER_2_MAXTEMP  465
     #define HEATER_3_MAXTEMP  465
-    #define BED_MAXTEMP       215
   #endif
+  #define BED_MAXTEMP         215
+#elif defined(KTC)
+  #define HEATER_0_MAXTEMP 415
+  #define HEATER_1_MAXTEMP 415
+  #define HEATER_2_MAXTEMP 415
+  #define HEATER_3_MAXTEMP 415
+  #define BED_MAXTEMP      135
+#else // defined(NTC)
+  #define HEATER_0_MAXTEMP 265
+  #define HEATER_1_MAXTEMP 265
+  #define HEATER_2_MAXTEMP 265
+  #define HEATER_3_MAXTEMP 265
+  #define BED_MAXTEMP      135
 #endif
 
 // Heated Chamber
 #ifdef HEATED_CHAMBER
-  #define TEMP_SENSOR_CHAMBER     1     // NTC
+  #define TEMP_SENSOR_CHAMBER     1 // NTC
   #define CHAMBER_MINTEMP         -12
   #define CHAMBER_MAXTEMP         85
   #define MAX_CHAMBER_POWER       255
@@ -77,7 +75,14 @@
   #define TEMP_SENSOR_CHAMBER     0
 #endif
 
-// Extruder Temp Sensors
+// Temp Sensor Type
+#ifdef KTC
+  #define T_SENSENR -1 // KTC
+#elif defined(NTC)
+  #define T_SENSENR 1 // NTC
+#endif
+
+// Set Temperature Sensors
 #if EXTRUDERS > 0
   #define TEMP_SENSOR_0 T_SENSENR
 #else
@@ -103,9 +108,10 @@
 #else
   #define TEMP_SENSOR_4 0
 #endif
-#define TEMP_SENSOR_BED 1         // NTC
+#define TEMP_SENSOR_BED 1 // NTC
 
-// KTC TEMP ADJUST
+//These defines help to calibrate the AD595 sensor in case you get wrong temperature measurements.
+//The measured temperature is defined as "actualTemp = (measuredTemp * TEMP_SENSOR_AD595_GAIN) + TEMP_SENSOR_AD595_OFFSET"
 #ifdef TEMP_ADJUST
   #if MODEL == F160 || MODEL == F260 || MODEL == F430
     #define TEMP_SENSOR_AD595_OFFSET  0.0
@@ -119,7 +125,17 @@
   #define TEMP_SENSOR_AD595_GAIN      1.0
 #endif
 
-// PID Settting
+// Default auto fan speed when eeprom resets
+#define DEFAULT_AUTO_FAN_SPEED 0
+
+// Default chamber fan speed when eeprom resets
+#ifdef CHAMBER_FAN
+  #define DEFAULT_AIR_FAN_SPEED 0
+#endif
+
+//===========================================================================
+//============================= PID Settings ================================
+//===========================================================================
 #define PIDTEMP
 #if ENABLED(PIDTEMP)
   //#define PID_DEBUG
@@ -147,7 +163,14 @@
 	#define  DEFAULT_bedKd 2047.99
 #endif // PIDTEMP
 
+#ifdef HEATED_CHAMBER
+  #define HEATED_CHAMBER_HYSTERESIS  2
+#endif // HEATED_CHAMBER
 
+
+//===========================================================================
+//=============================== Bed Leveling ==============================
+//===========================================================================
 #ifdef AUTO_BED_LEVELING
   #define AUTO_BED_LEVELING_BILINEAR
   #define BLTOUCH
@@ -165,12 +188,10 @@
       #define Y_PROBE_OFFSET_FROM_EXTRUDER 60
       #define Z_PROBE_OFFSET_FROM_EXTRUDER -1
     #else
-      #define Z_SERVO_ANGLES {135,45}
-//      #define Z_SERVO_ANGLES {45,135}
+      #define Z_SERVO_ANGLES {135,45} // {45,135}
       #define X_PROBE_OFFSET_FROM_EXTRUDER -25
       #define Y_PROBE_OFFSET_FROM_EXTRUDER 60
-//      #define Z_PROBE_OFFSET_FROM_EXTRUDER -6
-      #define Z_PROBE_OFFSET_FROM_EXTRUDER -8
+      #define Z_PROBE_OFFSET_FROM_EXTRUDER -8 // -6
     #endif
   #elif MODEL == D600 || MODEL == D600_SE || MODEL == D600_Pro
     #ifdef BLTOUCH
@@ -265,7 +286,11 @@
   #define BACK_PROBE_BED_POSITION   (min(Y_MAX_POS, Y_MAX_POS + Y_PROBE_OFFSET_FROM_EXTRUDER) - 5)
 #endif
 
+//=============================================================================
+//============================== Movement Settings ============================
+//=============================================================================
 
+// Invert the stepper direction. Change (or reverse the motor connector) if an axis goes the wrong way.
 #if defined(COREXY) || defined(HXY)
   #define INVERT_X_DIR true
   #define INVERT_Y_DIR true
@@ -276,7 +301,7 @@
   #define INVERT_Z_DIR true
 #endif
 
-
+// Default Z-Axis Steps Per Unit (steps/mm)
 #ifdef Z_1605
   #if MODEL == F1000
     #define Z_STEP_VALUE 1600
@@ -292,6 +317,7 @@
   #endif
 #endif
 
+// Default E-Axis Steps Per Unit (steps/mm)
 #ifdef D_SERIES
   #ifdef D_SERIES_USE_175
     #define E_STEP_VALUE 810
@@ -304,6 +330,12 @@
   #error "Need define the model's series."
 #endif
 
+/**
+ * Default Axis Steps Per Unit (steps/mm)
+ * Override with M92
+ * 
+ * Specify as {X, Y, Z, E0, E1?, E2?, E3?, E4?}
+ */
 #ifdef LINEAR_GUIDE
   #if MODEL == D600 || MODEL == D600_SE || MODEL == D600_Pro || MODEL == F1000
     #define DEFAULT_AXIS_STEPS_PER_UNIT   {800.0/3, 800.0/3, Z_STEP_VALUE, E_STEP_VALUE }
@@ -325,8 +357,11 @@
   #define DEFAULT_AXIS_STEPS_PER_UNIT   {78.7402, 78.7402, Z_STEP_VALUE, E_STEP_VALUE }
 #endif
 
-#define LCD_LANGUAGE LANGUAGE
+//=============================================================================
+//=============================== Extra Features ==============================
+//=============================================================================
 
+// Time intervals to save time used statistic
 #define AUTO_TIME_USED_INTERVAL         1   //seconds
 #define AUTO_SAVE_SETTING_INTERVAL      600 //seconds
 #ifdef REG_SN
@@ -335,31 +370,28 @@
   #endif //TOTAL_TIME_LIMIT
 #endif
 
+// Auto shutdown timeouts
 #ifdef POWER_MANAGEMENT
-  #ifndef NOT_AUTO_SHUTDOWN
-    #define AUTO_SHUTDOWN
-  #endif
   #ifdef AUTO_SHUTDOWN
-    #ifdef AUTO_SHUTDOWN_DEBUG
-      #define AUTO_SHUTDONW_TIME_DISPALY  5     //seconds
-      #define AUTO_SHUTDOWN_TIME_IDLE     10    //seconds
-      #define AUTO_SHUTDOWN_TIME_HEATING  30    //seconds
-      #ifdef FILAMENT_DETECT
-        #define FILAMENT_WAIT_TIME        60    //seconds = 1min
-      #endif
-    #else //!AUTO_SHUTDOWN_DEBUG
-      #define AUTO_SHUTDONW_TIME_DISPALY   180  //seconds = 3mins
-      #define AUTO_SHUTDOWN_TIME_IDLE     3600  //seconds = 1hour
-      #define AUTO_SHUTDOWN_TIME_HEATING  3600  //seconds = 1hour
-      #ifdef FILAMENT_DETECT
-        #define FILAMENT_WAIT_TIME        3600  //seconds = 2hours
-      #endif
-    #endif //AUTO_SHUTDOWN_DEBUG
+    #define AUTO_SHUTDONW_TIME_DISPALY   180  //seconds = 3mins
+    #define AUTO_SHUTDOWN_TIME_IDLE     3600  //seconds = 1hour
+    #define AUTO_SHUTDOWN_TIME_HEATING  3600  //seconds = 1hour
+    #ifdef FILAMENT_DETECT
+      #define FILAMENT_WAIT_TIME        3600  //seconds = 2hours
+    #endif
   #endif  //AUTO_SHUTDOWN
 #endif //POWER_MANAGEMENT
 
+// Quick Pause feature, similar to NOZZLE_PARK_FEATURE
 #ifdef QUICK_PAUSE
-  #ifdef NEAR_FEED
+  #ifdef BOWDEN
+    #define PAUSE_STOP_X      3
+    #define PAUSE_STOP_Y      3
+    #define PAUSE_LIFT_HEIGH_INIT           1
+    #define PAUSE_RETRACTION_LENGTH_INIT    5
+    #define PAUSE_LIFT_HEIGH                10
+    #define PAUSE_RETRACTION_LENGTH         15
+  #else // DIRECT_DRIVE
     #if MODEL == F160
       #define PAUSE_STOP_X      (X_MAX_POS - 10)
       #define PAUSE_STOP_Y      (Y_MAX_POS - 10)
@@ -383,14 +415,8 @@
     #define PAUSE_RETRACTION_LENGTH_INIT    2
     #define PAUSE_LIFT_HEIGH                10
     #define PAUSE_RETRACTION_LENGTH         6
-  #else
-    #define PAUSE_STOP_X      3
-    #define PAUSE_STOP_Y      3
-    #define PAUSE_LIFT_HEIGH_INIT           1
-    #define PAUSE_RETRACTION_LENGTH_INIT    5
-    #define PAUSE_LIFT_HEIGH                10
-    #define PAUSE_RETRACTION_LENGTH         15
   #endif
+
   #define PAUSE_REUSE_SPEED_LIFT            50    // (mm/s)
   #define PAUSE_REUSE_SPEED_MOVE            70    // (mm/s)
   #define REUSE_CLOSE_Z                     0.1
@@ -399,23 +425,25 @@
 
   #ifdef ACCIDENT_DETECT
     #define ACCIDENT_Z_DOWN             2
-    #ifdef NEAR_FEED
-      #define ACCIDENT_E_RETRACTION     6
-    #else
+    #ifdef BOWDEN
       #define ACCIDENT_E_RETRACTION     15  // Maybe it should be greater than 10
+    #else // DIRECT_DRIVE
+      #define ACCIDENT_E_RETRACTION     6
     #endif
     #define ACCIDENT_SPEED_TEST         1   // (mm/s)
   #endif //ACCIDENT_DETECT
 #endif //QUICK_PAUSE
 
+// Filament change settings
 #define FILAMENT_UNLOAD_SPEED               50  // (mm/s)
 #define FILAMENT_UNLOAD_EXTRUDER_LENGTH     10  // (mm)
-#ifdef NEAR_FEED
-  #define FILAMENT_UNLOAD_LENGTH            20
-#else
+#ifdef BOWDEN
   #define FILAMENT_UNLOAD_LENGTH            150
+#else // DIRECT_DRIVE
+  #define FILAMENT_UNLOAD_LENGTH            20
 #endif
 
+// Filament runout sensor settings
 #ifdef FILAMENT_DETECT
   #define FILAMENT_DETECT_AGAIN
   #ifdef FILAMENT_DETECT_AGAIN
@@ -423,9 +451,10 @@
   #endif
 #endif
 
-#ifdef HEATED_CHAMBER
-  #define HOTWIND_HYSTERESIS  2 //s
-#endif
+//=============================================================================
+//============================= LCD and SD support ============================
+//=============================================================================
+#define LCD_LANGUAGE LANGUAGE
 
 #ifdef MY_KEYPAD
   #define MY_KEYPAD_Z_MOVE_SCALE  5
@@ -434,11 +463,5 @@
 #ifdef DWIN_LCD
   #define DWIN_Z_MOVE_SCALE       5
 #endif //DWIN_LCD
-
-#define DEFAULT_AUTO_FAN_SPEED 0
-
-#ifdef CHAMBER_FAN
-  #define DEFAULT_AIR_FAN_SPEED 0
-#endif
 
 #endif //CREATBOT_CONFIG_H
