@@ -9,5 +9,5 @@ env.AddPostAction(
         "$OBJCOPY", 
         f'"{os.path.join("$BUILD_DIR", "${PROGNAME}.hex")}"',
         f'"{os.path.join("$PROJECT_DIR", "f430-1.1.6-mod.hex")}"',
-    ]), "Copying ${PROGNAME}.hex")
+    ]), "Copying ${PROGNAME}.hex to f430-1.1.6-mod.hex")
 )
