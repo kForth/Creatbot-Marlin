@@ -383,11 +383,7 @@
 // Time intervals to save time used statistic
 #define AUTO_TIME_USED_INTERVAL         1   //seconds
 #define AUTO_SAVE_SETTING_INTERVAL      600 //seconds
-#ifdef REG_SN
-  #ifndef TOTAL_TIME_LIMIT
-    #define TOTAL_TIME_LIMIT            300 //seconds = 5mins For common
-  #endif //TOTAL_TIME_LIMIT
-#endif
+
 
 // Auto shutdown timeouts
 #ifdef POWER_MANAGEMENT

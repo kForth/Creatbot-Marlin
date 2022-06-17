@@ -159,25 +159,24 @@
  *  618							air_fan_speed										(int)
  *
  * Registered & Used Time (By LYN)																														(8)
- *  620							regSN														(float)
- *  624							usedTime												(uint32_t)
+ *  620							usedTime												(uint32_t)
  *
  * WIFI setting (By LYN)																																			(25)
- *  628							wifiEnable											(bool)
- *  629							hostName												(char x24)
+ *  624							wifiEnable											(bool)
+ *  625							hostName												(char x24)
  *
  * Accident Data (By LYN)																																			(283)
- *  653							isAccident											(bool)
- *  654							pauseLeveling										(bool)
- *  655							pausePos												(float x4)
- *  671 						pauseSpeed											(float)
- *  675							pauseByte												(uint32_t)
- *  679							lastPos													(float x4)
- *  695							lastToolsState									(int x8)
- *  711							lastFilename										(char x225)
+ *  649							isAccident											(bool)
+ *  650							pauseLeveling										(bool)
+ *  651							pausePos												(float x4)
+ *  667 						pauseSpeed											(float)
+ *  671							pauseByte												(uint32_t)
+ *  675							lastPos													(float x4)
+ *  691							lastToolsState									(int x8)
+ *  707							lastFilename										(char x225)
  *
- *  936                      Minimum end-point
- * 1972 (936 + 48 + 988)     Maximum end-point
+ *  932                      Minimum end-point
+ * 1968 (936 + 48 + 988)     Maximum end-point
  *
  * ========================================================================
  * meshes_begin (between max and min end-point, directly above)
@@ -507,9 +506,6 @@ void MarlinSettings::postprocess() {
 			SETTING_TO_CONFIG(air_fan_speed);
 		#endif
 
-		#ifdef REG_SN
-			SETTING_TO_CONFIG(regSN);
-		#endif
 			SETTING_TO_CONFIG(usedTime);
 
 		#ifdef WIFI_SUPPORT
@@ -767,9 +763,6 @@ void MarlinSettings::postprocess() {
 				CONFIG_TO_SETTING(air_fan_speed);
 			#endif
 
-			#ifdef REG_SN
-				CONFIG_TO_SETTING(regSN);
-			#endif
 				CONFIG_TO_SETTING(usedTime);
 
 			#ifdef WIFI_SUPPORT

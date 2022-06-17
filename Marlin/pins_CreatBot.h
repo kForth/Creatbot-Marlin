@@ -185,9 +185,7 @@
 	//#define USB_BZ		5
 #endif
 
-#ifdef REG_USE_HARDWARE
-	#define DS_DATA_PIN 64
-#endif
+// #define DS_DATA_PIN 64 // For old REG_USE_HARDWARE
 
 #ifdef HEATED_CHAMBER
 	#define TEMP_CHAMBER_PIN			12

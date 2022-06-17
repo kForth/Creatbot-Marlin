@@ -38,12 +38,6 @@
 #endif
 
 #if LANGUAGE == cn
-	#define MSG_REG_SN							"\xF4\xF5\xF6"									//注册码
-#else
-	#define MSG_REG_SN							"Reg. SN"
-#endif
-
-#if LANGUAGE == cn
 	#define MSG_UNLOAD_FILAMENT			"\xC8\x93\xD9\xDA"							//退出耗材
 #elif LANGUAGE == es
 	#define MSG_UNLOAD_FILAMENT			"Descargar Filamento"
