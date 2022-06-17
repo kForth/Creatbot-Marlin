@@ -1053,12 +1053,6 @@ void reset_setting_action(){
 	HIDE_POPUP;
 }
 
-void jump_reg_action(){
-#ifdef REG_SN
-	GO_PAGE(PAGE_REG_INFO);
-#endif
-}
-
 void shuttingCancelAction(){
 #if FAN_COUNT > 0
 	for (uint8_t i = 0; i < FAN_COUNT; i++) fanSpeeds[i] = 0;
@@ -1170,13 +1164,8 @@ void dwin_update_version(){
 }
 
 void dwin_update_icon() {
-#ifdef REG_SN
-	uint8_t regState;
-	regState = REG_PASS ? 1 : 0;
-	UPDATE_LCD(regState, REG_STATE_INDEX_ADDR);
-#else
 	UPDATE_LCD(1, REG_STATE_INDEX_ADDR);
-#endif
+
 #ifdef WIFI_SUPPORT
 	uint8_t wifi_mode, wifi_state;
 	if (myWifi.getWifiMode() == MODE_BOTH) {
@@ -1346,14 +1335,6 @@ void dwin_update_time_info(uint8_t mode) {
 		(duration_t(print_job_timer.duration()).toTimeDWIN(time_str, 2));
 		setValueAsAttr_P(PSTR(PRINT_TIME_ADDR), 0, time_str);
 	}
-#ifdef REG_SN
-	else if (mode == TIME_TRIAL) {
-		float trialTime = TOTAL_TIME_LIMIT - usedTime;
-		trialTime = (trialTime <= 0) ? 0 : trialTime;
-		(duration_t(trialTime)).toTimeDWIN(time_str, 4);
-		setValueAsAttr_P(PSTR(TRIAL_PERIOD_ADDR), 0, time_str);
-	}
-#endif
 }
 
 void dwin_update_progress_info() {
@@ -1376,14 +1357,6 @@ void dwin_update_progress_info() {
 	}
 #endif //HAS_READER
 }
-
-#ifdef REG_SN
-void dwin_update_reg_info(){
-	dwin_update_time_info(TIME_TRIAL);
-	UPDATE_LCD_32(regSN, REG_KEY_ADDR);
-	dwin_update_icon();
-}
-#endif
 
 
 /*******************************************************************************************************/
@@ -1478,7 +1451,7 @@ void updateCmd(uint16_t cmdValue){
 			dwin_move(Z_AXIS, DWIN_Z_MOVE_SCALE, true);
 			break;
 		case REG_INFO_BUTTON:
-			jump_reg_action();
+			// TODO
 			break;
 
 		case MOVE_HOME_ALL:
@@ -1781,18 +1754,6 @@ void resolveVar() {
 			lcd_preheat_chamber_temp = varValue;
 		}
 		#endif
-		#ifdef REG_SN
-		else if (VAR_IS_ADDR(SET_REG_KEY_ADDR)) {								// register key
-			regSN = (float)varValue / 100;
-			dwin_update_reg_info();
-			dwin_update_icon();
-			if(REG_PASS){
-				updateStateStrings();
-				return_default_button_action();
-			}
-			STORE_SETTING(regSN);
-		}
-		#endif
 		#if HAS_AUTO_FAN
 		else if (VAR_IS_ADDR(SET_TEMP_FAN_SPEED_ADDR)) {			// temp. fan speed
 			extruder_auto_fan_speed = varValue * 2.55;
@@ -1987,12 +1948,6 @@ void updateData() {
 	if (DWIN_IS_PAGE(PAGE_INFO)) {
 		dwin_update_time_info(TIME_USED);
 	}
-	
-#ifdef REG_SN
-	if (IS_REG_PAGE) {
-		dwin_update_reg_info();
-	}
-#endif
 
 #ifdef POWER_MANAGEMENT
 	if(dwin_shutting_info[0]){

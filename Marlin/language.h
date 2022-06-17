@@ -258,8 +258,6 @@
 #define MSG_DEBUG_LEVELING                  "LEVELING"
 
 // Add by LYN
-#define MSG_REG_SN_TIME_EXPIRED    					"Time expired !"
-#define MSG_REG_SN_SUCESS										"Registration success !"
 #define MSG_START_SERIAL_PRINT							"Start print from serial"
 #define MSG_STOP_SERIAL_PRINT								"Stop print from serial"
 #define MSG_DOING_FILE											"Now doing file: "

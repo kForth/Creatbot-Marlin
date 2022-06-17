@@ -4174,19 +4174,8 @@ void kill_screen(const char* lcd_msg) {
      */
   	static void lcd_info_elapsed_time_menu(){
   		char time[13];
-
-  	#ifdef REG_SN
-  		if (REG_PASS)
-  			(duration_t(usedTime)).toTimeREG(time);
-  		else{
-  			if (usedTime >= TOTAL_TIME_LIMIT)
-  				(duration_t(usedTime)).toTimeREG(time, '[', ']');
-  			else
-  				(duration_t(usedTime)).toTimeREG(time, '<', '>');
-  		}
-  	#else
+      
   		(duration_t(usedTime)).toTimeREG(time);
-  	#endif
 
       if (lcd_clicked) { return lcd_goto_previous_menu(); }
 

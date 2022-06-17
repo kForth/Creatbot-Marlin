@@ -551,16 +551,6 @@ FORCE_INLINE bool position_is_reachable_xy(const float &lx, const float &ly) {
 	extern int air_fan_speed;
 #endif
 
-#ifdef REG_SN
-	extern float regSN;
-	#ifdef REG_USE_HARDWARE
-		#include "Sequence.h"
-		#define REG_PASS			(checkReg(regSN))
-	#else
-		#define REG_PASS			(regSN == REG_SN)
-	#endif
-	#define LIMITED_USE		(!REG_PASS && ELAPSED(usedTime, TOTAL_TIME_LIMIT))
-#endif
 extern uint32_t	usedTime;
 
 #ifdef QUICK_PAUSE

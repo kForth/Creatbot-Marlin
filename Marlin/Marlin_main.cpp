@@ -244,7 +244,6 @@
  * M6006 - Start Serial print
  * M6007 - Stop Serial print
  * M6008 - Set used Time																		(M6008 S0.00)
- * M6009 - Set regSN																				(M6009 S0.00)
  * M6010 - Adjust the Z Value after adjust zprobe_zoffset		(Requires HAS_BED_PROBE)
  * M6011 - (like M106) Set Temp fan.												(Requires HAS_AUTO_FAN)
  * M6012 - (like M106) Set Air fan.													(Requires CHAMBER_FAN)
@@ -774,9 +773,6 @@ XYZ_CONSTS_FROM_CONFIG(signed char, home_dir, HOME_DIR);
 	#endif
 #endif
 
-#ifdef REG_SN
-	float regSN;
-#endif
 uint32_t usedTime;
 static uint32_t last_usedTime = 0;
 static millis_t last_time = 0;
@@ -1502,10 +1498,6 @@ inline void get_serial_commands() {
  *  - The SD card file being actively printed
  */
 void get_available_commands() {
-
-#ifdef REG_SN
-	if(LIMITED_USE)		return;
-#endif
 
   // if any immediate commands remain, don't get other commands yet
   if (drain_injected_commands_P()) return;
@@ -11057,23 +11049,6 @@ inline void gcode_M6008(){
 	STORE_SETTING(usedTime);
 }
 
-#ifdef REG_SN
-/*
- * Set regSN
- */
-inline void gcode_M6009(){
-	if(parser.seen('S')){
-		regSN = parser.value_float();
-		STORE_SETTING(regSN);
-
-		if(REG_PASS){
-			LCD_MESSAGEPGM(WELCOME_MSG);
-			DWIN_MSG_P(WELCOME_MSG);
-		}
-	}
-}
-#endif
-
 #if HAS_BED_PROBE
 /*
  * Adjust the Z Value after adjust zprobe_zoffset
@@ -12740,12 +12715,6 @@ void process_next_command() {
 				gcode_M6008();
 				break;
 
-			#ifdef REG_SN
-				case 6009:
-					gcode_M6009();
-					break;
-			#endif
-
 			#if HAS_BED_PROBE
 				case 6010:
 					gcode_M6010();
@@ -14255,12 +14224,6 @@ void updateVersionString(char *dataStr){
 }
 
 void updateStateStrings(){
-#ifdef REG_SN
-	if(LIMITED_USE){
-		DWIN_MSG_P(MSG_REG_SN_TIME_EXPIRED);
-		return;
-	}
-#endif
 #if HAS_READER
 	if(!FILE_IS_IDLE){
 		if(FILE_IS_PAUSE){
@@ -14754,42 +14717,6 @@ void controlLED(){
 #endif
 
 void controlTime() {
-	#ifdef REG_SN
-		// elapsedTime over trialTime && RegSN is wrong
-		if (LIMITED_USE) {
-		#if HAS_READER
-			if (!FILE_IS_IDLE){
-			#if ENABLED(QUICK_PAUSE)
-				quickStopPrintJob();
-			#else
-				FILE_STOP_PRINT;
-				clear_command_queue();
-				quickstop_stepper();
-				print_job_timer.stop();
-				thermalManager.disable_all_heaters();
-				#if FAN_COUNT > 0
-					for (uint8_t i = 0; i < FAN_COUNT; i++) fanSpeeds[i] = 0;
-				#endif
-				wait_for_heatup = false;
-			#endif //QUICK_PAUSE
-			}
-		#endif // HAS_READER
-			thermalManager.disable_all_heaters();
-		#if ENABLED(ULTRA_LCD)
-			lcd_reset_status();
-			LCD_MESSAGEPGM(MSG_REG_SN_TIME_EXPIRED);
-			if(!FILE_IS_IDLE)
-				lcd_return_to_status();
-		#elif ENABLED(DWIN_LCD)
-			if (!DWIN_IS_PAGE(PAGE_REG) && !DWIN_IS_PAGE(PAGE_SHUTDOWN_HOTEND)) {
-				// TODO hidden the pop window
-				GO_PAGE(PAGE_REG);
-				updateStateStrings();
-			}
-		#endif //LCD
-		}
-	#endif
-
 	millis_t ms = millis();
 	bool operating = (planner.blocks_queued() || thermalManager.maxDegHotend() > EXTRUDER_AUTO_FAN_TEMPERATURE);
 	#if HAS_READER
@@ -14797,22 +14724,13 @@ void controlTime() {
 	#endif
 	// increase elapsedTime per "auto_time_used_interval"
 	if (ELAPSED(ms, last_time + auto_time_used_interval)){
-		if (operating
-	#ifdef REG_SN
-		&& (!LIMITED_USE))
-	#else
-		)
-	#endif
+		if (operating)
 			usedTime += auto_time_used_interval / 1000;
 		last_time = ms;
 	}
 
 	// auto save elapsedTime to eeprom per "auto_save_setting_interval"
-	if (ELAPSED(ms, last_time_save + auto_save_setting_interval)
-	#ifdef REG_SN
-		|| ((usedTime <= TOTAL_TIME_LIMIT) && (usedTime != last_usedTime))
-	#endif
-	){
+	if (ELAPSED(ms, last_time_save + auto_save_setting_interval)){
 		if (usedTime != last_usedTime) {
 			last_usedTime = usedTime;
 			STORE_SETTING(usedTime);
@@ -15363,10 +15281,6 @@ void setup() {
   #if HAS_FANMUX
     fanmux_init();
   #endif
-
-	#if ENABLED(REG_USE_HARDWARE)		// By LYN
-		initSequence();
-	#endif
 
   lcd_init();
 #if ENABLED(DWIN_LCD)				// By LYN

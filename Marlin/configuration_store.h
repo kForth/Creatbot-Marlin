@@ -164,8 +164,7 @@ extern MarlinSettings settings;
 
 		int				setting_extruder_auto_fan_speed;
 		int				setting_air_fan_speed;
-
-		float			setting_regSN;
+		
 		uint32_t	setting_usedTime;
 
 		bool			setting_wifiEnable;
