@@ -258,21 +258,15 @@
 #define MSG_DEBUG_LEVELING                  "LEVELING"
 
 // Add by LYN
-#define MSG_START_SERIAL_PRINT							"Start print from serial"
-#define MSG_STOP_SERIAL_PRINT								"Stop print from serial"
-#define MSG_DOING_FILE											"Now doing file: "
-#define MSG_FRESH_FILE											"Now fresh file: "
-#define MSG_USB_PRINTING_BYTE								"USB Disk printing byte "
-#define MSG_USB_NOT_PRINTING								"Not USB Disk printing"
-#define MSG_USB_INSERT											"USB Disk insert"
-#define MSG_USB_REMOVE											"USB Disk remove"
-#define MSG_USB_READY												" ready"
-#define MSG_USB_ERR_FIND_FILE								"Find file, not dir"
-#define MSG_USB_ERR_MISS_DIR								"Can't find subdir"
-#define MSG_USB_ERR_OPEN_DIR								"Can't open subdir"
+#define MSG_START_SERIAL_PRINT							"Starting print over serial"
+#define MSG_STOP_SERIAL_PRINT								"Stopping print over serial"
+#define MSG_DOING_FILE											"Change File to: "
+#define MSG_FRESH_FILE											"Select File: "
+#define MSG_USB_INSERT											"USB Disk inserted"
+#define MSG_USB_REMOVE											"USB Disk removed"
 #define MSG_CH376_ERR_CONN									"CH376 connection error"
 #define MSG_CH376_ERR_MODE									"CH376 mode setting error"
-#define MSG_CH376_ERR_UNKNOW								"CH376 unknown error"
+#define MSG_CH376_ERR_UNKNOW								" CH376 unknown error"
 // Add end
 
 // LCD Menu Messages

@@ -118,8 +118,7 @@ void UDiskReader::getUSBInfo()
 	uint8_t info[37] = {0};
 	if (UDiskImpl.readBlock(info) == 36)
 	{
-		SERIAL_ECHO((char *)(&info[8]));
-		SERIAL_ECHOLNPGM(MSG_USB_READY);
+		SERIAL_ECHOLN((char *)(&info[8]));
 	}
 }
 
@@ -200,25 +199,30 @@ void UDiskReader::refresh()
 				return;
 			}
 
-			if (!UDiskOK && UDiskImpl.diskMount())
+			if (!UDiskOK)
 			{
-				getUSBInfo();
-				UDiskOK = true;
-				if (UDiskPauseState)
-				{
-					setSeek(workDir);
-
-					if (UDiskImpl.fileOpen(file.filename))
+				if(UDiskImpl.diskMount()){
+					getUSBInfo();
+					SERIAL_ECHOLNPGM(MSG_SD_CARD_OK);
+					UDiskOK = true;
+					if (UDiskPauseState)
 					{
-						isFileOpen = true;
+						setSeek(workDir);
+						if (UDiskImpl.fileOpen(file.filename))
+						{
+							isFileOpen = true;
+						}
+						else
+						{
+							stopPrint();
+						}
 					}
 					else
-					{
-						stopPrint();
-					}
+						setroot();
 				}
-				else
-					setroot();
+				else{
+				SERIAL_ECHOLNPGM(MSG_SD_INIT_FAIL);
+				}
 			}
 		}
 		else
@@ -540,7 +544,7 @@ void UDiskReader::chdir(const char *path)
 	{
 		if (state == USB_INT_SUCCESS)
 		{
-			SERIAL_ECHOLNPGM(MSG_USB_ERR_FIND_FILE);
+			SERIAL_ECHOLNPGM(MSG_SD_OPEN_FILE_FAIL);
 			return;
 		}
 		else
@@ -587,11 +591,11 @@ void UDiskReader::chdir(const char *path)
 		}
 	} else {
 		if (state == ERR_MISS_FILE || state == ERR_MISS_DIR) {
-			SERIAL_ECHOLNPGM(MSG_USB_ERR_MISS_DIR);
+			SERIAL_ECHOLNPGM(MSG_SD_WORKDIR_FAIL);
 		} else if (state == ERR_FOUND_NAME){
-			SERIAL_ECHOLNPGM(MSG_USB_ERR_FIND_FILE);
+			SERIAL_ECHOLNPGM(MSG_SD_ERR_READ);
 		} else {
-			SERIAL_ECHOLNPGM(MSG_USB_ERR_OPEN_DIR);
+			SERIAL_ECHOLNPGM(MSG_SD_CANT_OPEN_SUBDIR);
 		}
 	}
 	**********************************************************************/
@@ -657,13 +661,13 @@ void UDiskReader::getStatus()
 {
 	if (UDiskOK)
 	{
-		SERIAL_ECHOPGM(MSG_USB_PRINTING_BYTE);
+		SERIAL_ECHOPGM(MSG_SD_PRINTING_BYTE);
 		SERIAL_ECHO(filePos);
 		SERIAL_ECHOPGM("/");
 		SERIAL_ECHOLN(fileSize);
 	}
 	else
-		SERIAL_ECHOLNPGM(MSG_USB_NOT_PRINTING);
+		SERIAL_ECHOLNPGM(MSG_SD_NOT_PRINTING);
 }
 
 void UDiskReader::printingHasFinished()
