@@ -20,11 +20,11 @@
 //#define CH376_UART			//Define the CH376 connection method is asynchronous serial communication
 //#define CH376_PART			//Define the CH376 connection method is parallel communication
 
-#if (defined(CH376_SPI) && defined(CH376_UART)) || (defined(CH376_SPI) && defined(CH376_PART)) || (defined(CH376_PART) && defined(CH376_UART)) //检查ch376的连接方式是否冲突
+#if (defined(CH376_SPI) && defined(CH376_UART)) || (defined(CH376_SPI) && defined(CH376_PART)) || (defined(CH376_PART) && defined(CH376_UART)) //Check whether the connection method of CH376 conflicts
 #error "You can't set two connect mode for CH376. "
 #endif
 
-/* USB 工作模式 */
+/* USB Operating mode */
 #define USB_DEV_NO_READY 0x00
 #define USB_DEV_READY_EXT_FW 0x01
 #define USB_DEV_READY_SELF_FW 0x02
@@ -52,7 +52,7 @@
 //#define	CH376_SPI_SDO			MISO
 //#define	CH376_SPI_SCK			SCK
 
-/* SPI 速率 */
+/* SPI rate */
 #define SPI_SPEED_DIV4 0x00	   // F_CPU/4
 #define SPI_SPEED_DIV16 0x01   // F_CPU/16
 #define SPI_SPEED_DIV64 0x02   // F_CPU/64
@@ -62,7 +62,7 @@
 #define SPI_SPEED_DIV32 0x06   // F_CPU/32
 #define SPI_SPEED_DISABLE 0xFF // Disable
 
-/* SPI 特殊针脚 */
+/* SPI special needle */
 #define SPI_RST_PIN 78
 #define SPI_BUSY_PIN 5
 #define SPI_INT_PIN 49
