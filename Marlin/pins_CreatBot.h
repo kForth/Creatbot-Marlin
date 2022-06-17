@@ -143,6 +143,7 @@
 #ifdef POWER_MANAGEMENT
 	#define PS_OFF_PIN			41
 	#define SUICIDE_PIN			40
+  #define SUICIDE_PIN_STATE HIGH
 #endif
 
 #ifdef MY_KEYPAD
