@@ -354,6 +354,9 @@
 #ifndef SUICIDE_PIN
   #define SUICIDE_PIN -1
 #endif
+#ifndef SUICIDE_PIN_STATE
+  #define SUICIDE_PIN_STATE LOW
+#endif
 
 #ifndef MAX_EXTRUDERS
   #define MAX_EXTRUDERS 5
