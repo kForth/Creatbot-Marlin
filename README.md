@@ -2,11 +2,11 @@
 
 ## CreatBot v5.6
 
-This is source code for the firmware running on the some (all?) CreatBot printers, it is based on Marlin v1.1.6. The unmodified source code can be found on the Creatbot-v5.6 branch, see the Creatbot-v5.6-Modified branch for the version I'm currently using.
+This is source code for the firmware running on some (all?) CreatBot 3D printers, it seems to be based on Marlin v1.1.6. The unmodified source code can be found on the Creatbot-v5.6 branch, an improved version can be found on the Creatbot-v5.6-Modified branch.
 
 The F430 I use was shipped with v5.5 firware and this v5.6 seems mostly compatible, the only issue is that manual jogging from the LCD does not work.
 
-I have no affiliation with CreatBot or any related companies, I just use an F430 at work. This source code was provided to me upon request. 
+I have no affiliation with CreatBot or any related companies, I just use an F430 at work. This source code was provided to me upon request and I cannot gaurantee it will work with your printer. 
 
 ## Marlin 1.1
 <img align="right" src="../../raw/1.1.x/buildroot/share/pixmaps/logo/marlin-250.png" />
