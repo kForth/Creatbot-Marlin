@@ -1,9 +1,12 @@
 # Marlin 3D Printer Firmware
 
-## Creatbot v5.6
-[<img align="right" height="150" src="https://www.creatbot.com/images/creatbot_logo_en.png" />](https://www.creatbot.com/)
+## CreatBot v5.6
 
-This is source code for the original marlin-based firmware running on the [Creatbot F430](https://www.creatbot.com/en/creatbot-f430.html) and others. The unmodified source code can be found on the Creatbot-v5.6 branch.
+This is source code for the firmware running on the some (all?) CreatBot printers, it is based on Marlin v1.1.6. The unmodified source code can be found on the Creatbot-v5.6 branch, see the Creatbot-v5.6-Modified branch for the version I'm currently using.
+
+The F430 I use was shipped with v5.5 firware and this v5.6 seems mostly compatible, the only issue is that manual jogging from the LCD does not work.
+
+I have no affiliation with CreatBot or any related companies, I just use an F430 at work. This source code was provided to me upon request. 
 
 ## Marlin 1.1
 <img align="right" src="../../raw/1.1.x/buildroot/share/pixmaps/logo/marlin-250.png" />
