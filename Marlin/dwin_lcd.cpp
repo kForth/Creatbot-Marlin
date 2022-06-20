@@ -1622,7 +1622,7 @@ void updateCmd(uint16_t cmdValue){
 
 
 		default:
-			//SERIAL_ECHOLN(cmdValue);
+			SERIAL_ECHOLN(cmdValue);
 			break;
 		}
 	}
