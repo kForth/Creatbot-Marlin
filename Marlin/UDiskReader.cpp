@@ -439,13 +439,19 @@ void UDiskReader::list_print()
 	{
 		USBFile tempFile;
 		tempFile.set(&temp);
+		if(tempFile.isFile){
+			SERIAL_ECHO(tempFile.filename);
+			SERIAL_ECHO(" ");
+			SERIAL_ECHO(tempFile.filesize);
 
-		if (tempFile.longFilename[0])
-		{
-			SERIAL_ECHOLN(tempFile.longFilename);
-		}
-		else
-		{
+			if (tempFile.longFilename[0])
+			{
+				SERIAL_ECHO(" ");
+				SERIAL_ECHO(tempFile.longFilename);
+			}
+
+			SERIAL_ECHOLN("");
+		} else {
 			SERIAL_ECHOLN(tempFile.filename);
 		}
 	}
