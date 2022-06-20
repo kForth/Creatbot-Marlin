@@ -10825,12 +10825,7 @@ bool pauseToUnloadFilament(){
 
 
 #ifdef ACCIDENT_DETECT
-inline void gcode_M6004() {}
-
-/*
-* Home & Resume print from accident. (By LYN)
-*/
-inline void gcode_M6005() {
+inline void gcode_M6004() {
 	set_destination_to_current();
 	axis_known_position[Z_AXIS] = true;
 
@@ -10882,6 +10877,14 @@ inline void gcode_M6005() {
 #if HAS_LEVELING
 	set_bed_leveling_enabled(pauseLeveling);
 #endif
+}
+
+/*
+* Home & Resume print from accident. (By LYN)
+*/
+inline void gcode_M6005() {
+		enqueue_and_echo_commands_P(PSTR("G28 X Y"));
+    enqueue_and_echo_commands_P(PSTR("M6004"));
 }
 
 void preheaToolsState(){
