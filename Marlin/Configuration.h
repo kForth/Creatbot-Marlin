@@ -687,13 +687,13 @@
 //(redef in _Config.h) #define Z_PROBE_OFFSET_FROM_EXTRUDER 0   // Z offset: -below +above  [the nozzle]
 
 // X and Y axis travel speed (mm/m) between probes
-#define XY_PROBE_SPEED 4000		//(default is 8000)
+#define XY_PROBE_SPEED 8000
 
 // Speed for the first approach when double-probing (with PROBE_DOUBLE_TOUCH)
 #define Z_PROBE_SPEED_FAST HOMING_FEEDRATE_Z
 
 // Speed for the "accurate" probe of each point
-#define Z_PROBE_SPEED_SLOW (Z_PROBE_SPEED_FAST / 10)	//(default is 2DIV)
+#define Z_PROBE_SPEED_SLOW (Z_PROBE_SPEED_FAST / 2)
 
 // Use double touch for probing
 //#define PROBE_DOUBLE_TOUCH
@@ -874,14 +874,14 @@
 #if ENABLED(AUTO_BED_LEVELING_LINEAR) || ENABLED(AUTO_BED_LEVELING_BILINEAR)
 
   // Set the number of grid points per dimension.
-  #define GRID_MAX_POINTS_X PROBE_XY_NUM		//(default is 3)
-  #define GRID_MAX_POINTS_Y GRID_MAX_POINTS_X
+  //(redef in _Config.h) #define GRID_MAX_POINTS_X 3
+  //(redef in _Config.h) #define GRID_MAX_POINTS_Y GRID_MAX_POINTS_X
 
   // Set the boundaries for probing (where the probe can reach).
-//(redef in _Config.h)   #define LEFT_PROBE_BED_POSITION 15
-//(redef in _Config.h)   #define RIGHT_PROBE_BED_POSITION 170
-//(redef in _Config.h)   #define FRONT_PROBE_BED_POSITION 20
-//(redef in _Config.h)   #define BACK_PROBE_BED_POSITION 170
+  //(redef in _Config.h) #define LEFT_PROBE_BED_POSITION 15
+  //(redef in _Config.h) define RIGHT_PROBE_BED_POSITION 170
+  //(redef in _Config.h) #define FRONT_PROBE_BED_POSITION 20
+  //(redef in _Config.h) #define BACK_PROBE_BED_POSITION 170
 
   // The Z probe minimum outer margin (to validate G29 parameters).
   #define MIN_PROBE_EDGE 10
@@ -1001,7 +1001,7 @@
 #endif
 
 // Homing speeds (mm/m)
-#define HOMING_FEEDRATE_XY (50*60)
+#define HOMING_FEEDRATE_XY (60*60)
 #define HOMING_FEEDRATE_Z  (20*60)		//(default is 4*60)
 
 //=============================================================================

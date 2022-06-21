@@ -201,7 +201,8 @@
   #define Z_SAFE_HOMING // safe homing to prevent servo cann't probe the bed.
 
   #if MODEL == DE || MODEL == DE_Plus
-    #define PROBE_XY_NUM 5
+    #define GRID_MAX_POINTS_X 5
+    #define GRID_MAX_POINTS_Y GRID_MAX_POINTS_X
     #ifdef BLTOUCH
       #define X_PROBE_OFFSET_FROM_EXTRUDER -25
       #define Y_PROBE_OFFSET_FROM_EXTRUDER 60
@@ -214,7 +215,8 @@
     #endif
   #elif MODEL == D600 || MODEL == D600_SE || MODEL == D600_Pro
     #ifdef BLTOUCH
-      #define PROBE_XY_NUM 5
+      #define GRID_MAX_POINTS_X 5
+      #define GRID_MAX_POINTS_Y GRID_MAX_POINTS_X
       #ifdef F_SERIES
         #define X_PROBE_OFFSET_FROM_EXTRUDER 30
         #define Y_PROBE_OFFSET_FROM_EXTRUDER 74
@@ -227,15 +229,18 @@
       #error "Not BL_TOUCH??"
     #endif
   #elif MODEL == Other_MODEL
-    #define PROBE_XY_NUM 5
+    #define GRID_MAX_POINTS_X 5
+    #define GRID_MAX_POINTS_Y GRID_MAX_POINTS_X
     #define X_PROBE_OFFSET_FROM_EXTRUDER -21
     #define Y_PROBE_OFFSET_FROM_EXTRUDER 22
     #define Z_PROBE_OFFSET_FROM_EXTRUDER -1
   #elif MODEL == F430 || MODEL == F260
     #if MODEL == F260
-      #define PROBE_XY_NUM 4
+      #define GRID_MAX_POINTS_X 4
+      #define GRID_MAX_POINTS_Y GRID_MAX_POINTS_X
     #else
-      #define PROBE_XY_NUM 5
+      #define GRID_MAX_POINTS_X 7
+      #define GRID_MAX_POINTS_Y 5
     #endif
     #ifdef BLTOUCH
       #ifdef LINEAR_GUIDE
@@ -260,7 +265,8 @@
       #endif
     #endif
   #elif MODEL == F160 || MODEL == F200 || MODEL == F220
-    #define PROBE_XY_NUM 3
+    #define GRID_MAX_POINTS_X 3
+    #define GRID_MAX_POINTS_Y GRID_MAX_POINTS_X
     #ifdef BLTOUCH
       #if MODEL == F160 || MODEL == F200
         #define X_PROBE_OFFSET_FROM_EXTRUDER 16
@@ -278,7 +284,8 @@
       #define Z_PROBE_OFFSET_FROM_EXTRUDER -8
     #endif
   #elif MODEL == PEEK300
-    #define PROBE_XY_NUM 5
+    #define GRID_MAX_POINTS_X 5
+    #define GRID_MAX_POINTS_Y GRID_MAX_POINTS_X
     #ifdef BLTOUCH
       #define X_PROBE_OFFSET_FROM_EXTRUDER 22
       #define Y_PROBE_OFFSET_FROM_EXTRUDER 41
@@ -287,7 +294,8 @@
       #error "Not BL_TOUCH??"
     #endif
   #elif MODEL == F1000
-    #define PROBE_XY_NUM 10
+    #define GRID_MAX_POINTS_X 10
+    #define GRID_MAX_POINTS_Y GRID_MAX_POINTS_X
     #ifdef BLTOUCH
       #define X_PROBE_OFFSET_FROM_EXTRUDER 30
       #define Y_PROBE_OFFSET_FROM_EXTRUDER 31
