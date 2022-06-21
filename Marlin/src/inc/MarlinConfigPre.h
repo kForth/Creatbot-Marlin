@@ -35,6 +35,7 @@
 #endif
 
 #include "../core/macros.h"
+#include "../../_Config.h"
 #include "../core/boards.h"
 #include "../../Configuration.h"
 
