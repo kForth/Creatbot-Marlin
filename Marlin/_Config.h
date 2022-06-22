@@ -523,6 +523,7 @@
 
 // Auto shutdown timeouts
 #ifdef POWER_MANAGEMENT
+  #define AUTO_SHUTDOWN
   #ifdef AUTO_SHUTDOWN
     #define AUTO_SHUTDONW_TIME_DISPALY   180  //seconds = 3mins
     #define AUTO_SHUTDOWN_TIME_IDLE     3600  //seconds = 1hour
