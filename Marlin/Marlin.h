@@ -543,6 +543,28 @@ FORCE_INLINE bool position_is_reachable_xy(const float &lx, const float &ly) {
 	#define HAS_READER							false
 #endif
 
+  void customDetect();
+  void controlTime();
+#ifdef COLOR_LED
+  void controlLED();
+#endif
+#ifdef DWIN_LCD
+  void dwin_run();
+#endif
+#ifdef POWER_MANAGEMENT
+  void detectPower();
+#endif
+#ifdef ACCIDENT_DETECT
+  void detectAccident();
+#endif
+#ifdef FILAMENT_DETECT
+  void checkFilament();
+  void detectFilament();
+#endif
+#ifdef CHAMBER_FAN
+  void detectAirFan();
+#endif
+
 #if HAS_AUTO_FAN
 	extern int extruder_auto_fan_speed;
 #endif

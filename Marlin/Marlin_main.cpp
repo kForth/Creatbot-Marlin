@@ -262,6 +262,7 @@
  * M6030 - (like M30) Delete file from USB.						TODO M6030
  * M6032 - (like M32) Select file and start SD print
  * M6033 - (like M928) Start USB write (logging)			TODO M6033
+ * M6034 - Print filament sensor state
  * ****************************************************************************************
  *
  *
@@ -11245,6 +11246,17 @@ inline void gcode_M6033() {
 	//TODO M6033
 }
 
+/*
+* Send filament sensor state
+*/
+inline void gcode_M6034() {
+#ifdef FILAMENT_DETECT
+	checkFilament();
+  SERIAL_ECHOLNPAIR("FilamentReady: ", isFilamentReady);
+  SERIAL_ECHOLNPAIR("FilamentMask: ", filamentDetectMask);
+#endif
+}
+
 #endif // UDISKSUPPORT
 
 /***************************************************************************************************************************************************/
@@ -12794,6 +12806,10 @@ void process_next_command() {
 
 				case 6033:
 					gcode_M6033();
+					break;
+
+				case 6034:
+					gcode_M6034();
 					break;
 			#endif //UDISKSUPPORT
 /********************************************************************/
@@ -14548,7 +14564,8 @@ void detectPower() {
 #endif // POWER_MANAGEMENT
 
 #ifdef FILAMENT_DETECT
-void detectFilament() {
+
+void checkFilament() {
 	isFilamentReady = true;
 #if HAS_READER
 	if(FILE_IS_IDLE){
@@ -14636,6 +14653,10 @@ void detectFilament() {
 	#endif
 #endif //FILAMENT_DETECT_AGAIN
 	}
+}
+
+void detectFilament() {
+  checkFilament();
 
 #if HAS_READER
 	if(!isFilamentReady){
