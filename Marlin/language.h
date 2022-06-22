@@ -109,7 +109,6 @@
 
 // Common serial messages
 #define MSG_MARLIN "Marlin"
-#define MSG_FW_NAME	"CreatBot"
 #define MSG_FW	" Firmware: "
 
 // Serial Console Messages (do not translate those!)
@@ -124,6 +123,7 @@
 #define MSG_CONFIGURATION_VER               " Last Updated: "
 #define MSG_FREE_MEMORY                     " Free Memory: "
 #define MSG_PLANNER_BUFFER_BYTES            "  PlannerBufferBytes: "
+#define MSG_CONFIG_BUFFER_BYTES            "  ConfigBufferBytes: "
 #define MSG_OK                              "ok"
 #define MSG_WAIT                            "wait"
 #define MSG_STATS                           "Stats: "
@@ -138,7 +138,7 @@
 #define MSG_INVALID_EXTRUDER                "Invalid extruder"
 #define MSG_INVALID_SOLENOID                "Invalid solenoid"
 #define MSG_ERR_NO_THERMISTORS              "No thermistors - no temperature"
-#define MSG_M115_REPORT                     "FIRMWARE_NAME:CreatBot " DETAILED_BUILD_VERSION " SOURCE_CODE_URL:" SOURCE_CODE_URL " PROTOCOL_VERSION:" PROTOCOL_VERSION " MACHINE_TYPE:" MACHINE_NAME " EXTRUDER_COUNT:" STRINGIFY(EXTRUDERS) " UUID:" MACHINE_UUID
+#define MSG_M115_REPORT                     "FIRMWARE_NAME:Marlin " DETAILED_BUILD_VERSION " SOURCE_CODE_URL:" SOURCE_CODE_URL " PROTOCOL_VERSION:" PROTOCOL_VERSION " MACHINE_TYPE:" MACHINE_NAME " EXTRUDER_COUNT:" STRINGIFY(EXTRUDERS) " UUID:" MACHINE_UUID
 #define MSG_COUNT_X                         " Count X:"
 #define MSG_COUNT_A                         " Count A:"
 #define MSG_ERR_KILLED                      "Printer halted. kill() called!"

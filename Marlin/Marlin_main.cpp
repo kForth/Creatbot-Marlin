@@ -15148,27 +15148,24 @@ void setup() {
   if (mcu & 32) SERIAL_ECHOLNPGM(MSG_SOFTWARE_RESET);
   MCUSR = 0;
 
-//  SERIAL_ECHOPGM(MSG_MARLIN);
-//  SERIAL_CHAR(' ');
-//  SERIAL_ECHOLNPGM(SHORT_BUILD_VERSION);
-//  SERIAL_EOL();
-
-  updateVersionString(versionFW);
-  SERIAL_ECHOLNPAIR(MSG_FW, versionFW);
+ SERIAL_ECHOPGM(MSG_MARLIN);
+ SERIAL_CHAR(' ');
+ SERIAL_ECHOLNPGM(SHORT_BUILD_VERSION);
+ SERIAL_EOL();
 
   #if defined(STRING_DISTRIBUTION_DATE) && defined(STRING_CONFIG_H_AUTHOR)
-//    SERIAL_ECHO_START();
+    SERIAL_ECHO_START();
     SERIAL_ECHOPGM(MSG_CONFIGURATION_VER);
     SERIAL_ECHOPGM(STRING_DISTRIBUTION_DATE);
     SERIAL_ECHOLNPGM(MSG_AUTHOR STRING_CONFIG_H_AUTHOR);
-//    SERIAL_ECHO_START();
-//    SERIAL_ECHOLNPGM("Compiled: " __DATE__);
+    SERIAL_ECHO_START();
+    SERIAL_ECHOLNPGM("Compiled: " __DATE__);
   #endif
 
-//  SERIAL_ECHO_START();
+  SERIAL_ECHO_START();
   SERIAL_ECHOPAIR(MSG_FREE_MEMORY, freeMemory());
   SERIAL_ECHOPAIR(MSG_PLANNER_BUFFER_BYTES, (int)sizeof(block_t)*BLOCK_BUFFER_SIZE);
-  SERIAL_ECHOLNPAIR("  ConfigBufferBytes: ", (int)sizeof(EEPROM_DATA));
+  SERIAL_ECHOLNPAIR(MSG_CONFIG_BUFFER_BYTES, (int)sizeof(EEPROM_DATA));
 
   // Send "ok" after commands by default
   for (int8_t i = 0; i < BUFSIZE; i++) send_ok[i] = true;
@@ -15191,7 +15188,7 @@ void setup() {
 
   // Vital to init stepper/planner equivalent for current_position
   SYNC_PLAN_POSITION_KINEMATIC();
-
+ 
   thermalManager.init();    // Initialize temperature loop
 
   #if ENABLED(USE_WATCHDOG)

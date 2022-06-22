@@ -4149,7 +4149,7 @@ void kill_screen(const char* lcd_msg) {
     void lcd_info_printer_menu() {
       if (lcd_clicked) { return lcd_goto_previous_menu(); }
       START_SCREEN();
-      STATIC_ITEM(MSG_FW_NAME, true, true);                            // CreatBot	(By LYN)
+      STATIC_ITEM(MSG_MARLIN, true, true);                             // Marlin
       STATIC_ITEM(SHORT_BUILD_VERSION, true);                          // x.x.x-Branch
       STATIC_ITEM(STRING_DISTRIBUTION_DATE, true);                     // YYYY-MM-DD HH:MM
       STATIC_ITEM(MACHINE_NAME, true);                                 // My3DPrinter
