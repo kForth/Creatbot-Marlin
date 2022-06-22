@@ -45,7 +45,7 @@ install:
   # - sudo mv Arduino-L6470/L6470 /usr/local/share/arduino/libraries/L6470
   #
   # Install: TMC26X Stepper Motor Controller library
-  # - git clone https://github.com/trinamic/TMC26XStepper.git
+  # - git clone https://github.com/MarlinFirmware/TMC26XStepper.git
   # - sudo mv TMC26XStepper /usr/local/share/arduino/libraries/TMC26XStepper
   #
   # Install: TMC2130 Stepper Motor Controller library

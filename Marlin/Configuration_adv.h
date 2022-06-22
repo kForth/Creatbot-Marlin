@@ -853,7 +853,7 @@
 /**
  * Enable this section if you have TMC26X motor drivers.
  * You will need to import the TMC26XStepper library into the Arduino IDE for this
- * (https://github.com/trinamic/TMC26XStepper.git)
+ * (https://github.com/MarlinFirmware/TMC26XStepper.git)
  */
 //#define HAVE_TMCDRIVER
 
