@@ -83,13 +83,13 @@ extern MarlinSettings settings;
 		char			setting_versionFW[FW_STR_LEN + 1];
 		float			setting_axis_steps_per_mm[XYZE_N];
 		float			setting_max_feedrate_mm_s[XYZE_N];
-		uint32_t	setting_max_acceleration_mm_per_s2[XYZE_N];
+		uint32_t		setting_max_acceleration_mm_per_s2[XYZE_N];
 		float			setting_acceleration;
 		float			setting_retract_acceleration;
 		float			setting_travel_acceleration;
 		float			setting_min_feedrate_mm_s;
 		float			setting_min_travel_feedrate_mm_s;
-		millis_t	setting_min_segment_time;
+		millis_t		setting_min_segment_time;
 		float			setting_max_jerk[NUM_AXIS];
 		float			setting_home_offset[XYZ];
 		float			setting_hotend_offset[XYZ][MAX_EXTRUDERS];
@@ -101,12 +101,12 @@ extern MarlinSettings settings;
 		float			setting_bed_level_matrix[3][3];
 
 		bool			setting_mesh_bilinear_ubl_status;
-		uint8_t		setting_mesh_bilinear_max_x;
-		uint8_t		setting_mesh_bilinear_max_y;
+		uint8_t			setting_mesh_bilinear_max_x;
+		uint8_t			setting_mesh_bilinear_max_y;
 		int				setting_bilinear_grid_spacing[2];
 		int				setting_bilinear_start[2];
 		float			setting_mesh_ubl_z_offset;
-		int8_t		setting_ubl_eeprom_storage_slot;
+		int8_t			setting_ubl_eeprom_storage_slot;
 	#if ENABLED(AUTO_BED_LEVELING_BILINEAR) || ENABLED(MESH_BED_LEVELING)
 		float			setting_mesh_bilinear_z_values[GRID_MAX_POINTS_X][GRID_MAX_POINTS_Y];
 	#else

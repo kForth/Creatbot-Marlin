@@ -37,65 +37,75 @@
  */
 
 /**
+ * ** Memory address values are not correct. **
+ * 
  * V41 EEPROM Layout:
  *
  *  100  Version                                    (char x12)
  *
  * Base Setting:																																							(160 + 48)
- *  112  M92 XYZE  planner.axis_steps_per_mm        (float x4 ... x8) + 16
- *  128  M203 XYZE planner.max_feedrate_mm_s        (float x4 ... x8) + 16
- *  144  M201 XYZE planner.max_acceleration_mm_per_s2 (uint32_t x4 ... x8) + 16
- *  160  M204 P    planner.acceleration             (float)
- *  164  M204 R    planner.retract_acceleration     (float)
- *  168  M204 T    planner.travel_acceleration      (float)
- *  172  M205 S    planner.min_feedrate_mm_s        (float)
- *  176  M205 T    planner.min_travel_feedrate_mm_s (float)
- *  180  M205 B    planner.min_segment_time         (millis_t)
- *  184  M205 X    planner.max_jerk[X_AXIS]         (float)
- *  188  M205 Y    planner.max_jerk[Y_AXIS]         (float)
- *  192  M205 Z    planner.max_jerk[Z_AXIS]         (float)
- *  196  M205 E    planner.max_jerk[E_AXIS]         (float)
- *  200  M206 XYZ  home_offset                      (float x3)
- *  212  M218 XYZ  hotend_offset                    (float x3 x5)
+ *  107  M92 XYZE  planner.axis_steps_per_mm        (float x4 ... x8)
+ *  123  M203 XYZE planner.max_feedrate_mm_s        (float x4 ... x8)
+ *  139  M201 XYZE planner.max_acceleration_mm_per_s2 (uint32_t x4 ... x8)
+ *  155  M204 P    planner.acceleration             (float)
+ *  159  M204 R    planner.retract_acceleration     (float)
+ *  163  M204 T    planner.travel_acceleration      (float)
+ *  167  M205 S    planner.min_feedrate_mm_s        (float)
+ *  171  M205 T    planner.min_travel_feedrate_mm_s (float)
+ *  175  M205 B    planner.min_segment_time         (ulong)
+ *  179  M205 X    planner.max_jerk[X_AXIS]         (float)
+ *  183  M205 Y    planner.max_jerk[Y_AXIS]         (float)
+ *  187  M205 Z    planner.max_jerk[Z_AXIS]         (float)
+ *  191  M205 E    planner.max_jerk[E_AXIS]         (float)
+ *  195  M206 XYZ  home_offset                      (float x3)
+ *  207  M218 XYZ  hotend_offset                    (float x3 per additional hotend
  *
- * Global Leveling:																																						(4)
- *  272            z_fade_height                    (float)
+ * Global Leveling:                                                                           (4)
+ *  219            z_fade_height                    (float)
  *
- * HAS_BED_PROBE:																																							(4)
- *  276  M851      zprobe_zoffset                   (float)
+ * MESH_BED_LEVELING:                                                                         (43+288)
+ *  223  M420 S    from mbl.status                  (bool)
+ *  224            mbl.z_offset                     (float)
+ *  228            GRID_MAX_POINTS_X                (uint8_t)
+ *  229            GRID_MAX_POINTS_Y                (uint8_t)
+ *  230 G29 S3 XYZ z_values[][]                     (float x9, up to float x81) +288
  *
- * ABL_PLANAR:																																								(36)
- *  280            bed_level_matrix									(matrix_3x3 = float x9)
+ * HAS_BED_PROBE:                                                                             (4)
+ *  266  M851      zprobe_zoffset                   (float)
  *
- * MESH_BED_LEVELING / AUTO_BED_LEVELING_BILINEAR / AUTO_BED_LEVELING_UBL:										(52 + 988)
- *  316  M420 S    mbl.status                  			(bool)
- *  		 G29 A     ubl.state.active
- *  317            GRID_MAX_POINTS_X           			(uint8_t)
- *  318            GRID_MAX_POINTS_Y                (uint8_t)
- *  319            bilinear_grid_spacing						(int x2)
- *  323  G29 L F   bilinear_start										(int x2)
- *  327            mbl.z_offset                     (float)
- *  		 G29 Z     ubl.state.z_offset
- *  331  G29 S     ubl.state.eeprom_storage_slot		(int8_t)
- *  332 G29 S3 XYZ mbl.z_values[][]                 (float x9, up to float x81) +288
- *  							 z_values[][]											(float x9, up to float x256) +988
+ * ABL_PLANAR:                                                                                (36)
+ *  270            planner.bed_level_matrix         (matrix_3x3 = float x9)
  *
- * DELTA / Z_DUAL_ENDSTOPS:																																		(40)
- *  368  M666 XYZ  endstop_adj                      (float x3)
- *  		 M666 Z    z_endstop_adj
- *  380  M665 R    delta_radius                     (float)
- *  384  M665 L    delta_diagonal_rod               (float)
- *  388  M665 S    delta_segments_per_second        (float)
- *  392  M665 B    delta_calibration_radius         (float)
- *  396  M665 X    delta_tower_angle_trim[A]        (float)
- *  400  M665 Y    delta_tower_angle_trim[B]        (float)
- *  404  M665 Z    delta_tower_angle_trim[C]        (float) is always 0.0
+ * AUTO_BED_LEVELING_BILINEAR:                                                                (47+988)
+ *  306            GRID_MAX_POINTS_X                (uint8_t)
+ *  307            GRID_MAX_POINTS_Y                (uint8_t)
+ *  308            bilinear_grid_spacing            (int x2)
+ *  312  G29 L F   bilinear_start                   (int x2)
+ *  316            z_values[][]                     (float x9, up to float x256) +988
  *
- * ULTIPANEL:																																									(16)
- *  408  M145 S0 H lcd_preheat_hotend_temp          (int x2)
- *  412  M145 S0 B lcd_preheat_bed_temp             (int x2)
- *  416            lcd_preheat_chamber_temp         (int x2)
- *  420  M145 S0 F lcd_preheat_fan_speed            (int x2)
+ * AUTO_BED_LEVELING_UBL:                                                                     (6 )
+ *  324  G29 A     ubl.state.active                 (bool)
+ *  325  G29 Z     ubl.state.z_offset               (float)
+ *  329  G29 S     ubl.state.storage_slot           (int8_t)
+ *
+ * DELTA:                                                                                     (48)
+ *  348  M666 XYZ  endstop_adj                      (float x3)
+ *  360  M665 R    delta_radius                     (float)
+ *  364  M665 L    delta_diagonal_rod               (float)
+ *  368  M665 S    delta_segments_per_second        (float)
+ *  372  M665 B    delta_calibration_radius         (float)
+ *  376  M665 X    delta_tower_angle_trim[A]        (float)
+ *  380  M665 Y    delta_tower_angle_trim[B]        (float)
+ *  384  M665 Z    delta_tower_angle_trim[C]        (float)
+ *
+ * Z_DUAL_ENDSTOPS:                                                                           (48)
+ *  348  M666 Z    z_endstop_adj                    (float)
+ *
+ * ULTIPANEL:                                       6 bytes
+ *  396  M145 S0 H lcd_preheat_hotend_temp          (int x2)
+ *  400  M145 S0 B lcd_preheat_bed_temp             (int x2)
+ *  40x            lcd_preheat_chamber_temp         (int x2)
+ *  404  M145 S0 F lcd_preheat_fan_speed            (int x2)
  *
  * DWIN_LCD:																																									(16)
  *	408						 lcd_preheat_hotend_temp					(int x5)
@@ -104,78 +114,78 @@
  *	422						 lcd_preheat_fan_speed						(int)
  *
  * PIDTEMP:																																										(82)
- *  424  M301 E0 PIDC  Kp[0], Ki[0], Kd[0], Kc[0]   (float x4)
- *  440  M301 E1 PIDC  Kp[1], Ki[1], Kd[1], Kc[1]   (float x4)
- *  456  M301 E2 PIDC  Kp[2], Ki[2], Kd[2], Kc[2]   (float x4)
- *  472  M301 E3 PIDC  Kp[3], Ki[3], Kd[3], Kc[3]   (float x4)
- *  488  M301 E4 PIDC  Kp[3], Ki[3], Kd[3], Kc[3]   (float x4)
- *  504  M301 L        lpq_len                      (int)
+ *  408  M301 E0 PIDC  Kp[0], Ki[0], Kd[0], Kc[0]   (float x4)
+ *  424  M301 E1 PIDC  Kp[1], Ki[1], Kd[1], Kc[1]   (float x4)
+ *  440  M301 E2 PIDC  Kp[2], Ki[2], Kd[2], Kc[2]   (float x4)
+ *  456  M301 E3 PIDC  Kp[3], Ki[3], Kd[3], Kc[3]   (float x4)
+ *  472  M301 E4 PIDC  Kp[3], Ki[3], Kd[3], Kc[3]   (float x4)
+ *  488  M301 L        lpq_len                      (int)
  *
  * PIDTEMPBED:																																								(12)
- *  506  M304 PID  thermalManager.bedKp, .bedKi, .bedKd (float x3)
+ *  490  M304 PID  thermalManager.bedKp, .bedKi, .bedKd (float x3)
  *
  * DOGLCD:																																										(2)
- *  518  M250 C    lcd_contrast                     (int)
+ *  502  M250 C    lcd_contrast                     (int)
  *
  * FWRETRACT:																																									(33)
- *  520  M209 S    autoretract_enabled              (bool)
- *  521  M207 S    retract_length                   (float)
- *  525  M207 F    retract_feedrate_mm_s            (float)
- *  529  M207 Z    retract_zlift                    (float)
- *  533  M208 S    retract_recover_length           (float)
- *  537  M208 F    retract_recover_feedrate_mm_s    (float)
- *  541  M207 W    swap_retract_length              (float)
- *  545  M208 W    swap_retract_recover_length      (float)
- *  549  M208 R    swap_retract_recover_feedrate_mm_s (float)
+ *  504  M209 S    autoretract_enabled              (bool)
+ *  505  M207 S    retract_length                   (float)
+ *  509  M207 F    retract_feedrate_mm_s            (float)
+ *  513  M207 Z    retract_zlift                    (float)
+ *  517  M208 S    retract_recover_length           (float)
+ *  521  M208 F    retract_recover_feedrate_mm_s    (float)
+ *  525  M207 W    swap_retract_length              (float)
+ *  529  M208 W    swap_retract_recover_length      (float)
+ *  533  M208 R    swap_retract_recover_feedrate_mm_s (float)
  *
- * Volumetric Extrusion:																																			(21)
- *  553  M200 D    volumetric_enabled               (bool)
- *  554  M200 T D  filament_size                    (float x5) (T0..3)
+ * Volumetric Extrusion:                                                                      (21)
+ *  537  M200 D    volumetric_enabled               (bool)
+ *  538  M200 T D  filament_size                    (float x5) (T0..3)
  *
- * HAVE_TMC2130:																																							(22)
- *  574  M906 X    Stepper X current                (uint16_t)
- *  576  M906 Y    Stepper Y current                (uint16_t)
- *  578  M906 Z    Stepper Z current                (uint16_t)
- *  580  M906 X2   Stepper X2 current               (uint16_t)
- *  582  M906 Y2   Stepper Y2 current               (uint16_t)
- *  584  M906 Z2   Stepper Z2 current               (uint16_t)
- *  586  M906 E0   Stepper E0 current               (uint16_t)
- *  588  M906 E1   Stepper E1 current               (uint16_t)
- *  590  M906 E2   Stepper E2 current               (uint16_t)
- *  592  M906 E3   Stepper E3 current               (uint16_t)
- *  594  M906 E4   Stepper E4 current               (uint16_t)
+ * HAVE_TMC2130:                                                                              (22)
+ *  558  M906 X    Stepper X current                (uint16_t)
+ *  560  M906 Y    Stepper Y current                (uint16_t)
+ *  562  M906 Z    Stepper Z current                (uint16_t)
+ *  564  M906 X2   Stepper X2 current               (uint16_t)
+ *  566  M906 Y2   Stepper Y2 current               (uint16_t)
+ *  568  M906 Z2   Stepper Z2 current               (uint16_t)
+ *  570  M906 E0   Stepper E0 current               (uint16_t)
+ *  572  M906 E1   Stepper E1 current               (uint16_t)
+ *  574  M906 E2   Stepper E2 current               (uint16_t)
+ *  576  M906 E3   Stepper E3 current               (uint16_t)
+ *  580  M906 E4   Stepper E4 current               (uint16_t)
  *
- * LIN_ADVANCE:																																								(8)
- *  596  M900 K    extruder_advance_k               (float)
- *  600  M900 WHD  advance_ed_ratio                 (float)
+ * LIN_ADVANCE:                                                                               (8)
+ *  584  M900 K    extruder_advance_k               (float)
+ *  588  M900 WHD  advance_ed_ratio                 (float)
  *
- * HAS_MOTOR_CURRENT_PWM:																																			(12)
- *  604  M907 X    Stepper XY current               (uint32_t)
- *  608  M907 Z    Stepper Z current                (uint32_t)
- *  612  M907 E    Stepper E current                (uint32_t)
+ * HAS_MOTOR_CURRENT_PWM:                                                                     (12)
+ *  592  M907 X    Stepper XY current               (uint32_t)
+ *  596  M907 Z    Stepper Z current                (uint32_t)
+ *  600  M907 E    Stepper E current                (uint32_t)
  *
  * Fan Setting (By LYN)																																				(4)
- *  616							extruder_auto_fan_speed					(int)
- *  618							air_fan_speed										(int)
+ *  ___							extruder_auto_fan_speed					(int)
+ *  ___							air_fan_speed										(int)
  *
  * Registered & Used Time (By LYN)																														(8)
- *  620							usedTime												(uint32_t)
+ *  ___							usedTime												(uint32_t)
  *
  * WIFI setting (By LYN)																																			(25)
- *  624							wifiEnable											(bool)
- *  625							hostName												(char x24)
+ *  ___							wifiEnable											(bool)
+ *  ___							hostName												(char x24)
  *
  * Accident Data (By LYN)																																			(283)
- *  649							isAccident											(bool)
- *  650							pauseLeveling										(bool)
- *  651							pausePos												(float x4)
- *  667 						pauseSpeed											(float)
- *  671							pauseByte												(uint32_t)
- *  675							lastPos													(float x4)
- *  691							lastToolsState									(int x8)
- *  707							lastFilename										(char x225)
+ *  ___							isAccident											(bool)
+ *  ___							pauseLeveling										(bool)
+ *  ___							pausePos												(float x4)
+ *  ___ 						pauseSpeed											(float)
+ *  ___							pauseByte												(uint32_t)
+ *  ___							lastPos													(float x4)
+ *  ___							lastToolsState									(int x8)
+ *  ___							lastFilename										(char x225)
  *
- *  932                      Minimum end-point
+ *  604                      Minimum end-point
  * 1968 (936 + 48 + 988)     Maximum end-point
  *
  * ========================================================================
