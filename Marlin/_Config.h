@@ -129,21 +129,6 @@
 #endif
 #define TEMP_SENSOR_BED NTC
 
-//These defines help to calibrate the AD595 sensor in case you get wrong temperature measurements.
-//The measured temperature is defined as "actualTemp = (measuredTemp * TEMP_SENSOR_AD595_GAIN) + TEMP_SENSOR_AD595_OFFSET"
-#ifdef TEMP_ADJUST
-  #if MODEL == F160 || MODEL == F260 || MODEL == F430
-    #define TEMP_SENSOR_AD595_OFFSET  0.0
-    #define TEMP_SENSOR_AD595_GAIN    1.0
-  #else
-    #define TEMP_SENSOR_AD595_OFFSET  4.796657303
-    #define TEMP_SENSOR_AD595_GAIN    0.900138703
-  #endif
-#else
-  #define TEMP_SENSOR_AD595_OFFSET    0.0
-  #define TEMP_SENSOR_AD595_GAIN      1.0
-#endif
-
 // Default auto fan speed when eeprom resets
 #define DEFAULT_AUTO_FAN_SPEED 0
 
