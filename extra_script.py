@@ -1,4 +1,5 @@
 import os
+from datetime import datetime
 
 Import("env", "projenv")
 
@@ -9,5 +10,5 @@ env.AddPostAction(
         "$OBJCOPY", 
         f'"{os.path.join("$BUILD_DIR", "${PROGNAME}.hex")}"',
         f'"{os.path.join("$PROJECT_DIR", "f430-1.1.6-mod.hex")}"',
-    ]), "Copying ${PROGNAME}.hex to f430-1.1.6-mod.hex")
+    ]), f"[{datetime.now().strftime('%H:%M:%S')}] Copying ${{PROGNAME}}.hex to f430-1.1.6-mod.hex")
 )
