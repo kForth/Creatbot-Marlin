@@ -246,7 +246,7 @@
  * M364 - SCARA calibration: Move to cal-position PSIC (90 deg to Theta calibration position)
  *
  * ************ Custom codes - This can change to suit future G-code regulations
- * M928 - Start SD logging: "M928 filename.gco". Stop with M29. (Requires SDSUPPORT)
+ * M928 - Start SD logging: "M928 filename.gco". Stop with M29. (Requires SDSUPPORT || UDISKSUPPORT)
  * M999 - Restart after being stopped by error
  *
  * "T" Codes

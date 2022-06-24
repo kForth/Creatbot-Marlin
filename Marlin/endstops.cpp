@@ -296,10 +296,11 @@ void Endstops::event_handler() {
       lcd_status_printf_P(0, PSTR(MSG_LCD_ENDSTOPS " %c %c %c %c"), chrX, chrY, chrZ, chrP);
     #endif
 
-    #if ENABLED(ABORT_ON_ENDSTOP_HIT_FEATURE_ENABLED) && ENABLED(SDSUPPORT)
+    #if ENABLED(ABORT_ON_ENDSTOP_HIT_FEATURE_ENABLED) && (ENABLED(SDSUPPORT) || ENABLED(UDISKSUPPORT))
       if (planner.abort_on_endstop_hit) {
-        card.sdprinting = false;
-        card.closefile();
+        READER_STOP_PRINT;
+        // card.sdprinting = false;
+        // card.closefile();
         quickstop_stepper();
         thermalManager.disable_all_heaters(); // switch off all heaters.
       }

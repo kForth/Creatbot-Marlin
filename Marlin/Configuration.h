@@ -1447,6 +1447,15 @@
 //#define SDSUPPORT
 
 /**
+ * USD Disk Support
+ *
+ * USB Disk support is disabled by default. If your controller has a USB type A port
+ * and a CH376 controller, you must uncomment the following option or it won't work.
+ *
+ */
+#define UDISKSUPPORT      // TODO: Implement this
+
+/**
  * SD CARD: SPI SPEED
  *
  * Enable one of the following items for a slower SPI transfer speed.

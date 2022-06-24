@@ -625,7 +625,7 @@
   #endif
 #endif // LED_CONTROL_MENU
 
-#if ENABLED(SDSUPPORT)
+#if ENABLED(SDSUPPORT) || ENABLED(UDISKSUPPORT)
 
   // Some RAMPS and other boards don't detect when an SD card is inserted. You can work
   // around this by connecting a push button or single throw switch to the pin defined
@@ -635,7 +635,7 @@
   #define SD_DETECT_INVERTED
 
   #define SD_FINISHED_STEPPERRELEASE true          // Disable steppers when SD Print is finished
-  #define SD_FINISHED_RELEASECOMMAND "M84 X Y Z E" // You might want to keep the z enabled so your bed stays in place.
+  #define SD_FINISHED_RELEASECOMMAND "M84 X Y E"   // You might want to keep the z enabled so your bed stays in place.
 
   // Reverse SD sort to show "more recent" files first, according to the card's FAT.
   // Since the FAT gets out of order with usage, SDCARD_SORT_ALPHA is recommended.
@@ -929,7 +929,7 @@
 
 // The number of linear motions that can be in the plan at any give time.
 // THE BLOCK_BUFFER_SIZE NEEDS TO BE A POWER OF 2 (e.g. 8, 16, 32) because shifts and ors are used to do the ring-buffering.
-#if ENABLED(SDSUPPORT)
+#if ENABLED(SDSUPPORT) || ENABLED(UDISKSUPPORT)
   #define BLOCK_BUFFER_SIZE 16 // SD,LCD,Buttons take more memory, block buffer needs to be smaller
 #else
   #define BLOCK_BUFFER_SIZE 16 // maximize block buffer
