@@ -246,6 +246,11 @@
  * M364 - SCARA calibration: Move to cal-position PSIC (90 deg to Theta calibration position)
  *
  * ************ Custom codes - This can change to suit future G-code regulations
+ * 
+ * M141 - Set chamber target temp. S<temp>
+ * M191 - Sxxx Wait for chamber current temp to reach target temp. ** Waits only when heating! **
+ *        Rxxx Wait for chamber current temp to reach target temp. ** Waits for heating or cooling. **
+ * 
  * M928 - Start SD logging: "M928 filename.gco". Stop with M29. (Requires SDSUPPORT || UDISKSUPPORT)
  * M999 - Restart after being stopped by error
  *
@@ -8893,6 +8898,148 @@ inline void gcode_M109() {
 
 #endif // HAS_HEATED_BED
 
+#if HAS_HEATED_CHAMBER
+
+  /**
+   * M141: Set chamber temperature
+   */
+  inline void gcode_M141() {
+    if (DEBUGGING(DRYRUN)) return;
+    if (parser.seenval('S')) thermalManager.setTargetChamber(parser.value_celsius());
+  }
+
+  #ifndef MIN_COOLING_SLOPE_DEG_CHAMBER
+    #define MIN_COOLING_SLOPE_DEG_CHAMBER 1.50
+  #endif
+  #ifndef MIN_COOLING_SLOPE_TIME_CHAMBER
+    #define MIN_COOLING_SLOPE_TIME_CHAMBER 60
+  #endif
+
+  /**
+   * M191: Sxxx Wait for chamber current temp to reach target temp. Waits only when heating
+   *       Rxxx Wait for chamber current temp to reach target temp. Waits when heating and cooling
+   */
+  inline void gcode_M191() {
+    if (DEBUGGING(DRYRUN)) return;
+
+    const bool no_wait_for_cooling = parser.seenval('S');
+    if (no_wait_for_cooling || parser.seenval('R')) {
+      thermalManager.setTargetChamber(parser.value_celsius());
+      #if ENABLED(PRINTJOB_TIMER_AUTOSTART)
+        if (parser.value_celsius() > CHAMBER_MINTEMP)
+          print_job_timer.start();
+      #endif
+    }
+    else return;
+
+    lcd_setstatusPGM(thermalManager.isHeatingChamber() ? PSTR(MSG_CHAMBER_HEATING) : PSTR(MSG_CHAMBER_COOLING));
+
+    #if TEMP_CHAMBER_RESIDENCY_TIME > 0
+      millis_t residency_start_ms = 0;
+      // Loop until the temperature has stabilized
+      #define TEMP_CHAMBER_CONDITIONS (!residency_start_ms || PENDING(now, residency_start_ms + (TEMP_CHAMBER_RESIDENCY_TIME) * 1000UL))
+    #else
+      // Loop until the temperature is very close target
+      #define TEMP_CHAMBER_CONDITIONS (wants_to_cool ? thermalManager.isCoolingChamber() : thermalManager.isHeatingChamber())
+    #endif
+
+    float target_temp = -1.0, old_temp = 9999.0;
+    bool wants_to_cool = false;
+    wait_for_heatup = true;
+    millis_t now, next_temp_ms = 0, next_cool_check_ms = 0;
+
+    #if DISABLED(BUSY_WHILE_HEATING)
+      KEEPALIVE_STATE(NOT_BUSY);
+    #endif
+
+    target_extruder = active_extruder; // for print_heaterstates
+
+    #if ENABLED(PRINTER_EVENT_LEDS)
+      const float start_temp = thermalManager.degChamber();
+      uint8_t old_red = 127;
+    #endif
+
+    do {
+      // Target temperature might be changed during the loop
+      if (target_temp != thermalManager.degTargetChamber()) {
+        wants_to_cool = thermalManager.isCoolingChamber();
+        target_temp = thermalManager.degTargetChamber();
+
+        // Exit if S<lower>, continue if S<higher>, R<lower>, or R<higher>
+        if (no_wait_for_cooling && wants_to_cool) break;
+      }
+
+      now = millis();
+      if (ELAPSED(now, next_temp_ms)) { //Print Temp Reading every 1 second while heating up.
+        next_temp_ms = now + 1000UL;
+        thermalManager.print_heaterstates();
+        #if TEMP_CHAMBER_RESIDENCY_TIME > 0
+          SERIAL_PROTOCOLPGM(" W:");
+          if (residency_start_ms)
+            SERIAL_PROTOCOL(long((((TEMP_CHAMBER_RESIDENCY_TIME) * 1000UL) - (now - residency_start_ms)) / 1000UL));
+          else
+            SERIAL_PROTOCOLCHAR('?');
+        #endif
+        SERIAL_EOL();
+      }
+
+      idle();
+      reset_stepper_timeout(); // Keep steppers powered
+
+      const float temp = thermalManager.degChamber();
+
+      #if ENABLED(PRINTER_EVENT_LEDS)
+        // Gradually change LED strip from blue to violet as chamber heats up
+        if (!wants_to_cool) {
+          const uint8_t red = map(constrain(temp, start_temp, target_temp), start_temp, target_temp, 0, 255);
+          if (red != old_red) {
+            old_red = red;
+            leds.set_color(
+              MakeLEDColor(red, 0, 255, 0, pixels.getBrightness())
+              #if ENABLED(NEOPIXEL_IS_SEQUENTIAL)
+                , true
+              #endif
+            );
+          }
+        }
+      #endif
+
+      #if TEMP_CHAMBER_RESIDENCY_TIME > 0
+
+        const float temp_diff = ABS(target_temp - temp);
+
+        if (!residency_start_ms) {
+          // Start the TEMP_CHAMBER_RESIDENCY_TIME timer when we reach target temp for the first time.
+          if (temp_diff < TEMP_CHAMBER_WINDOW) residency_start_ms = now;
+        }
+        else if (temp_diff > TEMP_CHAMBER_HYSTERESIS) {
+          // Restart the timer whenever the temperature falls outside the hysteresis.
+          residency_start_ms = now;
+        }
+
+      #endif // TEMP_CHAMBER_RESIDENCY_TIME > 0
+
+      // Prevent a wait-forever situation if R is misused i.e. M190 R0
+      if (wants_to_cool) {
+        // Break after MIN_COOLING_SLOPE_TIME_CHAMBER seconds
+        // if the temperature did not drop at least MIN_COOLING_SLOPE_DEG_CHAMBER
+        if (!next_cool_check_ms || ELAPSED(now, next_cool_check_ms)) {
+          if (old_temp - temp < float(MIN_COOLING_SLOPE_DEG_CHAMBER)) break;
+          next_cool_check_ms = now + 1000UL * MIN_COOLING_SLOPE_TIME_CHAMBER;
+          old_temp = temp;
+        }
+      }
+
+    } while (wait_for_heatup && TEMP_CHAMBER_CONDITIONS);
+
+    if (wait_for_heatup) lcd_reset_status();
+    #if DISABLED(BUSY_WHILE_HEATING)
+      KEEPALIVE_STATE(IN_HANDLER);
+    #endif
+  }
+
+#endif // HAS_HEATED_CHAMBER
+
 /**
  * M110: Set Current Line Number
  */
@@ -13032,6 +13179,11 @@ void process_parsed_command() {
         case 190: gcode_M190(); break;                            // M190: Set Bed Temperature. Wait for target.
       #endif
 
+      #if HAS_HEATED_CHAMBER
+        case 141: gcode_M141(); break;                            // M141: Set Chamber Temperature
+        case 191: gcode_M191(); break;                            // M191: Set Chamber Temperature. Wait for target.
+      #endif
+
       #if FAN_COUNT > 0
         case 106: gcode_M106(); break;                            // M106: Set Fan Speed
         case 107: gcode_M107(); break;                            // M107: Fan Off
@@ -14829,6 +14981,9 @@ void prepare_move_to_destination() {
       float max_temp = 0.0;
       #if HAS_HEATED_BED
         max_temp = MAX(thermalManager.degTargetBed(), thermalManager.degBed());
+      #endif
+      #if HAS_HEATED_CHAMBER
+        max_temp = MAX3(max_temp, thermalManager.degTargetChamber(), thermalManager.degChamber());
       #endif
       HOTEND_LOOP()
         max_temp = MAX3(max_temp, thermalManager.degHotend(e), thermalManager.degTargetHotend(e));

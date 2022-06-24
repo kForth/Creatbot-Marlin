@@ -82,6 +82,9 @@ bool Power::is_power_needed() {
   #if HAS_HEATED_BED
     if (thermalManager.degTargetBed() > 0) return true;
   #endif
+  #if HAS_HEATED_CHAMBER
+    if (thermalManager.degTargetChamber() > 0) return true;
+  #endif
 
   return false;
 }

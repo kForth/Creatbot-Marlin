@@ -75,6 +75,10 @@ extern uint8_t active_extruder, commands_in_queue, cmd_queue_index_r;
           SERIAL_PROTOCOLLNPAIR("target_temperature_bed: ", job_recovery_info.target_temperature_bed);
         #endif
 
+        #if HAS_HEATED_CHAMBER
+          SERIAL_PROTOCOLLNPAIR("target_temperature_chamber: ", job_recovery_info.target_temperature_chamber);
+        #endif
+
         #if FAN_COUNT
           SERIAL_PROTOCOLPGM("fanSpeeds: ");
           for (int8_t i = 0; i < FAN_COUNT; i++) {
@@ -237,6 +241,10 @@ void save_job_recovery_info() {
 
     #if HAS_HEATED_BED
       job_recovery_info.target_temperature_bed = thermalManager.target_temperature_bed;
+    #endif
+
+    #if HAS_HEATED_CHAMBER
+      job_recovery_info.target_temperature_chamber = thermalManager.target_temperature_chamber;
     #endif
 
     #if FAN_COUNT

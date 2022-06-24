@@ -345,6 +345,11 @@
 #define TEMP_BED_HYSTERESIS 3       // (degC) range of +/- temperatures considered "close" to the target one
 #define TEMP_BED_WINDOW     1       // (degC) Window around target to start the residency timer x degC early.
 
+// Chamber temperature must be close to target for this long before M190 returns success
+#define TEMP_CHAMBER_RESIDENCY_TIME 10 // TODO: Implement this  // (seconds)
+#define TEMP_CHAMBER_HYSTERESIS 3      // TODO: Implement this      // (degC) range of +/- temperatures considered "close" to the target one
+#define TEMP_CHAMBER_WINDOW     1      // TODO: Implement this       // (degC) Window around target to start the residency timer x degC early.
+
 // The minimal temperature defines the temperature below which the heater will not be enabled It is used
 // to check that the wiring to the thermistor is not broken.
 // Otherwise this would lead to the heater being powered on all the time.
@@ -354,6 +359,7 @@
 #define HEATER_3_MINTEMP 5
 #define HEATER_4_MINTEMP 5
 #define BED_MINTEMP -12
+#define CHAMBER_MINTEMP -12
 
 // When temperature exceeds max temp, your heater will be switched off.
 // This feature exists to protect your hotend from overheating accidentally, but *NOT* from thermistor short/failure!
@@ -364,6 +370,7 @@
 #define HEATER_3_MAXTEMP 275
 #define HEATER_4_MAXTEMP 275
 #define BED_MAXTEMP 215
+#define CHAMBER_MAXTEMP 85   // TODO: Implement this
 
 //===========================================================================
 //============================= PID Settings ================================
@@ -501,6 +508,7 @@
 
 #define THERMAL_PROTECTION_HOTENDS // Enable thermal protection for all extruders
 #define THERMAL_PROTECTION_BED     // Enable thermal protection for the heated bed
+#define THERMAL_PROTECTION_CHAMBER // TODO: Implement this// Enable thermal protection for the heated chamber
 
 //===========================================================================
 //============================= Mechanical Settings =========================

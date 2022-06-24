@@ -50,12 +50,21 @@ FORCE_INLINE void _draw_heater_status(const uint8_t x, const int8_t heater, cons
   #else
     constexpr bool isBed = false;
   #endif
+  
+  #if HAS_HEATED_CHAMBER
+    const bool isChamber = heater < -1;
+  #else
+    constexpr bool isChamber = false;
+  #endif
 
   if (PAGE_UNDER(7)) {
     #if HEATER_IDLE_HANDLER
       const bool is_idle = (
         #if HAS_HEATED_BED
           isBed ? thermalManager.is_bed_idle() :
+        #endif
+        #if HAS_HEATED_CHAMBER
+          isChamber ? thermalManager.is_chamber_idle() :
         #endif
         thermalManager.is_heater_idle(heater)
       );
@@ -65,6 +74,9 @@ FORCE_INLINE void _draw_heater_status(const uint8_t x, const int8_t heater, cons
         _draw_centered_temp(0.5f + (
             #if HAS_HEATED_BED
               isBed ? thermalManager.degTargetBed() :
+            #endif
+            #if HAS_HEATED_CHAMBER
+              isChamber ? thermalManager.degTargetChamber() :
             #endif
             thermalManager.degTargetHotend(heater)
           ), x, 7
@@ -76,6 +88,9 @@ FORCE_INLINE void _draw_heater_status(const uint8_t x, const int8_t heater, cons
         #if HAS_HEATED_BED
           isBed ? thermalManager.degBed() :
         #endif
+        #if HAS_HEATED_CHAMBER
+          isChamber ? thermalManager.degChamber() :
+        #endif
         thermalManager.degHotend(heater)
       ), x, 28
     );
@@ -86,6 +101,9 @@ FORCE_INLINE void _draw_heater_status(const uint8_t x, const int8_t heater, cons
       if (
         #if HAS_HEATED_BED
           isBed ? thermalManager.isHeatingBed() :
+        #endif
+        #if HAS_HEATED_CHAMBER
+          isChamber ? thermalManager.isHeatingChamber() :
         #endif
         thermalManager.isHeatingHotend(heater)
       ) {
