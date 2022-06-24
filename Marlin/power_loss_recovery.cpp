@@ -115,19 +115,19 @@ void check_print_job_recovery() {
   memset(&job_recovery_info, 0, sizeof(job_recovery_info));
   ZERO(job_recovery_commands);
 
-  if (!card.cardOK) card.initsd();
+  if (!READER_OK) READER_INIT;
 
-  if (card.cardOK) {
+  if (READER_OK) {
 
     #if ENABLED(DEBUG_POWER_LOSS_RECOVERY)
       SERIAL_PROTOCOLLNPAIR("Init job recovery info. Size: ", int(sizeof(job_recovery_info)));
     #endif
 
-    if (card.jobRecoverFileExists()) {
-      card.openJobRecoveryFile(true);
-      card.loadJobRecoveryInfo();
-      card.closeJobRecoveryFile();
-      //card.removeJobRecoveryFile();
+    if (FILE_READER.jobRecoverFileExists()) {
+      FILE_READER.openJobRecoveryFile(true);
+      FILE_READER.loadJobRecoveryInfo();
+      FILE_READER.closeJobRecoveryFile();
+      //FILE_READER.removeJobRecoveryFile();
 
       if (job_recovery_info.valid_head && job_recovery_info.valid_head == job_recovery_info.valid_foot) {
 
@@ -263,22 +263,26 @@ void save_job_recovery_info() {
     job_recovery_info.print_job_elapsed = print_job_timer.duration();
 
     // SD file position
-    card.getAbsFilename(job_recovery_info.sd_filename);
-    job_recovery_info.sdpos = card.getIndex();
+    FILE_READER.getAbsFilename(job_recovery_info.sd_filename);
+    job_recovery_info.sdpos = FILE_READER.getIndex();
 
     #if ENABLED(DEBUG_POWER_LOSS_RECOVERY)
       SERIAL_PROTOCOLLNPGM("Saving...");
       debug_print_job_recovery(false);
     #endif
 
-    card.openJobRecoveryFile(false);
-    (void)card.saveJobRecoveryInfo();
+      FILE_READER.openJobRecoveryFile(false);
+      (void)FILE_READER.saveJobRecoveryInfo();
 
     // If power-loss pin was triggered, write just once then kill
     #if PIN_EXISTS(POWER_LOSS)
       if (READ(POWER_LOSS_PIN) == POWER_LOSS_STATE) kill(PSTR(MSG_POWER_LOSS_RECOVERY));
     #endif
   }
+}
+
+void reset_job_recovery_info(){
+    FILE_READER.removeJobRecoveryFile();
 }
 
 #endif // POWER_LOSS_RECOVERY

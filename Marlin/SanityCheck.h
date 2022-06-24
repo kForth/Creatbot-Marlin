@@ -1702,4 +1702,8 @@ static_assert(COUNT(sanity_arr_3) <= NUM_AXIS_N, "DEFAULT_MAX_ACCELERATION has t
   #error "POWER_LOSS_RECOVERY currently requires an LCD Controller."
 #endif
 
+#if ENABLED(SDSUPPORT) && ENABLED(UDISKSUPPORT)
+	#error "You cannot have SD and USB both."
+#endif //SDSUPPORT && UDISKSUPPORT
+
 #endif // _SANITYCHECK_H_

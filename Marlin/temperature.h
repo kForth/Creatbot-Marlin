@@ -475,6 +475,22 @@ class Temperature {
       return degTargetHotend(e) > TEMP_HYSTERESIS && ABS(degHotend(e) - degTargetHotend(e)) > TEMP_HYSTERESIS;
     }
 
+    FORCE_INLINE static int16_t maxDegHotend() {
+    	int16_t maxDeg = 0;
+    	HOTEND_LOOP() {
+    		maxDeg = max(maxDeg, current_temperature[HOTEND_INDEX]);
+    	}
+    	return maxDeg;
+    }
+
+    FORCE_INLINE static bool anyTargetSet() {
+        HOTEND_LOOP() if (degTargetHotend(e)) { return true; }
+        #if HAS_HEATED_BED
+          if (degTargetBed()) return true;
+        #endif
+        return false;
+    }
+
     /**
      * The software PWM power for a heater
      */

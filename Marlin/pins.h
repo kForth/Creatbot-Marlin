@@ -183,6 +183,8 @@
   #include "pins_GT2560_REV_A.h"      // ATmega1280, ATmega2560                     env:megaatmega1280 env:megaatmega2560
 #elif MB(GT2560_REV_A_PLUS)
   #include "pins_GT2560_REV_A_PLUS.h" // ATmega1280, ATmega2560                     env:megaatmega1280 env:megaatmega2560
+#elif MB(CREATBOT_F430)
+  #include "pins_CREATBOT_F430.h"     // ATmega2560                                 env:megaatmega2560
 
 //
 // ATmega1281, ATmega2561
@@ -481,6 +483,9 @@
 #endif
 #ifndef SUICIDE_PIN
   #define SUICIDE_PIN -1
+#endif
+#ifndef SUICIDE_PIN_STATE
+  #define SUICIDE_PIN_STATE LOW
 #endif
 
 #ifndef MAX_EXTRUDERS

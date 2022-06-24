@@ -220,11 +220,13 @@ extern CardReader card;
 #endif // SDSUPPORT
 
 #if ENABLED(SDSUPPORT)
-  #define IS_SD_PRINTING()  card.sdprinting
-  #define IS_SD_FILE_OPEN() card.isFileOpen()
+  #define IS_SD_PRINTING  card.sdprinting
+  #define IS_SD_FILE_OPEN card.isFileOpen()
+  #define HAS_SD_PRINT    card.sdprinting || card.isPauseState
 #else
-  #define IS_SD_PRINTING()  false
-  #define IS_SD_FILE_OPEN() false
+  #define IS_SD_PRINTING  false
+  #define IS_SD_FILE_OPEN false
+  #define HAS_SD_PRINT    false
 #endif
 
 #endif // _CARDREADER_H_

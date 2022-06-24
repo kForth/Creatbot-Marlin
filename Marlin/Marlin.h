@@ -644,4 +644,53 @@ void do_blocking_move_to_xy(const float &rx, const float &ry, const float &fr_mm
   FORCE_INLINE bool position_is_reachable_by_probe(const float &rx, const float &ry) { return position_is_reachable(rx, ry); }
 #endif
 
+#if ENABLED(SDSUPPORT)
+	#include "cardreader.h"
+	#define HAS_FILE_READER					  true
+	#define FILE_READER							  card
+  #define READER_INIT               FILE_READER.initsd()
+	#define READER_SELECT_FILE(index) FILE_READER.getfilename(index)
+	#define READER_SELECT_DIR					FILE_READER.getWorkDirName()
+	#define READER_GET_NR							FILE_READER.getnrfilenames()
+	#define READER_HAS_DIR				    FILE_READER.filenameIsDir
+	#define READER_HAS_FILE				    FILE_READER.isFileOpen()
+	#define READER_IS_IDLE				    (!HAS_SD_PRINT)
+	#define READER_IS_PRINTING			  IS_SD_PRINTING
+	#define READER_IS_PAUSED				  FILE_READER.isPauseState
+	#define READER_START_PRINT				FILE_READER.startFileprint()
+	#define READER_PAUSE_PRINT				FILE_READER.pauseSDPrint()
+  #if SD_RESORT
+	  #define READER_STOP_PRINT(v)		FILE_READER.stopSDPrint(v)
+  #else
+	  #define READER_STOP_PRINT					FILE_READER.stopSDPrint()
+  #endif
+  #define READER_PRINT_ABORTED      FILE_READER.abort_sd_printing
+	#define READER_STATE						  IS_SD_INSERTED
+	#define READER_CONNECTED					(IS_SD_INSERTED == 1)
+	#define READER_OK						      FILE_READER.cardOK
+#elif ENABLED(UDISKSUPPORT)
+	#include "UDiskReader.h"
+	#define HAS_FILE_READER						true
+	#define FILE_READER							  UDisk
+  #define READER_INIT               FILE_READER.init()
+	#define READER_SELECT_FILE(index)	FILE_READER.selectFile(index)
+	#define READER_SELECT_DIR					FILE_READER.selectWorkDir()
+	#define READER_GET_NR							FILE_READER.getNr()
+	#define READER_HAS_DIR				    IS_UDISK_DIR
+	#define READER_HAS_FILE				    IS_UDISK_FILE_OPEN
+	#define READER_IS_IDLE				    IS_UDISK_IDLE
+	#define READER_IS_PRINTING				IS_UDISK_PRINT
+	#define READER_IS_PAUSED					IS_UDISK_PAUSE
+	#define READER_START_PRINT				FILE_READER.startPrint()
+	#define READER_PAUSE_PRINT				FILE_READER.pausePrint()
+	#define READER_STOP_PRINT					FILE_READER.stopPrint()
+  #define READER_PRINT_ABORTED      FILE_READER.aborting
+	#define READER_STATE						  UDISK_STATE
+	#define READER_CONNECTED					IS_UDISK_CONN
+	#define READER_OK						      IS_UDISK_OK
+#else
+	#define HAS_FILE_READER							false
+#endif
+#define IS_PRINTING_OVER_SERIAL     (planner.movesplanned() && READER_IS_IDLE) // is SerialPrinting
+
 #endif // MARLIN_H

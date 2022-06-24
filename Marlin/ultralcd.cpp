@@ -505,7 +505,7 @@ uint16_t max_display_update_time = 0;
           if (currentScreen == lcd_status_screen)
             doubleclick_expire_ms = millis() + DOUBLECLICK_MAX_INTERVAL;
         }
-        else if (screen == lcd_status_screen && currentScreen == lcd_main_menu && PENDING(millis(), doubleclick_expire_ms) && (planner.movesplanned() || IS_SD_PRINTING()))
+        else if (screen == lcd_status_screen && currentScreen == lcd_main_menu && PENDING(millis(), doubleclick_expire_ms) && (planner.movesplanned() || READER_IS_PRINTING))
           screen =
             #if ENABLED(BABYSTEP_ZPROBE_OFFSET)
               lcd_babystep_zoffset
@@ -652,8 +652,8 @@ void lcd_status_screen() {
 
   #if ENABLED(LCD_SET_PROGRESS_MANUALLY) && ENABLED(SDSUPPORT) && (ENABLED(LCD_PROGRESS_BAR) || ENABLED(DOGLCD))
     // Progress bar % comes from SD when actively printing
-    if (IS_SD_PRINTING())
-      progress_bar_percent = card.percentDone();
+    if (READER_IS_PRINTING)
+      progress_bar_percent = FILE_READER.percentDone();
   #endif
 
   #if ENABLED(LCD_PROGRESS_BAR)
@@ -678,7 +678,7 @@ void lcd_status_screen() {
       if (expire_status_ms > 0) {
 
         #if DISABLED(LCD_SET_PROGRESS_MANUALLY)
-          const uint8_t progress_bar_percent = card.percentDone();
+          const uint8_t progress_bar_percent = FILE_READER.percentDone();
         #endif
 
         // Expire the message if a job is active and the bar has ticks
@@ -836,7 +836,7 @@ void lcd_quick_feedback(const bool clear_buttons) {
   #if ENABLED(SDSUPPORT)
 
     void lcd_sdcard_pause() {
-      card.pauseSDPrint();
+      READER_PAUSE_PRINT;
       print_job_timer.pause();
       #if ENABLED(PARK_HEAD_ON_PAUSE)
         enqueue_and_echo_commands_P(PSTR("M125"));
@@ -848,7 +848,7 @@ void lcd_quick_feedback(const bool clear_buttons) {
       #if ENABLED(PARK_HEAD_ON_PAUSE)
         enqueue_and_echo_commands_P(PSTR("M24"));
       #else
-        card.startFileprint();
+        READER_START_PRINT;
         print_job_timer.start();
       #endif
       lcd_reset_status();
@@ -856,7 +856,7 @@ void lcd_quick_feedback(const bool clear_buttons) {
 
     void lcd_sdcard_stop() {
       wait_for_heatup = wait_for_user = false;
-      card.abort_sd_printing = true;
+      READER_PRINT_ABORTED = true;
       lcd_setstatusPGM(PSTR(MSG_PRINT_ABORTED), -1);
       lcd_return_to_status();
     }
@@ -1138,7 +1138,7 @@ void lcd_quick_feedback(const bool clear_buttons) {
         MENU_ITEM_EDIT_CALLBACK(bool, MSG_CASE_LIGHT, (bool*)&case_light_on, update_case_light);
     #endif
 
-    if (planner.movesplanned() || IS_SD_PRINTING())
+    if (planner.movesplanned() || READER_IS_PRINTING)
       MENU_ITEM(submenu, MSG_TUNE, lcd_tune_menu);
     else
       MENU_ITEM(submenu, MSG_PREPARE, lcd_prepare_menu);
@@ -1146,8 +1146,8 @@ void lcd_quick_feedback(const bool clear_buttons) {
     MENU_ITEM(submenu, MSG_CONTROL, lcd_control_menu);
 
     #if ENABLED(SDSUPPORT)
-      if (card.cardOK) {
-        if (card.isFileOpen()) {
+      if (READER_OK) {
+        if (READER_HAS_FILE) {
           if (card.sdprinting)
             MENU_ITEM(function, MSG_PAUSE_PRINT, lcd_sdcard_pause);
           else
@@ -4046,7 +4046,7 @@ void lcd_quick_feedback(const bool clear_buttons) {
 
       START_MENU();
       MENU_BACK(MSG_MAIN);
-      card.getWorkDirName();
+      READER_SELECT_DIR;
       if (card.filename[0] == '/') {
         #if !PIN_EXISTS(SD_DETECT)
           MENU_ITEM(function, LCD_STR_REFRESH MSG_REFRESH, lcd_sd_refresh);
@@ -4065,12 +4065,12 @@ void lcd_quick_feedback(const bool clear_buttons) {
           i;
 
           #if ENABLED(SDCARD_SORT_ALPHA)
-            card.getfilename_sorted(nr);
+            READER_SELECT_FILE_sorted(nr);
           #else
-            card.getfilename(nr);
+            READER_SELECT_FILE(nr);
           #endif
 
-          if (card.filenameIsDir)
+          if (READER_HAS_DIR)
             MENU_ITEM(sddirectory, MSG_CARD_MENU, card);
           else
             MENU_ITEM(sdfile, MSG_CARD_MENU, card);
@@ -5191,7 +5191,7 @@ void lcd_update() {
 
   #if ENABLED(SDSUPPORT) && PIN_EXISTS(SD_DETECT)
 
-    const uint8_t sd_status = (uint8_t)IS_SD_INSERTED();
+    const uint8_t sd_status = (uint8_t)READER_CONNECTED;
     if (sd_status != lcd_sd_status && lcd_detected()) {
 
       uint8_t old_sd_status = lcd_sd_status; // prevent re-entry to this block!

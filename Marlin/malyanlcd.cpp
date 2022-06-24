@@ -280,12 +280,12 @@ void process_lcd_p_command(const char* command) {
         // Find the name of the file to print.
         // It's needed to echo the PRINTFILE option.
         // The {S:L} command should've ensured the SD card was mounted.
-        card.getfilename(atoi(command));
+        READER_SELECT_FILE(atoi(command));
 
         // There may be a difference in how V1 and V2 LCDs handle subdirectory
         // prints. Investigate more. This matches the V1 motion controller actions
         // but the V2 LCD switches to "print" mode on {SYS:DIR} response.
-        if (card.filenameIsDir) {
+        if (READER_HAS_DIR) {
           card.chdir(card.filename);
           write_to_lcd_P(PSTR("{SYS:DIR}"));
         }
@@ -337,7 +337,7 @@ void process_lcd_s_command(const char* command) {
 
     case 'L': {
       #if ENABLED(SDSUPPORT)
-        if (!card.cardOK) card.initsd();
+        if (!READER_OK) card.initsd();
 
         // A more efficient way to do this would be to
         // implement a callback in the ls_SerialPrint code, but
@@ -348,8 +348,8 @@ void process_lcd_s_command(const char* command) {
         char message_buffer[MAX_CURLY_COMMAND];
         uint16_t file_count = card.get_num_Files();
         for (uint16_t i = 0; i < file_count; i++) {
-          card.getfilename(i);
-          sprintf_P(message_buffer, card.filenameIsDir ? PSTR("{DIR:%s}") : PSTR("{FILE:%s}"), card.longest_filename());
+          READER_SELECT_FILE(i);
+          sprintf_P(message_buffer, READER_HAS_DIR ? PSTR("{DIR:%s}") : PSTR("{FILE:%s}"), card.longest_filename());
           write_to_lcd(message_buffer);
         }
 

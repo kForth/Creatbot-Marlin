@@ -157,6 +157,13 @@ class PrintCounter: public Stopwatch {
     static printStatistics getStats() { return data; }
 
     /**
+     * @brief Get the total printing time
+     * @details Return the total number of seconds the timer has been running.
+     * @return the delta since eeprom initializtion
+     */
+    static uint32_t getPrintTime() { return data.printTime; }
+
+    /**
      * @brief Loop function
      * @details This function should be called at loop, it will take care of
      * periodically save the statistical data to EEPROM and do time keeping.

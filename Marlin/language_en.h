@@ -52,6 +52,12 @@
 #ifndef MSG_SD_REMOVED
   #define MSG_SD_REMOVED                      _UxGT("Card removed")
 #endif
+#ifndef MSG_UDISK_INSERTED
+  #define MSG_UDISK_INSERTED                  _UxGT("USB Disk inserted")
+#endif
+#ifndef MSG_UDISK_REMOVED
+  #define MSG_UDISK_REMOVED                   _UxGT("USB Disk removed")
+#endif
 #ifndef MSG_LCD_ENDSTOPS
   #define MSG_LCD_ENDSTOPS                    _UxGT("Endstops") // Max length 8 characters
 #endif
@@ -690,6 +696,9 @@
 #ifndef MSG_PRINTING
   #define MSG_PRINTING                        _UxGT("Printing...")
 #endif
+#ifndef MSG_PRINT_DONE
+  #define MSG_PRINT_DONE                      _UxGT("Print done.")
+#endif
 #ifndef MSG_PRINT_ABORTED
   #define MSG_PRINT_ABORTED                   _UxGT("Print aborted")
 #endif
@@ -819,6 +828,9 @@
 #ifndef MSG_HEATING_FAILED_LCD_BED
   #define MSG_HEATING_FAILED_LCD_BED          _UxGT("Bed heating failed")
 #endif
+#ifndef MSG_HEATING_FAILED_LCD_CHAMBER
+  #define MSG_HEATING_FAILED_LCD_CHAMBER      _UxGT("Chamber heating failed")
+#endif
 #ifndef MSG_ERR_REDUNDANT_TEMP
   #define MSG_ERR_REDUNDANT_TEMP              _UxGT("Err: REDUNDANT TEMP")
 #endif
@@ -827,6 +839,9 @@
 #endif
 #ifndef MSG_THERMAL_RUNAWAY_BED
   #define MSG_THERMAL_RUNAWAY_BED             _UxGT("BED THERMAL RUNAWAY")
+#endif
+#ifndef MSG_THERMAL_RUNAWAY_CHAMBER
+  #define MSG_THERMAL_RUNAWAY_CHAMBER         _UxGT("CHAMBER THERMAL RUNAWAY")
 #endif
 #ifndef MSG_ERR_MAXTEMP
   #define MSG_ERR_MAXTEMP                     _UxGT("Err: MAXTEMP")
@@ -839,6 +854,12 @@
 #endif
 #ifndef MSG_ERR_MINTEMP_BED
   #define MSG_ERR_MINTEMP_BED                 _UxGT("Err: MINTEMP BED")
+#endif
+#ifndef MSG_ERR_MAXTEMP_CHAMBER
+  #define MSG_ERR_MAXTEMP_CHAMBER             _UxGT("Err: MAXTEMP CHAMBER")
+#endif
+#ifndef MSG_ERR_MINTEMP_CHAMBER
+  #define MSG_ERR_MINTEMP_CHAMBER             _UxGT("Err: MINTEMP CHAMBER")
 #endif
 #ifndef MSG_ERR_Z_HOMING
   #define MSG_ERR_Z_HOMING                    MSG_HOME _UxGT(" ") MSG_X MSG_Y _UxGT(" ") MSG_FIRST
@@ -861,14 +882,29 @@
 #ifndef MSG_HEATING
   #define MSG_HEATING                         _UxGT("Heating...")
 #endif
+#ifndef MSG_HEATING_DONE
+  #define MSG_HEATING_DONE                    _UxGT("Heating done.")
+#endif
 #ifndef MSG_COOLING
   #define MSG_COOLING                         _UxGT("Cooling...")
 #endif
 #ifndef MSG_BED_HEATING
   #define MSG_BED_HEATING                     _UxGT("Bed heating...")
 #endif
+#ifndef MSG_BED_DONE
+  #define MSG_BED_DONE                        _UxGT("Bed done.")
+#endif
 #ifndef MSG_BED_COOLING
   #define MSG_BED_COOLING                     _UxGT("Bed cooling...")
+#endif
+#ifndef MSG_CHAMBER_HEATING
+  #define MSG_CHAMBER_HEATING                 _UxGT("Chamber heating...")
+#endif
+#ifndef MSG_CHAMBER_DONE
+  #define MSG_CHAMBER_DONE                    _UxGT("Chamber done.")
+#endif
+#ifndef MSG_CHAMBER_COOLING
+  #define MSG_CHAMBER_COOLING                 _UxGT("Chamber cooling...")
 #endif
 #ifndef MSG_DELTA_CALIBRATE
   #define MSG_DELTA_CALIBRATE                 _UxGT("Delta Calibration")

@@ -203,12 +203,17 @@
 #define MSG_SD_ERR_WRITE_TO_FILE            "error writing to file"
 #define MSG_SD_ERR_READ                     "SD read error"
 #define MSG_SD_CANT_ENTER_SUBDIR            "Cannot enter subdir: "
+#define MSG_SD_DIR_EMPTY                    "Folder is empty"
+
+#define MSG_UDISK_READY                      "UDisk ok"
 
 #define MSG_STEPPER_TOO_HIGH                "Steprate too high: "
 #define MSG_ENDSTOPS_HIT                    "endstops hit: "
 #define MSG_ERR_COLD_EXTRUDE_STOP           " cold extrusion prevented"
 #define MSG_ERR_LONG_EXTRUDE_STOP           " too long extrusion prevented"
 #define MSG_HOTEND_TOO_COLD                 "Hotend too cold"
+
+#define MSG_FILAMENT_ERROR                  "Filament Error"
 
 #define MSG_FILAMENT_CHANGE_HEAT            "Press button (or M108) to heat nozzle"
 #define MSG_FILAMENT_CHANGE_INSERT          "Insert filament and press button (or M108)"
@@ -253,6 +258,7 @@
 #define MSG_INVALID_EXTRUDER_NUM            " - Invalid extruder number !"
 
 #define MSG_HEATER_BED                      "bed"
+#define MSG_HEATER_CHAMBER                  "chamber"
 #define MSG_STOPPED_HEATER                  ", system stopped! Heater_ID: "
 #define MSG_REDUNDANCY                      "Heater switched off. Temperature difference between temp sensors is too high !"
 #define MSG_T_HEATING_FAILED                "Heating failed"
