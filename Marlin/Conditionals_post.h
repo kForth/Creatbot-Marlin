@@ -1370,6 +1370,8 @@
 // Number of VFAT entries used. Each entry has 13 UTF-16 characters
 #if ENABLED(SCROLL_LONG_FILENAMES)
   #define MAX_VFAT_ENTRIES (5)
+#elif ENABLED(UDISKSUPPORT)
+  #define MAX_VFAT_ENTRIES (3)
 #else
   #define MAX_VFAT_ENTRIES (2)
 #endif
