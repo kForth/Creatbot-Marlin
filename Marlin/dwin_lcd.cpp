@@ -64,19 +64,19 @@ enum WIFI_ACTION_MODE{ WIFI_ACTION_SWITCH_TOGGLE, WIFI_ACTION_CONNECT, WIFI_ACTI
 enum HOME_MODE{ HOME_ALL, HOME_X, HOME_Y, HOME_Z };
 enum TIME_MODE { TIME_USED, TIME_PRINT, TIME_TRIAL };
 
-#define GET_INT(addr)									getValueForInt_P(addr)
-#define SET_INT(addr, value)					setValueAsInt_P(addr, value)
+#define GET_INT(addr)								getValueForInt_P(addr)
+#define SET_INT(addr, value)						setValueAsInt_P(addr, value)
 #define GET_LONG(addr)								getValueForLong_P(addr)
-#define SET_LONG(addr, value)					setValueAsLong_P(addr, value)
-#define GET_STR(addr)									getValueForString_P(addr)
-#define SET_STR(addr, len, value)			setValueAsString_P(addr, len, value);
+#define SET_LONG(addr, value)						setValueAsLong_P(addr, value)
+#define GET_STR(addr)								getValueForString_P(addr)
+#define SET_STR(addr, len, value)					setValueAsString_P(addr, len, value);
 
 #define GET_INT_P(addr)								getValueForInt_P(PSTR(addr))
-#define SET_INT_P(addr, value)				setValueAsInt_P(PSTR(addr), PSTR(value))
+#define SET_INT_P(addr, value)						setValueAsInt_P(PSTR(addr), PSTR(value))
 #define GET_LONG_P(addr)							getValueForLong_P(PSTR(addr))
-#define SET_LONG_P(addr, value)				setValueAsLong_P(PSTR(addr), PSTR(value))
+#define SET_LONG_P(addr, value)						setValueAsLong_P(PSTR(addr), PSTR(value))
 #define GET_STR_P(addr)								getValueForString_P(PSTR(addr))
-#define SET_STR_P(addr, len, value)		setValueAsString_P(PSTR(addr), len, value)
+#define SET_STR_P(addr, len, value)					setValueAsString_P(PSTR(addr), len, value)
 
 #define DRAW_REC(addr, x0, y0, x1, y1, color)		drawRectangle_P(PSTR(addr), x0, y0, x1, y1, PSTR(color))
 #define FILL_REC(addr, x0, y0, x1, y1, color)		fillRectangle_P(PSTR(addr), x0, y0, x1, y1, PSTR(color))
@@ -97,7 +97,7 @@ void updateValue(int value, const char* valueAddr) {
 	SET_INT(valueAddr, value);
 }
 
-#define UPDATE_LCD(value, addr)				updateValue(value, PSTR(addr))
+#define UPDATE_LCD(value, addr)			updateValue(value, PSTR(addr))
 #define UPDATE_LCD_22(value, addr)		updateValue(value, PSTR(addr), INT_LCD, 2, 2)
 #define UPDATE_LCD_31(value, addr)		updateValue(value, PSTR(addr), INT_LCD, 3, 1)
 #define UPDATE_LCD_32(value, addr)		updateValue(value, PSTR(addr), INT_LCD, 3, 2)
@@ -814,7 +814,7 @@ void return_default_button_action(){
 #endif
 #if HAS_READER
 	if(isSerialPrinting)
-		GO_PAGE(PAGE_NORAML_SERIAL);
+		GO_PAGE(PAGE_NORMAL_SERIAL);
 	else
 		if (!FILE_IS_IDLE)
 			if (FILE_IS_PRINT)
@@ -841,7 +841,7 @@ void return_default_button_action(){
 			}
 #else		// !HAS_READER
 	if(isSerialPrinting)
-		GO_PAGE(PAGE_NORAML_SERIAL);
+		GO_PAGE(PAGE_NORMAL_SERIAL);
 	else
 		if(thermalManager.hasHeat())
 			GO_PAGE(PAGE_NORMAL_COOLDOWN_NO_READER);
@@ -1089,12 +1089,12 @@ void changeDoneAction() {};
 void setupDEMO(){
 	SET_INT_P(COLOR_BLACK,	"0000");
 	SET_INT_P(COLOR_WHITE,	"FFFF");
-	SET_INT_P(COLOR_RED,		"F800");
+	SET_INT_P(COLOR_RED,	"F800");
 	SET_INT_P(COLOR_ORANGE,	"FC00");
 	SET_INT_P(COLOR_YELLOW,	"FFE0");
 	SET_INT_P(COLOR_GREEN,	"07E0");
-	SET_INT_P(COLOR_CYAN,		"07FF");
-	SET_INT_P(COLOR_BLUE,		"001F");
+	SET_INT_P(COLOR_CYAN,	"07FF");
+	SET_INT_P(COLOR_BLUE,	"001F");
 	SET_INT_P(COLOR_PURPLE,	"F81F");
 }
 */
@@ -1363,15 +1363,15 @@ void dwin_setup() {
 	#if ENABLED(SDSUPPORT) && PIN_EXISTS(SD_DETECT)
 		SET_INPUT_PULLUP(SD_DETECT_PIN);
 	#endif
-	dwinReaderState = 0xFF;					// unknown Reader state.
+	dwinReaderState = 0xFF;				// unknown Reader state.
 #endif
 
-	dwin_data_state = DATA_UNINIT;	// dwin lcd uninit
+	dwin_data_state = DATA_UNINIT;		// dwin lcd uninit
 	dwin_next_update_millis = 0;		// next data update time
 	return_default_page_time = 0;		// return the default page time.
 	dwin_next_page_P = nullptr;			// next dwin page is unknow.
 
-	dwin_init();										// the implement init.
+	dwin_init();						// the implement init.
 }
 
 void updateData();
@@ -1621,10 +1621,12 @@ void updateCmd(uint16_t cmdValue){
 			break;
 
 
-		default:
-			SERIAL_ECHOLN(cmdValue);
-			break;
+		// default:
+		// 	SERIAL_ECHOLN(cmdValue);
+		// 	break;
 		}
+		SERIAL_ECHO("LCD cmdValue: ");
+		SERIAL_ECHOLN(cmdValue);
 	}
 }
 

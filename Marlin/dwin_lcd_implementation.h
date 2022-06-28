@@ -15,27 +15,27 @@ Developer Lyn Lee, 3 June 2015.
 
 
 #define LCD_SERIAL_BAUDRATE		115200
-#define LCD_FH_1					0x5A
-#define LCD_FH_2					0xA5
+#define LCD_FH_1				0x5A
+#define LCD_FH_2				0xA5
 #define LCD_BUF_LEN				64		//char
-#define LCD_INIT_TIMEOUT 	5000		//ms
+#define LCD_INIT_TIMEOUT 		5000		//ms
 #define LCD_TIMEOUT				2000	//ms
 #define LCD_RUN_CYCLE			100		//ms
 
 #define WRITE_REGISTER			0x80
-#define READ_REGISTER				0x81
+#define READ_REGISTER			0x81
 #define WRITE_VARIABLE			0x82
-#define READ_VARIABLE				0x83
-#define WRITE_BUFFER				0x84
+#define READ_VARIABLE			0x83
+#define WRITE_BUFFER			0x84
 #define MIN_VARIBLE_ADDR		0x0000
 #define MAX_VARIBLE_ADDR		0x07FF
 #define MIN_REGISTER_ADDR		0x00
 #define MAX_REGISTER_ADDR		0xFF
 
-#define REGISTER_PAGE						0x03
-#define REGISTER_TOUCH_STATUS		0x05
-#define REGISTER_TOUCH_ENABLE		0x0B
-#define REGISTER_KEY						0x4F
+#define REGISTER_PAGE			0x03
+#define REGISTER_TOUCH_STATUS	0x05
+#define REGISTER_TOUCH_ENABLE	0x0B
+#define REGISTER_KEY			0x4F
 
 #define POPUP_BUF_SIZE			8
 #define POPUP_HIDDEN_KEY		0xFF

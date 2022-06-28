@@ -33,14 +33,14 @@ static pop_ring_buffer popKey = { { 0 }, 0, 0 };
 static dwinVarStruct dwinVar = { 0, 0, 0, { 0 } };
 static dwinStateStruct dwinState = { 0, { 0, 0, 0 } };
 
-#define RECV_DONE				(recvState == RevcDone)
+#define RECV_DONE			(recvState == RevcDone)
 #define HAS_POP_TASK		(pop_room() != (POPUP_BUF_SIZE - 2))
 
 #define BIT_GET_PAGE		0
 #define BIT_GET_TOUCH		1
 #define BIT_GET_KEY			2
 
-#define IS_IDLE					((dwinState.dwin_state | 0) == 0)
+#define IS_IDLE				((dwinState.dwin_state | 0) == 0)
 #define IS_GET_PAGE			((dwinState.dwin_state & _BV(BIT_GET_PAGE)) == _BV(BIT_GET_PAGE))
 #define IS_GET_TOUCH		((dwinState.dwin_state & _BV(BIT_GET_TOUCH)) == _BV(BIT_GET_TOUCH))
 #define IS_GET_KEY			((dwinState.dwin_state & _BV(BIT_GET_KEY)) == _BV(BIT_GET_KEY))
@@ -124,19 +124,19 @@ ISR(USART3_RX_vect) {
 }
 
 	#define DWIN_BEGIN			begin
-	#define DWIN_READ				read
+	#define DWIN_READ			read
 	#define DWIN_WRITE			write
-	#define DWIN_AVAILABLE	available
+	#define DWIN_AVAILABLE		available
 	#define DWIN_FLUSH			flush
-	#define DWIN_END				end
+	#define DWIN_END			end
 #else
 	#define DWIN_SERIAL			Serial3
 	#define DWIN_BEGIN			DWIN_SERIAL.begin
-	#define DWIN_READ				DWIN_SERIAL.read
+	#define DWIN_READ			DWIN_SERIAL.read
 	#define DWIN_WRITE			DWIN_SERIAL.write
-	#define DWIN_AVAILABLE	DWIN_SERIAL.available
+	#define DWIN_AVAILABLE		DWIN_SERIAL.available
 	#define DWIN_FLUSH			DWIN_SERIAL.flush
-	#define DWIN_END				DWIN_SERIAL.end
+	#define DWIN_END			DWIN_SERIAL.end
 #endif
 
 
