@@ -276,8 +276,13 @@ void dwin_move(int axis, float scale, bool dir){
 
 	dwin_update_axis_info();
 
-	manual_move_start_time = millis() + 300UL;
-	SBI(manual_move_axis, axis);
+	// Start move immediately
+	planner.buffer_line_kinematic(current_position, MMM_TO_MMS(dwin_manual_feedrate[axis]), active_extruder);
+	refresh_cmd_timeout();
+
+	// Start move in 300ms
+	// manual_move_start_time = millis() + 300UL;
+	// SBI(manual_move_axis, axis);
 }
 
 void dwin_move(int axis, bool dir){
