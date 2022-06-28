@@ -1620,13 +1620,10 @@ void updateCmd(uint16_t cmdValue){
 			leveling_probe();
 			break;
 
-
 		// default:
 		// 	SERIAL_ECHOLN(cmdValue);
 		// 	break;
 		}
-		SERIAL_ECHO("LCD cmdValue: ");
-		SERIAL_ECHOLN(cmdValue);
 	}
 }
 

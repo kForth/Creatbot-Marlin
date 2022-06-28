@@ -21,9 +21,6 @@ This is the source code for the modified firmware running on my [Creatbot F430](
  - [ ] Merge changes from Marlin 1.1.9
  - [ ] Upgrade to Marlin 2.1.x (LCD and USB need a lot of rework)
 
-### Bugs
- - Cannot manually jog axes from LCD
-
 ## Marlin 1.1
 <img align="right" src="../../raw/1.1.x/buildroot/share/pixmaps/logo/marlin-250.png" />
 
