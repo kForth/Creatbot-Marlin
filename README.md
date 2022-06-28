@@ -16,9 +16,9 @@ This is the source code for the modified firmware running on my [Creatbot F430](
  - [ ] Enable pause/resume commands while printing over serial.
  - [ ] Enable Filament Runout Sensor while printing over serial.
  - [ ] Enable use of genuine BL Touch probes (may be a hardware problem).
- - [ ] Upgrade to Marlin 1.1.7
- - [ ] Upgrade to Marlin 1.1.8
- - [ ] Upgrade to Marlin 1.1.9
+ - [ ] Merge changes from Marlin 1.1.7
+ - [ ] Merge changes from Marlin 1.1.8
+ - [ ] Merge changes from Marlin 1.1.9
  - [ ] Upgrade to Marlin 2.1.x (LCD and USB need a lot of rework)
 
 ### Bugs
