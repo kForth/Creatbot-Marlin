@@ -934,6 +934,9 @@
   #ifndef MSG_FILAMENT_CHANGE_RESUME_1
     #define MSG_FILAMENT_CHANGE_RESUME_1        _UxGT("Resuming...")
   #endif
+  #ifndef MSG_FILAMENT_CHANGE_HEAT_1
+    #define MSG_FILAMENT_CHANGE_HEAT_1          _UxGT("Click to Heat")
+  #endif
 #endif // LCD_HEIGHT < 4
 
 #endif // LANGUAGE_EN_H

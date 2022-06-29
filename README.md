@@ -20,6 +20,9 @@ This is the source code for the modified firmware running on my [Creatbot F430](
  - [ ] Merge changes from Marlin 1.1.9
  - [ ] Upgrade to Marlin 2.1.x (LCD and USB need a lot of rework)
 
+### Bugs
+ - M600 must be cleared with a M108 command, LCD doesn't work yet.
+
 ## Marlin 1.1
 <img align="right" src="../../raw/1.1.x/buildroot/share/pixmaps/logo/marlin-250.png" />
 

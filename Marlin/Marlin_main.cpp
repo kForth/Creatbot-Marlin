@@ -803,7 +803,7 @@ static millis_t auto_time_used_interval = AUTO_TIME_USED_INTERVAL * 1000UL;
 
 
 #if defined(FILAMENT_CHANGE) || defined(FILAMENT_DETECT)
-	static bool isPauseForFilament = false;
+	bool isPauseForFilament = false;
 #endif
 
 #ifdef FILAMENT_DETECT
@@ -6467,11 +6467,18 @@ inline void gcode_M17() {
           heaters_heating = true;
           #if ENABLED(ULTIPANEL)
             lcd_advanced_pause_show_message(ADVANCED_PAUSE_MESSAGE_WAIT_FOR_NOZZLES_TO_HEAT);
+          #elif ENABLED(DWIN_LCD)
+            DWIN_MSG_P(MSG_FILAMENT_CHANGE_HEATING_1);
+            return_default_button_action();
+            POP_WINDOW(WAIT_KEY);
           #endif
           break;
         }
       }
     }
+    #if ENABLED(DWIN_LCD)
+      HIDE_POPUP;
+    #endif
   }
 
   static bool pause_print(const float &retract, const float &z_lift, const float &x_pos, const float &y_pos,
@@ -6496,9 +6503,9 @@ inline void gcode_M17() {
     move_away_flag = true;
 
     // Pause the print job and timer
-    #if ENABLED(SDSUPPORT)
-      if (card.sdprinting) {
-        card.pauseSDPrint();
+    #if HAS_READER
+      if (FILE_IS_PRINT) {
+        FILE_PAUSE_PRINT;
         sd_print_paused = true;
       }
     #endif
@@ -6508,6 +6515,9 @@ inline void gcode_M17() {
     if (show_lcd) {
       #if ENABLED(ULTIPANEL)
         lcd_advanced_pause_show_message(ADVANCED_PAUSE_MESSAGE_INIT);
+      #elif ENABLED(DWIN_LCD)
+        DWIN_MSG_P(DWIN_MSG_FILAMENT_NOT_READY);
+        return_default_button_action();
       #endif
     }
 
@@ -6535,6 +6545,9 @@ inline void gcode_M17() {
         #if ENABLED(ULTIPANEL)
           lcd_advanced_pause_show_message(ADVANCED_PAUSE_MESSAGE_UNLOAD);
           idle();
+        #elif ENABLED(DWIN_LCD)
+          DWIN_MSG_P(MSG_FILAMENT_CHANGE_UNLOAD_1);
+          idle();
         #endif
       }
 
@@ -6548,6 +6561,12 @@ inline void gcode_M17() {
     if (show_lcd) {
       #if ENABLED(ULTIPANEL)
         lcd_advanced_pause_show_message(ADVANCED_PAUSE_MESSAGE_INSERT);
+      #elif ENABLED(DWIN_LCD)
+        DWIN_MSG_P(MSG_FILAMENTCHANGE);
+        return_default_button_action();
+        
+		    LCD_ALERTMESSAGEPGM(MSG_FILAMENTCHANGE);
+			  POP_WINDOW(CHANGE_FILAMENT_KEY); // Need a way to set wait_for_user to false
       #endif
     }
 
@@ -6592,6 +6611,10 @@ inline void gcode_M17() {
       if (nozzle_timed_out) {
         #if ENABLED(ULTIPANEL)
           lcd_advanced_pause_show_message(ADVANCED_PAUSE_MESSAGE_CLICK_TO_HEAT_NOZZLE);
+        #elif ENABLED(DWIN_LCD)
+          DWIN_MSG_P(MSG_FILAMENT_CHANGE_HEAT_1);
+          return_default_button_action();
+          POP_WINDOW(CHANGE_FILAMENT_KEY); // Need a way to set wait_for_user to false  
         #endif
 
         // Wait for LCD click or M108
@@ -6605,6 +6628,10 @@ inline void gcode_M17() {
 
         #if ENABLED(ULTIPANEL)
           lcd_advanced_pause_show_message(ADVANCED_PAUSE_MESSAGE_INSERT);
+        #elif ENABLED(DWIN_LCD)
+          DWIN_MSG_P(MSG_FILAMENT_CHANGE_INSERT_1);
+          return_default_button_action();
+          POP_WINDOW(CHANGE_FILAMENT_KEY);  // Need a way to set wait_for_user to false
         #endif
 
         // Start the heater idle timers
@@ -6646,11 +6673,16 @@ inline void gcode_M17() {
     set_destination_to_current();
 
     if (load_length != 0) {
-      #if ENABLED(ULTIPANEL)
+    if (nozzle_timed_out){
         // Show "insert filament"
-        if (nozzle_timed_out)
+        #if ENABLED(ULTIPANEL)
           lcd_advanced_pause_show_message(ADVANCED_PAUSE_MESSAGE_INSERT);
-      #endif
+        #elif ENABLED(DWIN_LCD)
+          DWIN_MSG_P(MSG_FILAMENT_CHANGE_INSERT_1);
+          return_default_button_action();
+          POP_WINDOW(CHANGE_FILAMENT_KEY);
+        #endif
+      }
 
       KEEPALIVE_STATE(PAUSED_FOR_USER);
       wait_for_user = true;    // LCD click or M108 will clear this
@@ -6665,6 +6697,8 @@ inline void gcode_M17() {
       #if ENABLED(ULTIPANEL)
         // Show "load" message
         lcd_advanced_pause_show_message(ADVANCED_PAUSE_MESSAGE_LOAD);
+      #elif ENABLED(DWIN_LCD)
+        DWIN_MSG_P(MSG_FILAMENT_CHANGE_LOAD_1);
       #endif
 
       // Load filament
@@ -6705,6 +6739,9 @@ inline void gcode_M17() {
     #if ENABLED(ULTIPANEL)
       // "Wait for print to resume"
       lcd_advanced_pause_show_message(ADVANCED_PAUSE_MESSAGE_RESUME);
+    #elif ENABLED(DWIN_LCD)
+      DWIN_MSG_P(MSG_FILAMENT_CHANGE_RESUME_1);
+      return_default_button_action();
     #endif
 
     // Set extruder to saved position
@@ -6722,11 +6759,14 @@ inline void gcode_M17() {
     #if ENABLED(ULTIPANEL)
       // Show status screen
       lcd_advanced_pause_show_message(ADVANCED_PAUSE_MESSAGE_STATUS);
+    #elif ENABLED(DWIN_LCD)
+      DWIN_MSG_P(MSG_PRINTING);
+      return_default_button_action();
     #endif
 
-    #if ENABLED(SDSUPPORT)
+    #if HAS_READER
       if (sd_print_paused) {
-        card.startFileprint();
+        FILE_START_PRINT;
         sd_print_paused = false;
       }
     #endif

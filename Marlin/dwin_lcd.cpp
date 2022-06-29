@@ -1081,8 +1081,11 @@ void accidentCancelAction() {};
 
 #ifdef FILAMENT_CHANGE
 void changeDoneAction() {
-	HIDE_POPUP;		// dummy hide popup, as the popup is disappear by touch the "resume" button in dwin lcd.
-	print_reuse_button_action();
+	HIDE_POPUP;	// dummy hide popup, as the popup is disappear by touch the "resume" button in dwin lcd.
+	if(wait_for_user)
+		wait_for_user = false;
+	if(isPauseForFilament)
+		print_reuse_button_action();
 };
 #else
 void changeDoneAction() {};

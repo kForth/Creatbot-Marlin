@@ -634,6 +634,7 @@ void updateStateStrings();
 
 #if defined(FILAMENT_CHANGE) || defined(FILAMENT_DETECT)
 	bool pauseToUnloadFilament();
+  extern bool isPauseForFilament;
 #endif
 
 #ifdef ACCIDENT_DETECT
