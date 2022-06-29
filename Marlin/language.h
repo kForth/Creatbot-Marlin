@@ -108,6 +108,7 @@
   /* nothing here yet */
 
 // Common serial messages
+#define MSG_CREATBOT "CreatBot"
 #define MSG_MARLIN "Marlin"
 #define MSG_FW	" Firmware: "
 

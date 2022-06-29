@@ -15197,9 +15197,7 @@ void setup() {
   #endif
 
   MYSERIAL.begin(BAUDRATE);
-//  SERIAL_PROTOCOLLNPGM("start");
-//  SERIAL_ECHO_START;
-  SERIAL_PROTOCOLLNPGM("CreatBot 3D Printer Start >>>");
+  SERIAL_PROTOCOLLNPGM("start");
 
   // Check startup - does nothing if bootloader sets MCUSR to 0
   byte mcu = MCUSR;
@@ -15211,13 +15209,17 @@ void setup() {
   MCUSR = 0;
 
   updateVersionString(versionFW);
+
+  SERIAL_ECHO_START();
   SERIAL_ECHOPGM(MSG_MARLIN);
   SERIAL_CHAR(' ');
-  SERIAL_ECHOLNPGM(SHORT_BUILD_VERSION);
+  SERIAL_ECHOPGM(SHORT_BUILD_VERSION);
   SERIAL_EOL();
 
-  SERIAL_ECHOPGM("CreatBot ");
-  SERIAL_ECHOLNPGM(CREATBOT_VERSION);
+  SERIAL_ECHO_START();
+  SERIAL_ECHOPGM(MSG_CREATBOT);
+  SERIAL_CHAR(' ');
+  SERIAL_ECHOPGM(CREATBOT_VERSION);
   SERIAL_EOL();
 
   #if defined(STRING_DISTRIBUTION_DATE) && defined(STRING_CONFIG_H_AUTHOR)
