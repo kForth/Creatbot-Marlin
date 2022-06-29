@@ -6434,7 +6434,8 @@ inline void gcode_M17() {
 
   static float resume_position[XYZE];
   static bool move_away_flag = false;
-  #if ENABLED(SDSUPPORT)
+  static bool job_was_running = false;
+  #if HAS_READER
     static bool sd_print_paused = false;
   #endif
 
@@ -10074,7 +10075,7 @@ inline void gcode_M502() {
       #endif
     );
 
-    const bool job_running = print_job_timer.isRunning();
+    job_was_running = print_job_timer.isRunning();
 
     if (pause_print(retract, z_lift, x_pos, y_pos, unload_length, beep_count, true)) {
       wait_for_filament_reload(beep_count);
@@ -10082,7 +10083,7 @@ inline void gcode_M502() {
     }
 
     // Resume the print job timer if it was running
-    if (job_running) print_job_timer.start();
+    if (job_was_running) print_job_timer.start();
   }
 
 #endif // ADVANCED_PAUSE_FEATURE

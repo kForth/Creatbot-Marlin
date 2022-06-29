@@ -333,7 +333,7 @@ static_assert(X_MAX_LENGTH >= X_BED_SIZE && Y_MAX_LENGTH >= Y_BED_SIZE,
  * Advanced Pause
  */
 #if ENABLED(ADVANCED_PAUSE_FEATURE)
-  #if DISABLED(NEWPANEL)
+  #if DISABLED(NEWPANEL) && DISABLED(DWIN_LCD)
     #error "ADVANCED_PAUSE_FEATURE currently requires an LCD controller."
   #elif ENABLED(EXTRUDER_RUNOUT_PREVENT)
     #error "EXTRUDER_RUNOUT_PREVENT is incompatible with ADVANCED_PAUSE_FEATURE."
@@ -1418,9 +1418,9 @@ static_assert(COUNT(sanity_arr_3) <= XYZE_N, "DEFAULT_MAX_ACCELERATION has too m
 	#error "QUICK_PAUSE need SD/UDisk support."
 #endif
 
-#if ENABLED(QUICK_PAUSE) && ENABLED(ADVANCED_PAUSE_FEATURE)
-	#error "QUICK_PAUSE and ADVANCED_PAUSE_FEATURE is incompatible."
-#endif
+// #if ENABLED(QUICK_PAUSE) && ENABLED(ADVANCED_PAUSE_FEATURE)
+// 	#error "QUICK_PAUSE and ADVANCED_PAUSE_FEATURE is incompatible."
+// #endif
 
 #if DISABLED(QUICK_PAUSE)
 	#if ENABLED(FILAMENT_CHANGE)
