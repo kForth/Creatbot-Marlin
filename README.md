@@ -11,8 +11,7 @@ This is the source code for the modified firmware running on my [Creatbot F430](
  - [x] Don't purge extruder when resuming print.
  - [x] Tweak default steps/mm to real tuned values.
  - [x] Tweak default preheat settings.
- - [x] Set default fan speeds to 0.
- - [ ] Make USB Disk behave the same as typical SD Card
+ - [ ] Make USB Disk behave the same as typical SD Card.
  - [ ] Enable pause/resume commands while printing over serial.
  - [ ] Enable Filament Runout Sensor while printing over serial.
  - [ ] Enable use of genuine BL Touch probes (may be a hardware problem).
