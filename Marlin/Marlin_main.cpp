@@ -14879,7 +14879,7 @@ void manage_inactivity(bool ignore_stepper_queue/*=false*/) {
 	#endif
 
   if (MOVE_AWAY_TEST && stepper_inactive_time && ELAPSED(ms, previous_cmd_ms + stepper_inactive_time)
-      && !ignore_stepper_queue && !planner.blocks_queued()) {
+      && !ignore_stepper_queue && !isSerialPrinting && !planner.blocks_queued()) {
     #if ENABLED(DISABLE_INACTIVE_X)
       disable_X();
     #endif
