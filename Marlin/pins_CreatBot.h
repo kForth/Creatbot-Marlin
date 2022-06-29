@@ -108,12 +108,12 @@
 //
 #define HEATER_0_PIN          2
 #define HEATER_1_PIN          3
-#define HEATER_2_PIN          6
-// #define HEATER_3_PIN          8
+#define HEATER_2_PIN          6 // Also used as HEATER_CHAMBER_PIN
+// #define HEATER_3_PIN          8 // Also used as auto fan pin
 #define HEATER_BED_PIN        9
 
 #define FAN_PIN               7
-// #define FAN1_PIN              8
+// #define FAN1_PIN              8 // Also used as heater 3 pin
 
 //
 // Misc. Functions
@@ -183,8 +183,8 @@
 // #define DS_DATA_PIN 64 // For old REG_USE_HARDWARE
 
 #ifdef HEATED_CHAMBER
-	#define TEMP_CHAMBER_PIN			12 //A12
-	#define HEATER_CHAMBER_PIN		6
+	#define TEMP_CHAMBER_PIN			12 //68 A12
+	#define HEATER_CHAMBER_PIN		6 // Also used as heater 2 pin
 #endif
 
 #ifdef WIFI_SUPPORT
