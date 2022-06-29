@@ -151,9 +151,9 @@
 #endif
 
 #ifdef FILAMENT_DETECT
-	#define FILAMENT_0_PIN		  36
-	#define FILAMENT_1_PIN		  34
-	#define FILAMENT_2_PIN		  32
+	#define FIL_RUNOUT_PIN		  36
+	#define FIL_RUNOUT1_PIN		  34
+	// #define FIL_RUNOUT2_PIN		  32
 #endif
 
 #ifdef ACCIDENT_DETECT

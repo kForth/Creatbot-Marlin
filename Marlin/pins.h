@@ -385,16 +385,16 @@
 #endif
 
 #if DISABLED(FILAMENT_DETECT)
-	#undef FILAMENT_0_PIN
-	#undef FILAMENT_1_PIN
-	#undef FILAMENT_2_PIN
-	#define FILAMENT_0_PIN		-1
-	#define FILAMENT_1_PIN		-1
-	#define FILAMENT_2_PIN		-1
+	#undef FIL_RUNOUT_PIN
+	#undef FIL_RUNOUT1_PIN
+	#undef FIL_RUNOUT2_PIN
+	#define FIL_RUNOUT_PIN		-1
+	#define FIL_RUNOUT1_PIN		-1
+	#define FIL_RUNOUT2_PIN		-1
 #endif
 
 // List of pins which to ignore when asked to change by gcode, 0 and 1 are RX and TX, do not mess with those!
-#define _E0_PINS E0_STEP_PIN, E0_DIR_PIN, E0_ENABLE_PIN, E0_MS1_PIN, E0_MS2_PIN, FILAMENT_0_PIN,
+#define _E0_PINS E0_STEP_PIN, E0_DIR_PIN, E0_ENABLE_PIN, E0_MS1_PIN, E0_MS2_PIN, FIL_RUNOUT_PIN,
 #define _E1_PINS
 #define _E2_PINS
 #define _E3_PINS
@@ -404,18 +404,18 @@
                       // Tools 0 and 1 use E0
   #if EXTRUDERS > 2   // Tools 2 and 3 use E1
     #undef _E1_PINS
-    #define _E1_PINS E1_STEP_PIN, E1_DIR_PIN, E1_ENABLE_PIN, E1_MS1_PIN, E1_MS2_PIN, FILAMENT_1_PIN,
+    #define _E1_PINS E1_STEP_PIN, E1_DIR_PIN, E1_ENABLE_PIN, E1_MS1_PIN, E1_MS2_PIN, FIL_RUNOUT1_PIN,
     #if EXTRUDERS > 4 // Tools 4 and 5 use E2
       #undef _E2_PINS
-      #define _E2_PINS E2_STEP_PIN, E2_DIR_PIN, E2_ENABLE_PIN, FILAMENT_2_PIN,
+      #define _E2_PINS E2_STEP_PIN, E2_DIR_PIN, E2_ENABLE_PIN, FIL_RUNOUT2_PIN,
     #endif
   #endif
 #elif EXTRUDERS > 1
   #undef _E1_PINS
-  #define _E1_PINS E1_STEP_PIN, E1_DIR_PIN, E1_ENABLE_PIN, E1_MS1_PIN, E1_MS2_PIN, FILAMENT_1_PIN,
+  #define _E1_PINS E1_STEP_PIN, E1_DIR_PIN, E1_ENABLE_PIN, E1_MS1_PIN, E1_MS2_PIN, FIL_RUNOUT1_PIN,
   #if EXTRUDERS > 2
     #undef _E2_PINS
-    #define _E2_PINS E2_STEP_PIN, E2_DIR_PIN, E2_ENABLE_PIN, FILAMENT_2_PIN,
+    #define _E2_PINS E2_STEP_PIN, E2_DIR_PIN, E2_ENABLE_PIN, FIL_RUNOUT2_PIN,
     #if EXTRUDERS > 3
       #undef _E3_PINS
       #define _E3_PINS E3_STEP_PIN, E3_DIR_PIN, E3_ENABLE_PIN,

@@ -14620,7 +14620,7 @@ void checkFilament() {
 #endif
 	) {
 #ifdef FILAMENT_DETECT_AGAIN
-		if(TEST(filamentDetectMask, 0) && !READ(FILAMENT_0_PIN)){
+		if(TEST(filamentDetectMask, 0) && !READ(FIL_RUNOUT_PIN)){
 			if(active_extruder == 0){
 				if(TEST(tempFilamentErrorMask, 0)){
 					if(ELAPSED(millis(), filamentErrorTime[0] + FILAMENT_ERROR_BLOCK)){
@@ -14637,7 +14637,7 @@ void checkFilament() {
 			CBI(tempFilamentErrorMask, 0);
 		}
 	#if E_STEPPERS > 1
-		if(TEST(filamentDetectMask, 1) && !READ(FILAMENT_1_PIN)){
+		if(TEST(filamentDetectMask, 1) && !READ(FIL_RUNOUT1_PIN)){
 			if(active_extruder == 1){
 				if(TEST(tempFilamentErrorMask, 1)){
 					if(ELAPSED(millis(), filamentErrorTime[1] + FILAMENT_ERROR_BLOCK)){
@@ -14655,7 +14655,7 @@ void checkFilament() {
 		}
 	#endif
 	#if E_STEPPERS > 2
-		if(TEST(filamentDetectMask, 2) && !READ(FILAMENT_2_PIN)){
+		if(TEST(filamentDetectMask, 2) && !READ(FIL_RUNOUT2_PIN)){
 			if(active_extruder == 2){
 				if(TEST(tempFilamentErrorMask, 2)){
 					if(ELAPSED(millis(), filamentErrorTime[2] + FILAMENT_ERROR_BLOCK)){
@@ -14673,20 +14673,20 @@ void checkFilament() {
 		}
 	#endif
 #else //!FILAMENT_DETECT_AGAIN
-		if(TEST(filamentDetectMask, 0) && !READ(FILAMENT_0_PIN)){
+		if(TEST(filamentDetectMask, 0) && !READ(FIL_RUNOUT_PIN)){
 			if(active_extruder == 0){
 				isFilamentReady = false;
 			}
 		}
 	#if E_STEPPERS > 1
-		if(TEST(filamentDetectMask, 1) && !READ(FILAMENT_1_PIN)){
+		if(TEST(filamentDetectMask, 1) && !READ(FIL_RUNOUT1_PIN)){
 			if(active_extruder == 1){
 				isFilamentReady = false;
 			}
 		}
 	#endif
 	#if E_STEPPERS > 2
-		if(TEST(filamentDetectMask, 2) && !READ(FILAMENT_2_PIN)){
+		if(TEST(filamentDetectMask, 2) && !READ(FIL_RUNOUT2_PIN)){
 			if(active_extruder == 2){
 				isFilamentReady = false;
 			}
@@ -15446,11 +15446,11 @@ void setup() {
 	#endif
 
 	#if ENABLED(FILAMENT_DETECT)
-		SET_INPUT_PULLUP(FILAMENT_0_PIN);
+		SET_INPUT_PULLUP(FIL_RUNOUT_PIN);
 		#if E_STEPPERS > 1
-			SET_INPUT_PULLUP(FILAMENT_1_PIN);
+			SET_INPUT_PULLUP(FIL_RUNOUT1_PIN);
 			#if E_STEPPERS > 2
-				SET_INPUT_PULLUP(FILAMENT_2_PIN);
+				SET_INPUT_PULLUP(FIL_RUNOUT2_PIN);
 			#endif	// E_STEPPERS > 2
 		#endif	// E_STEPPERS > 1
 	#endif
