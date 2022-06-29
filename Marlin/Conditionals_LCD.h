@@ -418,9 +418,6 @@
     #ifndef NUM_SERVOS
       #define NUM_SERVOS (Z_ENDSTOP_SERVO_NR + 1)
     #endif
-		#ifdef BL_TOUCH_SIGNAL_SELF_FILTER	// BY LYN
-			#undef DEACTIVATE_SERVOS_AFTER_MOVE
-		#endif
     #if NUM_SERVOS == 1
       #undef SERVO_DELAY
       #define SERVO_DELAY { 50 }

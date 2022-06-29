@@ -15,17 +15,13 @@
  */
 #define MODEL F430
 
-// Enable this for printers with a yellow motherboard (v9.5 or newer)
-// Leave this disabled for printers with a green motherboard (older than v9.5)
-//#define BOARD_VERSION_GT_V95
-
 // This defines the number of extruders
 // :[1, 2, 3, 4, 5]
 #define EXTRUDERS 2
 
-// This defines the extruder temp sensor type
-// :[KTC, NTC]
-#define TEMP_SENSOR KTC
+// Enable this for printers with a yellow motherboard (v9.5 or newer)
+// Leave this disabled for printers with a green motherboard (older than v9.5)
+//#define BOARD_VERSION_GT_V95
 
 /**
  * LCD LANGUAGE
@@ -40,13 +36,23 @@
  */
 #define LANGUAGE en
 
-#define USE_AUTOMATIC_VERSIONING
+#include "_ModelInfo.h"
 
+
+//===========================================================================
+//============================== Configuration ==============================
+//===========================================================================
+
+// The following define selects which electronics board you have.
+// Please choose the name from boards.h that matches your setup
 #define MOTHERBOARD BOARD_CREATBOT
 
-#define BL_TOUCH_SIGNAL_SELF_FILTER
+// Overriden standard Marlin version inditifer file with _Version.h
+#define USE_AUTOMATIC_VERSIONING
 
-#include "_ModelInfo.h"
+// This defines the extruder temp sensor type
+// :[KTC, NTC]
+#define TEMP_SENSOR KTC
 
 //===========================================================================
 //============================= Thermal Settings ============================
@@ -179,81 +185,120 @@
 #define X_MIN_POS 0
 #define Y_MIN_POS 0
 #define Z_MIN_POS 0
-#if MODEL == DM_Mini || MODEL == DM || MODEL == DM_Plus
-  #if MODEL == DM_Mini
-    #define X_MAX_POS 205
-    #define Y_MAX_POS 205
-    #ifdef TEMP_SENSOR == KTC
-      #define Z_MAX_POS 250
-    #else // TEMP_SENSOR == NTC
-      #define Z_MAX_POS 255
-    #endif
-  #else
-    #define X_MAX_POS 255
-    #define Y_MAX_POS 255
-    #if MODEL == DM
-      #ifdef TEMP_SENSOR == KTC
-        #define Z_MAX_POS 300
-      #else // TEMP_SENSOR == NTC
-        #define Z_MAX_POS 305
-      #endif
-    #else // MODEL == DM_Plus
-      #ifdef TEMP_SENSOR == KTC
-        #define Z_MAX_POS 450
-      #else
-        #define Z_MAX_POS 455
-      #endif
-    #endif
+
+#if MODEL == DM_Mini
+  #define HOTEND_OFFSET_X { 0.0, 20.0 } // TODO: Actual values
+  #define HOTEND_OFFSET_Y { 0.0, 0.0 }
+  #define X_MAX_POS 205
+  #define Y_MAX_POS 205
+  #ifdef TEMP_SENSOR == KTC
+    #define Z_MAX_POS 250
+  #else // TEMP_SENSOR == NTC
+    #define Z_MAX_POS 255
   #endif
-#elif MODEL == DX || MODEL == DX_Plus
-  #if EXTRUDERS == 3
+#elif MODEL == DM
+  #define HOTEND_OFFSET_X { 0.0, 20.0 } // TODO: Actual values
+  #define HOTEND_OFFSET_Y { 0.0, 0.0 }
+  #define X_MAX_POS 255
+  #define Y_MAX_POS 255
+  #ifdef TEMP_SENSOR == KTC
+    #define Z_MAX_POS 300
+  #else // TEMP_SENSOR == NTC
+    #define Z_MAX_POS 305
+  #endif
+#elif MODEL == DM_Plus
+  #define HOTEND_OFFSET_X { 0.0, 20.0 } // TODO: Actual values
+  #define HOTEND_OFFSET_Y { 0.0, 0.0 }
+  #define X_MAX_POS 255
+  #define Y_MAX_POS 255
+  #ifdef TEMP_SENSOR == KTC
+    #define Z_MAX_POS 450
+  #else
+    #define Z_MAX_POS 455
+  #endif
+#elif MODEL == DX
+  #if EXTRUDERS > 2
+    #define HOTEND_OFFSET_X { 0.0, 20.0, 40.0 } // TODO: Actual values
+    #define HOTEND_OFFSET_Y { 0.0, 0.0, 0.0 }
     #define X_MAX_POS 280
   #else // EXTRUDERS <= 2
+    #define HOTEND_OFFSET_X { 0.0, 20.0 } // TODO: Actual values
+    #define HOTEND_OFFSET_Y { 0.0, 0.0 }
     #define X_MAX_POS 305
   #endif
   #define Y_MAX_POS 255
-  #if MODEL == DX
-    #ifdef TEMP_SENSOR == KTC
-      #define Z_MAX_POS 300
-    #else // TEMP_SENSOR == NTC
-      #define Z_MAX_POS 305
-    #endif
-  #else // MODEL == DX_Plus
-    #ifdef TEMP_SENSOR == KTC
-      #define Z_MAX_POS 520
-    #else
-      #define Z_MAX_POS 525
-    #endif
+  #ifdef TEMP_SENSOR == KTC
+    #define Z_MAX_POS 300
+  #else // TEMP_SENSOR == NTC
+    #define Z_MAX_POS 305
   #endif
-#elif MODEL == DE || MODEL == DE_Plus
-  #if EXTRUDERS == 3
+#elif MODEL == DX_Plus
+  #if EXTRUDERS > 2
+    #define HOTEND_OFFSET_X { 0.0, 15.0, 30.0 } // TODO: Actual values
+    #define HOTEND_OFFSET_Y { 0.0, 0.0, 0.0 }
+    #define X_MAX_POS 280
+  #else // EXTRUDERS <= 2
+    #define HOTEND_OFFSET_X { 0.0, 15.0 } // TODO: Actual values
+    #define HOTEND_OFFSET_Y { 0.0, 0.0 }
+    #define X_MAX_POS 305
+  #endif
+  #define Y_MAX_POS 255
+  #ifdef TEMP_SENSOR == KTC
+    #define Z_MAX_POS 520
+  #else
+    #define Z_MAX_POS 525
+  #endif
+#elif MODEL == DE
+  #if EXTRUDERS > 2
+    #define HOTEND_OFFSET_X { 0.0, 20.0, 40.0 } // TODO: Actual values
+    #define HOTEND_OFFSET_Y { 0.0, 0.0, 0.0 }
     #define X_MAX_POS 385
   #else // EXTRUDERS <= 2
+    #define HOTEND_OFFSET_X { 0.0, 20.0 } // TODO: Actual values
+    #define HOTEND_OFFSET_Y { 0.0, 0.0 }
     #define X_MAX_POS 405
   #endif
   #define Y_MAX_POS 305
-  #if MODEL == DE
-    #define Z_MAX_POS 300
-  #else // MODEL == DE_Plus
-    #define Z_MAX_POS 520
+  #define Z_MAX_POS 300
+#elif MODEL == DE_Plus
+  #if EXTRUDERS > 2
+    #define HOTEND_OFFSET_X { 0.0, 20.0, 40.0 } // TODO: Actual values
+    #define HOTEND_OFFSET_Y { 0.0, 0.0, 0.0 }
+    #define X_MAX_POS 385
+  #else // EXTRUDERS <= 2
+    #define HOTEND_OFFSET_X { 0.0, 20.0 } // TODO: Actual values
+    #define HOTEND_OFFSET_Y { 0.0, 0.0 }
+    #define X_MAX_POS 405
   #endif
+  #define Y_MAX_POS 305
+  #define Z_MAX_POS 520
 #elif MODEL == D600  || MODEL == D600_Pro
-  #if EXTRUDERS == 3
+  #if EXTRUDERS > 2
+    #define HOTEND_OFFSET_X { 0.0, 20.0, 40.0 } // TODO: Actual values
+    #define HOTEND_OFFSET_Y { 0.0, 0.0, 0.0 }
     #define X_MAX_POS 580
   #else
+    #define HOTEND_OFFSET_X { 0.0, 20.0 } // TODO: Actual values
+    #define HOTEND_OFFSET_Y { 0.0, 0.0 }
     #define X_MAX_POS 600
   #endif
   #define Y_MAX_POS 600
   #define Z_MAX_POS 600
 #elif MODEL == D600_Mini
+  #define HOTEND_OFFSET_X { 0.0, 20.0 } // TODO: Actual values
+  #define HOTEND_OFFSET_Y { 0.0, 0.0 }
   #define X_MAX_POS 600
   #define Y_MAX_POS 600
   #define Z_MAX_POS 300
 #elif MODEL == D600_SE
+  #define HOTEND_OFFSET_X { 0.0, 20.0 } // TODO: Actual values
+  #define HOTEND_OFFSET_Y { 0.0, 0.0 }
   #define X_MAX_POS 600
   #define Y_MAX_POS 400
   #define Z_MAX_POS 400
 #elif MODEL == F300
+  #define HOTEND_OFFSET_X { 0.0, 20.0 } // TODO: Actual values
+  #define HOTEND_OFFSET_Y { 0.0, 0.0 }
   #define X_MAX_POS 300
   #define Y_MAX_POS 300
   #define Z_MAX_POS 400
@@ -262,36 +307,52 @@
   #define Y_MAX_POS 160
   #define Z_MAX_POS 200
 #elif MODEL == F200
+  #define HOTEND_OFFSET_X { 0.0, 20.0 } // TODO: Actual values
+  #define HOTEND_OFFSET_Y { 0.0, 0.0 }
   #define X_MAX_POS 200
   #define Y_MAX_POS 200
   #define Z_MAX_POS 300
 #elif MODEL == F220
+  #define HOTEND_OFFSET_X { 0.0, 20.0 } // TODO: Actual values
+  #define HOTEND_OFFSET_Y { 0.0, 0.0 }
   #define X_MAX_POS 220
   #define Y_MAX_POS 220
   #define Z_MAX_POS 260
 #elif MODEL == F260
+  #define HOTEND_OFFSET_X { 0.0, 20.0 } // TODO: Actual values
+  #define HOTEND_OFFSET_Y { 0.0, 0.0 }
   #define X_MAX_POS 260
   #define Y_MAX_POS 260
   #define Z_MAX_POS 300
 #elif MODEL == F430
+  #define HOTEND_OFFSET_X { 0.0, 73.0 }
+  #define HOTEND_OFFSET_Y { 0.0, 0.0 }
   #define X_MAX_POS 400
   #define Y_MAX_POS 300
   #define Z_MAX_POS 300
 #elif MODEL == PEEK300
+  #define HOTEND_OFFSET_X { 0.0, 20.0 } // TODO: Actual values
+  #define HOTEND_OFFSET_Y { 0.0, 0.0 }
   #define X_MAX_POS 300
   #define Y_MAX_POS 300
   #define Z_MAX_POS 300
 #elif MODEL == F1000
+  #define HOTEND_OFFSET_X { 0.0, 20.0 } // TODO: Actual values
+  #define HOTEND_OFFSET_Y { 0.0, 0.0 }
   #define X_MAX_POS 1000
   #define Y_MAX_POS 1000
   #define Z_MAX_POS 1000
 #elif MODEL == Other_MODEL
+  #define HOTEND_OFFSET_X { 0.0, 0.0 }
+  #define HOTEND_OFFSET_Y { 0.0, 0.0 }
   #define X_MAX_POS 600
   #define Y_MAX_POS 600
   #define Z_MAX_POS 50
 #else
   #error "Unknown size info."
 #endif
+
+
 
 //===========================================================================
 //=============================== Bed Leveling ==============================
@@ -302,7 +363,6 @@
 
   #define NUM_SERVOS 1
   #define Z_ENDSTOP_SERVO_NR 0
-  #define DEACTIVATE_SERVOS_AFTER_MOVE
 
   #define Z_SAFE_HOMING // safe homing to prevent servo cann't probe the bed.
 
