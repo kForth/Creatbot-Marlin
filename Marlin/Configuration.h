@@ -1073,7 +1073,7 @@
 
 #if ENABLED(NOZZLE_PARK_FEATURE)
   // Specify a park position as { X, Y, Z }
-  #define NOZZLE_PARK_POINT { (X_CENTER + 50), (Y_MAX_POS - 10), 20 }
+  #define NOZZLE_PARK_POINT { X_CENTER, (Y_MAX_POS - 50), 20 }
 #endif
 
 /**
