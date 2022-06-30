@@ -14,6 +14,8 @@
 
 #include "dwin_lcd_implementation.h"
 
+#define STATE_PAGE_AS_DEFAULT
+
 #define LCD_SETUP_FIRST							"0000"
 #define LCD_SETUP_LOOP_STRAT					0		// "000D"
 #define LCD_SETUP_LOOP_END						6		// "0024"
