@@ -11,13 +11,12 @@ This is the source code for the modified firmware running on my [Creatbot F430](
  - [x] Don't purge extruder when resuming print.
  - [x] Tweak default steps/mm to real tuned values.
  - [x] Tweak default preheat settings.
+ - [x] Park nozzle when paused while printing over serial.
+    - Use "G60 S0;G27" to park print head and "G61 S0" to restore print head.
+ - [x] Enable Filament Runout Sensor while printing over serial.
  - [ ] Make USB Disk behave the same as typical SD Card.
- - [ ] Enable pause/resume commands while printing over serial.
- - [ ] Enable Filament Runout Sensor while printing over serial.
  - [ ] Enable use of genuine BL Touch probes (may be a hardware problem).
- - [ ] Merge changes from Marlin 1.1.7
- - [ ] Merge changes from Marlin 1.1.8
- - [ ] Merge changes from Marlin 1.1.9
+ - [ ] Merge changes from Marlin 1.1.7, 1.1.8, and 1.1.9?
  - [ ] Upgrade to Marlin 2.1.x (LCD and USB need a lot of rework)
 
 ### Bugs

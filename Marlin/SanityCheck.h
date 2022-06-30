@@ -1406,6 +1406,11 @@ static_assert(COUNT(sanity_arr_3) <= XYZE_N, "DEFAULT_MAX_ACCELERATION has too m
   #endif
 #endif // SPINDLE_LASER_ENABLE
 
+// G60/G61 Position Save
+#if SAVED_POSITIONS < 0 || SAVED_POSITIONS > 256
+  #error "SAVED_POSITIONS must be an integer from 0 to 256."
+#endif
+
 /**
  * CreatBot Sanity Check
  */

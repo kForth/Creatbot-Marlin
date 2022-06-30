@@ -69,6 +69,8 @@
  * G33  - Delta Auto-Calibration (Requires DELTA_AUTO_CALIBRATION)
  * G38  - Probe in any direction using the Z_MIN_PROBE (Requires G38_PROBE_TARGET)
  * G42  - Coordinated move to a mesh point (Requires AUTO_BED_LEVELING_UBL)
+ * G60  - Save current position. (Requires SAVED_POSITIONS)
+ * G61  - Apply/restore saved coordinates. (Requires SAVED_POSITIONS)
  * G90  - Use Absolute Coordinates
  * G91  - Use Relative Coordinates
  * G92  - Set current position to coordinates given
@@ -422,6 +424,12 @@ float current_position[XYZE] = { 0.0 };
  *   'line_to_destination' sets 'current_position' to 'destination'.
  */
 float destination[XYZE] = { 0.0 };
+
+// G60/G61 Position Save and Return
+#if SAVED_POSITIONS
+  uint8_t saved_slots[(SAVED_POSITIONS + 7) >> 3];
+  float stored_position[SAVED_POSITIONS][XYZE];
+#endif
 
 /**
  * axis_homed
@@ -6191,6 +6199,100 @@ void home_all_axes() { gcode_G28(true); }
   }
 
 #endif // AUTO_BED_LEVELING_UBL
+
+#if SAVED_POSITIONS
+  /**
+   * G60: Save current position
+   *
+   *   S<slot> - Memory slot # (0-based) to save into (default 0)
+   */
+  inline void gcode_G60(){
+    const uint8_t slot = parser.byteval('S');
+
+    if (slot >= SAVED_POSITIONS) {
+      SERIAL_ERROR(MSG_INVALID_POS_SLOT STRINGIFY(SAVED_POSITIONS));
+      return;
+    }
+
+    COPY(stored_position[slot], current_position);
+    // stored_position[slot] = current_position;
+    SBI(saved_slots[slot >> 3], slot & 0x07);
+  }
+
+  /**
+   * G61: Return to saved position
+   *
+   *   F<rate>  - Feedrate (optional) for the move back.
+   *   S<slot>  - Slot # (0-based) to restore from (default 0).
+   *   X Y Z E  - Axes to restore. At least one is required.
+   *
+   *   If XYZE are not given, default restore uses the smart blocking move.
+   */
+  inline void gcode_G61(){
+    const uint8_t slot = parser.byteval('S');
+
+    #if SAVED_POSITIONS < 256
+      if (slot >= SAVED_POSITIONS) {
+        SERIAL_ERROR(MSG_INVALID_POS_SLOT STRINGIFY(SAVED_POSITIONS));
+        return;
+      }
+    #endif
+
+    // No saved position? No axes being restored?
+    if (!TEST(saved_slots[slot >> 3], slot & 0x07)) return;
+
+    // Apply any given feedrate over 0.0
+    float saved_feedrate = feedrate_mm_s;
+    const float fr = parser.linearval('F');
+    if (fr > 0.0) feedrate_mm_s = MMM_TO_MMS(fr);
+
+    if (!parser.seen_axis()) {
+      SERIAL_ECHOLNPGM("Default position restore");
+      do_blocking_move_to(
+        stored_position[slot][X_AXIS],
+        stored_position[slot][Y_AXIS],
+        stored_position[slot][Z_AXIS],
+        feedrate_mm_s
+      );
+    }
+    else {
+      COPY(destination, current_position); // Set destination to current_position as default
+
+      SERIAL_ECHO(MSG_RESTORING_POS);
+      SERIAL_ECHOPAIR(" S", slot);
+      if (parser.seen('X') || parser.seen('Y') || parser.seen('Z')) {
+        char ax_char;
+        LOOP_XYZ(i){
+          ax_char = (char)('X' + i);
+          if(parser.seen(ax_char)){
+            destination[i] = stored_position[slot][i] + parser.value_axis_units((AxisEnum)i);
+            SERIAL_ECHO(ax_char);
+            SERIAL_ECHO(destination[i]);
+          }
+        }
+        SERIAL_EOL();
+        // Move to the saved position
+        line_to_destination();  // prepare_line_to_destination();
+      }
+
+      #if EXTRUDERS
+        if (parser.seen('E')) {
+          SERIAL_ECHOPGM(MSG_RESTORING_POS);
+          SERIAL_ECHO(' ');
+          SERIAL_ECHOPAIR(" S", slot);
+          SERIAL_ECHOPAIR(" E", current_position[E_AXIS]);
+          SERIAL_ECHOPAIR(" =>", stored_position[slot][E_AXIS]);
+          SERIAL_EOL();
+        }
+      #endif
+    }
+    #if EXTRUDERS
+      planner.set_e_position_mm((destination[E_AXIS] = current_position[E_AXIS] = stored_position[slot][E_AXIS]));
+    #endif
+
+    feedrate_mm_s = saved_feedrate;
+  }
+#endif
 
 /**
  * G92: Set current position to given X Y Z E
@@ -12039,6 +12141,13 @@ void process_next_command() {
           if (parser.subcode == 2 || parser.subcode == 3)
             gcode_G38(parser.subcode == 2);
           break;
+      #endif
+      
+      #if SAVED_POSITIONS
+        case 60: // G60
+          gcode_G60(); break;
+        case 61: // G61
+          gcode_G61(); break;
       #endif
 
       case 90: // G90
