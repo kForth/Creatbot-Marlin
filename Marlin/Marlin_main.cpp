@@ -767,7 +767,7 @@ XYZ_CONSTS_FROM_CONFIG(signed char, home_dir, HOME_DIR);
 /******************************************* By LYN ************************************************/
 
 #ifdef CHAMBER_FAN
-	int air_fan_speed = DEFAULT_AIR_FAN_SPEED;			// the speed of air fan.
+	int chamber_fan_speed = DEFAULT_AIR_FAN_SPEED;			// the speed of air fan.
 	int preAirFanSpeed = 0;
 	#ifdef HEATED_CHAMBER
 		bool air_fan_state = true;										// the state of air fan.
@@ -11137,7 +11137,7 @@ inline void gcode_M6011() {
 inline void gcode_M6012() {
   uint16_t s = parser.ushortval('S', 255);
   NOMORE(s, 255);
-  air_fan_speed = s;
+  chamber_fan_speed = s;
 }
 #endif
 
@@ -14710,7 +14710,7 @@ void detectFilament() {
 
 #ifdef CHAMBER_FAN
 void detectAirFan() {
-	bool change = preAirFanSpeed != air_fan_speed;
+	bool change = preAirFanSpeed != chamber_fan_speed;
 #ifdef HEATED_CHAMBER
 	bool should_cooldown = thermalManager.degChamber() > thermalManager.degTargetChamber();
 	if(air_fan_state ^ should_cooldown){
@@ -14720,7 +14720,7 @@ void detectAirFan() {
 #endif
 
 	if(change) {
-		preAirFanSpeed = air_fan_speed;
+		preAirFanSpeed = chamber_fan_speed;
 		pinMode(AIR_FAN_PIN, OUTPUT);
 	#ifdef HEATED_CHAMBER
 		if(!air_fan_state){
@@ -14729,8 +14729,8 @@ void detectAirFan() {
 		} else
 	#endif
 		{
-			digitalWrite(AIR_FAN_PIN, air_fan_speed);
-			analogWrite(AIR_FAN_PIN, air_fan_speed);
+			digitalWrite(AIR_FAN_PIN, chamber_fan_speed);
+			analogWrite(AIR_FAN_PIN, chamber_fan_speed);
 		}
 	}
 }

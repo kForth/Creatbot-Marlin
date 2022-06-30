@@ -163,7 +163,7 @@ extern MarlinSettings settings;
 		uint32_t	setting_motor_current[3];
 
 		int				setting_extruder_auto_fan_speed;
-		int				setting_air_fan_speed;
+		int				setting_chamber_fan_speed;
 		
 		uint32_t	setting_usedTime;
 

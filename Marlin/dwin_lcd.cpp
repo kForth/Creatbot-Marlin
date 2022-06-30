@@ -1156,7 +1156,7 @@ void updateFanSpeed(uint8_t mode) {
 	}
 	else if (mode == AIR_FAN) {
 #ifdef CHAMBER_FAN
-		FAN_SPEED_UPDATE(air_fan_speed, AIR_FAN_SPEED_ADDR);
+		FAN_SPEED_UPDATE(chamber_fan_speed, AIR_FAN_SPEED_ADDR);
 #endif
 	}
 }
@@ -1763,7 +1763,7 @@ void resolveVar() {
 		#endif
 		else if (VAR_IS_ADDR(SET_AIR_FAN_SPEED_ADDR)) {				// air fan speed
 			#ifdef CHAMBER_FAN
-			air_fan_speed = varValue * 2.55;
+			chamber_fan_speed = varValue * 2.55;
 			#endif
 		}
 	#if HAS_BED_PROBE

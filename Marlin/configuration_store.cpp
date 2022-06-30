@@ -166,7 +166,7 @@
  *
  * Fan Setting (By LYN)																																				(4)
  *  ___							extruder_auto_fan_speed					(int)
- *  ___							air_fan_speed										(int)
+ *  ___							chamber_fan_speed										(int)
  *
  * Registered & Used Time (By LYN)																														(8)
  *  ___							usedTime												(uint32_t)
@@ -513,7 +513,7 @@ void MarlinSettings::postprocess() {
 		#endif
 
 		#ifdef CHAMBER_FAN
-			SETTING_TO_CONFIG(air_fan_speed);
+			SETTING_TO_CONFIG(chamber_fan_speed);
 		#endif
 
 			SETTING_TO_CONFIG(usedTime);
@@ -770,7 +770,7 @@ void MarlinSettings::postprocess() {
 			#endif
 
 			#ifdef CHAMBER_FAN
-				CONFIG_TO_SETTING(air_fan_speed);
+				CONFIG_TO_SETTING(chamber_fan_speed);
 			#endif
 
 				CONFIG_TO_SETTING(usedTime);
@@ -1172,7 +1172,7 @@ void MarlinSettings::reset(bool init/* = false*/) {
 
 	#ifdef CHAMBER_FAN
 		if(init){
-			air_fan_speed = DEFAULT_AIR_FAN_SPEED;
+			chamber_fan_speed = DEFAULT_AIR_FAN_SPEED;
 		}
 	#endif
 

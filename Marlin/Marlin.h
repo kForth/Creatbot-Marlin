@@ -570,7 +570,7 @@ FORCE_INLINE bool position_is_reachable_xy(const float &lx, const float &ly) {
 #endif
 
 #ifdef CHAMBER_FAN
-	extern int air_fan_speed;
+	extern int chamber_fan_speed;
 #endif
 
 extern uint32_t	usedTime;
