@@ -25,7 +25,7 @@
   /**
    * Creatbot release version identifier
    */
-  #define CREATBOT_VERSION "5.6c"
+  #define CREATBOT_VERSION "5.6d"
 
   /**
    * Marlin release version identifier
@@ -84,6 +84,6 @@
    * The WEBSITE_URL is the location where users can get more information such as
    * documentation about a specific Marlin release.
    */
-  #define WEBSITE_URL "https://www.creatbot.com"
+  #define WEBSITE_URL "https://www.marlinfw.org"
 
 #endif // USE_AUTOMATIC_VERSIONING
