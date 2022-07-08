@@ -44,6 +44,7 @@
 #include "fastio.h"
 #include "utility.h"
 #include "serial.h"
+#include "host_actions.h"
 
 #if ENABLED(PRINTCOUNTER)
   #include "printcounter.h"

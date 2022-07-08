@@ -178,6 +178,7 @@
 #define MSG_SOFT_ENDSTOPS                   "Soft endstops: "
 #define MSG_SOFT_MIN                        "  Min: "
 #define MSG_SOFT_MAX                        "  Max: "
+#define MSG_HEATER_TIMEOUT                  "Heater Timeout"
 
 #define MSG_SAVED_POS                       "Position saved"
 #define MSG_RESTORING_POS                   "Restoring position"

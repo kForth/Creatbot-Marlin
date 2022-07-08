@@ -72,9 +72,6 @@ extern const char errormagic[] PROGMEM;
 #define SERIAL_ACTION_NOTIFY(x)        SERIAL_ECHOLN("//action:notification" x)
 #define SERIAL_ACTIONPGM_NOTIFY(x)     SERIAL_ECHOLNPGM("//action:notification" x)
 
-#define SERIAL_ACTION_PAUSED()         SERIAL_ECHOLNPGM("//action:paused")
-#define SERIAL_ACTION_RESUMED()        SERIAL_ECHOLNPGM("//action:resumed")
-
 // These macros compensate for float imprecision
 #define SERIAL_PROTOCOLPAIR_F(pre, value)    SERIAL_PROTOCOLPAIR(pre, FIXFLOAT(value))
 #define SERIAL_PROTOCOLLNPAIR_F(pre, value)  SERIAL_PROTOCOLLNPAIR(pre, FIXFLOAT(value))

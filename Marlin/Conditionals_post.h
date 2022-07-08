@@ -985,5 +985,54 @@
       #define PARKING_EXTRUDER_SOLENOIDS_PINS_ACTIVE HIGH
     #endif
   #endif
+  
+  // HOST_PROMPT_SUPPORT
+  #if ENABLED(HOST_PROMPT_SUPPORT) && DISABLED(EMERGENCY_PARSER)
+    #define HAS_GCODE_M876 1
+  #endif
+
+  // HOST_ACTION_COMMANDS
+  #if ENABLED(HOST_ACTION_COMMANDS)
+    #ifndef ACTION_ON_PAUSE
+      #define ACTION_ON_PAUSE   "pause"
+    #endif
+    #ifndef ACTION_ON_PAUSED
+      #define ACTION_ON_PAUSED  "paused"
+    #endif
+    #ifndef ACTION_ON_RESUME
+      #define ACTION_ON_RESUME  "resume"
+    #endif
+    #ifndef ACTION_ON_RESUMED
+      #define ACTION_ON_RESUMED "resumed"
+    #endif
+    #ifndef ACTION_ON_CANCEL
+      #define ACTION_ON_CANCEL  "cancel"
+    #endif
+    #ifndef ACTION_ON_START
+      #define ACTION_ON_START   "start"
+    #endif
+    #ifndef ACTION_ON_KILL
+      #define ACTION_ON_KILL    "poweroff"
+    #endif
+    #ifndef SHUTDOWN_ACTION
+      #define SHUTDOWN_ACTION   "shutdown"
+    #endif
+    #if HAS_FILAMENT_SENSOR || ENABLED(FILAMENT_DETECT)
+      #ifndef ACTION_ON_FILAMENT_RUNOUT
+        #define ACTION_ON_FILAMENT_RUNOUT "filament_runout"
+      #endif
+      #ifndef ACTION_REASON_ON_FILAMENT_RUNOUT
+        #define ACTION_REASON_ON_FILAMENT_RUNOUT "filament_runout"
+      #endif
+    #endif
+    #if ENABLED(G29_RETRY_AND_RECOVER)
+      #ifndef ACTION_ON_G29_RECOVER
+        #define ACTION_ON_G29_RECOVER "probe_rewipe"
+      #endif
+      #ifndef ACTION_ON_G29_FAILURE
+        #define ACTION_ON_G29_FAILURE "probe_failed"
+      #endif
+    #endif
+  #endif
 
 #endif // CONDITIONALS_POST_H

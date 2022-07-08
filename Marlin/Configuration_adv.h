@@ -1312,6 +1312,8 @@
  * Will be sent in the form '//action:ACTION_ON_KILL', e.g. '//action:poweroff'.
  * The host must be configured to handle the action command.
  */
+#define HOST_ACTION_COMMANDS
+#define HOST_PROMPT_SUPPORT
 //#define ACTION_ON_KILL "poweroff"
 
 //===========================================================================

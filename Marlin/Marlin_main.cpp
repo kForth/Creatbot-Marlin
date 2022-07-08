@@ -216,6 +216,7 @@
  * M867 - Enable/disable or toggle error correction for position encoder modules.
  * M868 - Report or set position encoder module error correction threshold.
  * M869 - Report position encoder module error.
+ * M876 - Handle Prompt Response.
  * M900 - Get and/or Set advance K factor and WH/D ratio. (Requires LIN_ADVANCE)
  * M906 - Set or get motor current in milliamps using axis codes X, Y, Z, E. Report values if no axis codes given. (Requires HAVE_TMC2130)
  * M907 - Set digital trimpot motor current using axis codes. (Requires a board with digital trimpots)
@@ -6589,9 +6590,12 @@ inline void gcode_M17() {
       #if ENABLED(PREVENT_COLD_EXTRUSION)
         if (!thermalManager.allow_cold_extrude &&
             thermalManager.degTargetHotend(active_extruder) < thermalManager.extrude_min_temp) {
-          // SERIAL_ERROR_START();
-          // SERIAL_ERRORLNPGM(MSG_TOO_COLD_FOR_M600);
-          SERIAL_ACTION_NOTIFY(MSG_TOO_COLD_FOR_M600);
+          #if ENABLED(HOST_ACTION_COMMANDS)
+            SERIAL_ACTION_NOTIFY(MSG_TOO_COLD_FOR_M600);
+          #else
+            SERIAL_ERROR_START();
+            SERIAL_ERRORLNPGM(MSG_TOO_COLD_FOR_M600);
+          #endif
           return false;
         }
       #endif
@@ -6601,8 +6605,18 @@ inline void gcode_M17() {
 
     // Indicate that the printer is paused
     move_away_flag = true;
-
-    SERIAL_ACTION_PAUSED();
+    
+    #if ENABLED(HOST_ACTION_COMMANDS)
+      #ifdef ACTION_ON_PAUSED
+        hostui.paused();
+      #elif defined(ACTION_ON_PAUSE)
+        hostui.pause();
+      #endif
+    #endif
+    
+    #if ENABLED(HOST_PROMPT_SUPPORT)
+      hostui.prompt_open(PROMPT_INFO, MSG_FILAMENT_CHANGE_HEADER, MSG_DISMISS);
+    #endif
 
     // Pause the print job and timer
     #if HAS_READER
@@ -6649,8 +6663,8 @@ inline void gcode_M17() {
           idle();
         #elif ENABLED(DWIN_LCD)
           DWIN_MSG_P(MSG_FILAMENT_CHANGE_UNLOAD_1);
-          // return_default_button_action();
-	        POP_WINDOW(UNLOAD_INFO_KEY);
+	        // POP_WINDOW(UNLOAD_INFO_KEY);
+          return_default_button_action();
           idle();
         #endif
       }
@@ -6667,7 +6681,12 @@ inline void gcode_M17() {
         lcd_advanced_pause_show_message(ADVANCED_PAUSE_MESSAGE_INSERT);
       #elif ENABLED(DWIN_LCD)
         DWIN_MSG_P(MSG_FILAMENTCHANGE);
-			  POP_WINDOW(CHANGE_FILAMENT_KEY); // Need a way to set wait_for_user to false
+			  // POP_WINDOW(CHANGE_FILAMENT_KEY); // Need a way to set wait_for_user to false
+        return_default_button_action();
+      #endif
+
+      #if ENABLED(HOST_PROMPT_SUPPORT)
+        hostui.prompt_do(PROMPT_USER_CONTINUE, MSG_FILAMENTCHANGE, MSG_CONTINUE);
       #endif
     }
 
@@ -6714,16 +6733,23 @@ inline void gcode_M17() {
           lcd_advanced_pause_show_message(ADVANCED_PAUSE_MESSAGE_CLICK_TO_HEAT_NOZZLE);
         #elif ENABLED(DWIN_LCD)
           DWIN_MSG_P(MSG_FILAMENT_CHANGE_HEAT_1);
-          POP_WINDOW(CHANGE_FILAMENT_KEY); // Need a way to set wait_for_user to false  
+          // POP_WINDOW(CHANGE_FILAMENT_KEY); // Need a way to set wait_for_user to false  
+          return_default_button_action();
         #endif
 
-        SERIAL_ACTION_NOTIFY(MSG_FILAMENT_CHANGE_HEAT_1);
+        #if ENABLED(HOST_PROMPT_SUPPORT)
+          hostui.prompt_do(PROMPT_USER_CONTINUE, MSG_HEATER_TIMEOUT, MSG_FILAMENT_CHANGE_HEAT_1);
+        #endif
 
         // Wait for LCD click or M108
         while (wait_for_user) idle(true);
 
         // Re-enable the heaters if they timed out
         HOTEND_LOOP() thermalManager.reset_heater_idle_timer(e);
+        
+        #if ENABLED(HOST_PROMPT_SUPPORT)
+          hostui.prompt_do(PROMPT_INFO, MSG_HEATING, MSG_DISMISS);
+        #endif
 
         // Wait for the heaters to reach the target temperatures
         ensure_safe_temperature();
@@ -6732,7 +6758,12 @@ inline void gcode_M17() {
           lcd_advanced_pause_show_message(ADVANCED_PAUSE_MESSAGE_INSERT);
         #elif ENABLED(DWIN_LCD)
           DWIN_MSG_P(MSG_FILAMENT_CHANGE_INSERT_1);
-          POP_WINDOW(CHANGE_FILAMENT_KEY); // Need a way to set wait_for_user to false
+          // POP_WINDOW(CHANGE_FILAMENT_KEY); // Need a way to set wait_for_user to false
+          return_default_button_action();
+        #endif
+
+        #if ENABLED(HOST_PROMPT_SUPPORT)
+          hostui.prompt_do(PROMPT_USER_CONTINUE, MSG_FILAMENT_CHANGE_INSERT_1, MSG_CONTINUE);
         #endif
 
         // Start the heater idle timers
@@ -6774,13 +6805,14 @@ inline void gcode_M17() {
     set_destination_to_current();
 
     if (load_length != 0) {
-    if (nozzle_timed_out){
+      if (nozzle_timed_out){
         // Show "insert filament"
         #if ENABLED(ULTIPANEL)
           lcd_advanced_pause_show_message(ADVANCED_PAUSE_MESSAGE_INSERT);
         #elif ENABLED(DWIN_LCD)
           DWIN_MSG_P(MSG_FILAMENT_CHANGE_INSERT_1);
-          POP_WINDOW(CHANGE_FILAMENT_KEY); // Need a way to set wait_for_user to false
+          // POP_WINDOW(CHANGE_FILAMENT_KEY); // Need a way to set wait_for_user to false
+          return_default_button_action();
         #endif
       }
 
@@ -6864,7 +6896,15 @@ inline void gcode_M17() {
       return_default_button_action();
     #endif
     
-    SERIAL_ACTION_RESUMED();
+    #ifdef ACTION_ON_RESUMED
+      hostui.resumed();
+    #elif defined(ACTION_ON_RESUME)
+      hostui.resume();
+    #endif
+    
+    #if ENABLED(HOST_PROMPT_SUPPORT)
+      hostui.prompt_open(PROMPT_INFO, MSG_RESUMING, MSG_DISMISS);
+    #endif
 
     #if HAS_READER
       if (sd_print_paused) {
@@ -8725,8 +8765,19 @@ inline void gcode_M115() {
       SERIAL_PROTOCOLLNPGM("Cap:EMERGENCY_PARSER:0");
     #endif
     
-    // HOST ACTION COMMANDS (paused, resume, resumed, cancel, etc.)
-    SERIAL_PROTOCOLLNPGM("Cap:HOST_ACTION_COMMANDS:1");
+    #if ENABLED(HOST_ACTION_COMMANDS)
+      // HOST ACTION COMMANDS (paused, resume, resumed, cancel, etc.)
+      SERIAL_PROTOCOLLNPGM("Cap:HOST_ACTION_COMMANDS:1");
+    #else
+      SERIAL_PROTOCOLLNPGM("Cap:HOST_ACTION_COMMANDS:0");
+    #endif
+
+    #if ENABLED(HOST_PROMPT_SUPPORT)
+      // PROMPT SUPPORT (M876)
+      SERIAL_PROTOCOLLNPGM("Cap:PROMPT_SUPPORT:1");
+    #else
+      SERIAL_PROTOCOLLNPGM("Cap:PROMPT_SUPPORT:0");
+    #endif
 
   #endif // EXTENDED_CAPABILITIES_REPORT
 }
@@ -10731,6 +10782,13 @@ inline void gcode_M355() {
 #endif // MIXING_EXTRUDER
 
 /**
+ * M876: Handle Prompt Response
+ */
+inline void gcode_M876() {
+  if (parser.seenval('S')) hostui.handle_response((uint8_t)parser.value_int());
+}
+
+/**
  * M999: Restart after being stopped
  *
  * Default behaviour is to flush the serial buffer and request
@@ -10895,6 +10953,9 @@ void quickStopPrintJob(){
   STORE_SETTING(usedTime);
   quickstop_stepper();
   FILE_STOP_PRINT;
+  #ifdef ACTION_ON_CANCEL
+    hostui.cancel();
+  #endif
   print_job_timer.stop();
   thermalManager.disable_all_heaters();
   #if FAN_COUNT > 0
@@ -12839,6 +12900,10 @@ void process_next_command() {
 
       #endif // I2C_POSITION_ENCODERS
 
+      case 876: // M876 Handle Prompt Response.
+        gcode_M876();
+        break;
+
       case 999: // M999: Restart after being Stopped
         gcode_M999();
         break;
@@ -14186,6 +14251,12 @@ void prepare_move_to_destination() {
   void handle_filament_runout() {
     if (!filament_ran_out) {
       filament_ran_out = true;
+      
+      #if ENABLED(HOST_PROMPT_SUPPORT)
+        const char tool = ('0' + active_extruder);
+        hostui.prompt_do(PROMPT_FILAMENT_RUNOUT, "FilamentRunout T", tool); //action:out_of_filament
+      #endif
+
       enqueue_and_echo_commands_P(PSTR(FILAMENT_RUNOUT_SCRIPT));
       stepper.synchronize();
     }
@@ -15217,7 +15288,7 @@ void kill(const char* lcd_msg) {
   thermalManager.disable_all_heaters(); //turn off heaters again
 
   #ifdef ACTION_ON_KILL
-    SERIAL_ECHOLNPGM("//action:" ACTION_ON_KILL);
+    hostui.kill();
   #endif
 
   #if HAS_POWER_SWITCH
@@ -15556,11 +15627,16 @@ void setup() {
       pe_deactivate_magnet(1);
     #endif
   #endif
+
   #if ENABLED(MKS_12864OLED)
     SET_OUTPUT(LCD_PINS_DC);
     OUT_WRITE(LCD_PINS_RS, LOW);
     delay(1000);
     WRITE(LCD_PINS_RS, HIGH);
+  #endif
+  
+  #if ENABLED(HOST_PROMPT_SUPPORT)
+    hostui.prompt_end();
   #endif
 
 	/**************** By LYN ************/

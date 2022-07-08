@@ -872,6 +872,13 @@
 #ifndef MSG_ERR_PROBING_FAILED
   #define MSG_ERR_PROBING_FAILED              _UxGT("Probing failed")
 #endif
+#ifndef MSG_CONTINUE
+  #define MSG_CONTINUE                        _UxGT("Continue")
+#endif
+#ifndef MSG_DISMISS
+  #define MSG_DISMISS                         _UxGT("Dismiss")
+#endif
+
 
 //
 // Filament Change screens show up to 3 lines on a 4-line display

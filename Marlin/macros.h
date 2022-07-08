@@ -126,6 +126,9 @@
 #define ENABLED(b) _CAT(SWITCH_ENABLED_, b)
 #define DISABLED(b) (!_CAT(SWITCH_ENABLED_, b))
 
+#define BOTH(a,b) (ENABLED(a) && ENABLED(b))
+#define EITHER(a,b) (ENABLED(a) || ENABLED(b))
+
 #define WITHIN(V,L,H) ((V) >= (L) && (V) <= (H))
 #define NUMERIC(a) WITHIN(a, '0', '9')
 #define DECIMAL(a) (NUMERIC(a) || a == '.')
