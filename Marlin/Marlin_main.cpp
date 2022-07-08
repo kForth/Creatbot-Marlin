@@ -6569,7 +6569,6 @@ inline void gcode_M17() {
             lcd_advanced_pause_show_message(ADVANCED_PAUSE_MESSAGE_WAIT_FOR_NOZZLES_TO_HEAT);
           #elif ENABLED(DWIN_LCD)
             DWIN_MSG_P(MSG_FILAMENT_CHANGE_HEATING_1);
-            return_default_button_action();
             POP_WINDOW(WAIT_KEY);
           #endif
           break;
@@ -6650,6 +6649,8 @@ inline void gcode_M17() {
           idle();
         #elif ENABLED(DWIN_LCD)
           DWIN_MSG_P(MSG_FILAMENT_CHANGE_UNLOAD_1);
+          // return_default_button_action();
+	        POP_WINDOW(UNLOAD_INFO_KEY);
           idle();
         #endif
       }
@@ -6666,9 +6667,6 @@ inline void gcode_M17() {
         lcd_advanced_pause_show_message(ADVANCED_PAUSE_MESSAGE_INSERT);
       #elif ENABLED(DWIN_LCD)
         DWIN_MSG_P(MSG_FILAMENTCHANGE);
-        return_default_button_action();
-        
-		    LCD_ALERTMESSAGEPGM(MSG_FILAMENTCHANGE);
 			  POP_WINDOW(CHANGE_FILAMENT_KEY); // Need a way to set wait_for_user to false
       #endif
     }
@@ -6716,7 +6714,6 @@ inline void gcode_M17() {
           lcd_advanced_pause_show_message(ADVANCED_PAUSE_MESSAGE_CLICK_TO_HEAT_NOZZLE);
         #elif ENABLED(DWIN_LCD)
           DWIN_MSG_P(MSG_FILAMENT_CHANGE_HEAT_1);
-          return_default_button_action();
           POP_WINDOW(CHANGE_FILAMENT_KEY); // Need a way to set wait_for_user to false  
         #endif
 
@@ -6735,8 +6732,7 @@ inline void gcode_M17() {
           lcd_advanced_pause_show_message(ADVANCED_PAUSE_MESSAGE_INSERT);
         #elif ENABLED(DWIN_LCD)
           DWIN_MSG_P(MSG_FILAMENT_CHANGE_INSERT_1);
-          return_default_button_action();
-          POP_WINDOW(CHANGE_FILAMENT_KEY);  // Need a way to set wait_for_user to false
+          POP_WINDOW(CHANGE_FILAMENT_KEY); // Need a way to set wait_for_user to false
         #endif
 
         // Start the heater idle timers
@@ -6784,8 +6780,7 @@ inline void gcode_M17() {
           lcd_advanced_pause_show_message(ADVANCED_PAUSE_MESSAGE_INSERT);
         #elif ENABLED(DWIN_LCD)
           DWIN_MSG_P(MSG_FILAMENT_CHANGE_INSERT_1);
-          return_default_button_action();
-          POP_WINDOW(CHANGE_FILAMENT_KEY);
+          POP_WINDOW(CHANGE_FILAMENT_KEY); // Need a way to set wait_for_user to false
         #endif
       }
 
