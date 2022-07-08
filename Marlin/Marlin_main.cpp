@@ -6590,8 +6590,9 @@ inline void gcode_M17() {
       #if ENABLED(PREVENT_COLD_EXTRUSION)
         if (!thermalManager.allow_cold_extrude &&
             thermalManager.degTargetHotend(active_extruder) < thermalManager.extrude_min_temp) {
-          SERIAL_ERROR_START();
-          SERIAL_ERRORLNPGM(MSG_TOO_COLD_FOR_M600);
+          // SERIAL_ERROR_START();
+          // SERIAL_ERRORLNPGM(MSG_TOO_COLD_FOR_M600);
+          SERIAL_ACTION_NOTIFY(MSG_TOO_COLD_FOR_M600);
           return false;
         }
       #endif
@@ -6601,6 +6602,8 @@ inline void gcode_M17() {
 
     // Indicate that the printer is paused
     move_away_flag = true;
+
+    SERIAL_ACTION_PAUSED();
 
     // Pause the print job and timer
     #if HAS_READER
@@ -6716,6 +6719,8 @@ inline void gcode_M17() {
           return_default_button_action();
           POP_WINDOW(CHANGE_FILAMENT_KEY); // Need a way to set wait_for_user to false  
         #endif
+
+        SERIAL_ACTION_NOTIFY(MSG_FILAMENT_CHANGE_HEAT_1);
 
         // Wait for LCD click or M108
         while (wait_for_user) idle(true);
@@ -6863,6 +6868,8 @@ inline void gcode_M17() {
       DWIN_MSG_P(MSG_PRINTING);
       return_default_button_action();
     #endif
+    
+    SERIAL_ACTION_RESUMED();
 
     #if HAS_READER
       if (sd_print_paused) {
@@ -8722,6 +8729,9 @@ inline void gcode_M115() {
     #else
       SERIAL_PROTOCOLLNPGM("Cap:EMERGENCY_PARSER:0");
     #endif
+    
+    // HOST ACTION COMMANDS (paused, resume, resumed, cancel, etc.)
+    SERIAL_PROTOCOLLNPGM("Cap:HOST_ACTION_COMMANDS:1");
 
   #endif // EXTENDED_CAPABILITIES_REPORT
 }
