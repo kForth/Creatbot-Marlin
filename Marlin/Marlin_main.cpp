@@ -14964,7 +14964,7 @@ void customDetect() {
 void manage_inactivity(bool ignore_stepper_queue/*=false*/) {
 
   #if ENABLED(FILAMENT_RUNOUT_SENSOR)
-    if ((!FILE_IS_PRINT && print_job_timer.isRunning()) && (
+    if (isSerialPrinting && !wait_for_user && print_job_timer.isRunning() && (
       (READ(FIL_RUNOUT_PIN) == FIL_RUNOUT_INVERTING)
       //TODO: Check pin for active extruder
       // #if PIN_EXISTS(FIL_RUNOUT1)
