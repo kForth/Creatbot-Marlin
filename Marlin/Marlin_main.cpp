@@ -6266,26 +6266,24 @@ void home_all_axes() { gcode_G28(true); }
           ax_char = (char)('X' + i);
           if(parser.seen(ax_char)){
             destination[i] = stored_position[slot][i] + parser.value_axis_units((AxisEnum)i);
+            SERIAL_ECHO(" ");
             SERIAL_ECHO(ax_char);
-            SERIAL_ECHO(destination[i]);
+            SERIAL_ECHOPAIR(" ", stored_position[slot][i]);
           }
         }
-        SERIAL_EOL();
+
         // Move to the saved position
         line_to_destination();  // prepare_line_to_destination();
       }
 
       #if EXTRUDERS
         if (parser.seen('E')) {
-          SERIAL_ECHOPGM(MSG_RESTORING_POS);
-          SERIAL_ECHO(' ');
-          SERIAL_ECHOPAIR(" S", slot);
           SERIAL_ECHOPAIR(" E", current_position[E_AXIS]);
           SERIAL_ECHOPAIR(" =>", stored_position[slot][E_AXIS]);
-          SERIAL_EOL();
         }
       #endif
     }
+    SERIAL_EOL();
     #if EXTRUDERS
       planner.set_e_position_mm((destination[E_AXIS] = current_position[E_AXIS] = stored_position[slot][E_AXIS]));
     #endif
