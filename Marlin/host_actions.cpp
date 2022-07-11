@@ -21,6 +21,7 @@
  */
 
 #include "MarlinConfig.h"
+#include "Marlin.h"
 
 #if ENABLED(HOST_ACTION_COMMANDS)
 
@@ -79,10 +80,6 @@ void HostUI::action(const char* fstr, const bool eol) {
 
   PromptReason HostUI::host_prompt_reason = PROMPT_NOT_DEFINED;
 
-  #if HAS_RESUME_CONTINUE
-    extern bool wait_for_user;
-  #endif
-
   void HostUI::notify(const char * const cstr) {
     action("notification ", false);
     SERIAL_ECHOLN(cstr);
@@ -137,22 +134,14 @@ void HostUI::action(const char* fstr, const bool eol) {
     switch (hpr) {
       case PROMPT_FILAMENT_RUNOUT:
         switch (response) {
-
           case 0: // "Purge More" button
             #if BOTH(M600_PURGE_MORE_RESUMABLE, ADVANCED_PAUSE_FEATURE)
-              pause_menu_response = PAUSE_RESPONSE_EXTRUDE_MORE;  // Simulate menu selection (menu exits, doesn't extrude more)
+              advanced_pause_menu_response = ADVANCED_PAUSE_RESPONSE_EXTRUDE_MORE;  // Simulate menu selection (menu exits, doesn't extrude more)
             #endif
             break;
-
-          case 1: // "Continue" / "Disable Runout" button
+          case 1: // "Continue" button
             #if BOTH(M600_PURGE_MORE_RESUMABLE, ADVANCED_PAUSE_FEATURE)
-              pause_menu_response = PAUSE_RESPONSE_RESUME_PRINT;  // Simulate menu selection
-            #endif
-            #if HAS_FILAMENT_SENSOR
-              if (runout.filament_ran_out) {                      // Disable a triggered sensor
-                runout.enabled = false;
-                runout.reset();
-              }
+              advanced_pause_menu_response = ADVANCED_PAUSE_RESPONSE_RESUME_PRINT;  // Simulate menu selection
             #endif
             break;
         }

@@ -946,4 +946,17 @@
   #endif
 #endif // LCD_HEIGHT < 4
 
+#ifndef MSG_M600_PRINT_PAUSED
+  #define MSG_M600_PRINT_PAUSED                _UxGT("Print Paused for M600 Command")
+#endif
+#ifndef MSG_M600_INSERT_FILAMENT
+  #define MSG_M600_INSERT_FILAMENT             _UxGT("Insert filament and press button to continue.")
+#endif
+#ifndef MSG_M600_HEATER_TIMEOUT
+  #define MSG_M600_HEATER_TIMEOUT              _UxGT("Heater Timeout. Press button to reheat nozzles.")
+#endif
+#ifndef MSG_M600_RESUME_READY
+  #define MSG_M600_RESUME_READY                _UxGT("Ready to Resume Print. Options:")
+#endif
+
 #endif // LANGUAGE_EN_H

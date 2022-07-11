@@ -293,6 +293,12 @@
 #endif
 
 #if LANGUAGE == cn
+	#define DWIN_MSG_RESUMING						"\xD5\xFD\xD4\xDA\xB4\xF2\xD3\xA1..."										//正在打印...
+#else
+	#define DWIN_MSG_RESUMING						MSG_RESUMING
+#endif
+
+#if LANGUAGE == cn
 	#define DWIN_MSG_PRINTFINISHED			"\xB4\xF2\xD3\xA1\xD2\xD1\xCD\xEA\xB3\xC9."							//打印已完成.
 #else
 	#define DWIN_MSG_PRINTFINISHED			MSG_PRINTFINISHED
@@ -344,6 +350,12 @@
 	#define DWIN_MSG_FILAMENT_NOT_READY	"\xBA\xC4\xB2\xC4\xCE\xB4\xBE\xCD\xD0\xF7."							//耗材未就绪.
 #else
 	#define DWIN_MSG_FILAMENT_NOT_READY	MSG_FILAMENT_NOT_READY
+#endif
+
+#if LANGUAGE == cn
+	#define DWIN_MSG_CHANGE_FILAMENT	"\xe6\x9b\xb4\xe6\x8d\xa2\xe7\x81\xaf\xe4\xb8\x9d."							//耗材未就绪.
+#else
+	#define DWIN_MSG_CHANGE_FILAMENT	MSG_FILAMENTCHANGE
 #endif
 
 #if LANGUAGE == cn

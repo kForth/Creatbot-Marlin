@@ -6569,7 +6569,7 @@ inline void gcode_M17() {
           #if ENABLED(ULTIPANEL)
             lcd_advanced_pause_show_message(ADVANCED_PAUSE_MESSAGE_WAIT_FOR_NOZZLES_TO_HEAT);
           #elif ENABLED(DWIN_LCD)
-            DWIN_MSG_P(MSG_FILAMENT_CHANGE_HEATING_1);
+            DWIN_MSG_P(DWIN_MSG_HEATING);
             POP_WINDOW(WAIT_KEY);
           #endif
           break;
@@ -6615,7 +6615,7 @@ inline void gcode_M17() {
     #endif
     
     #if ENABLED(HOST_PROMPT_SUPPORT)
-      hostui.prompt_open(PROMPT_INFO, MSG_FILAMENT_CHANGE_HEADER, MSG_DISMISS);
+      hostui.prompt_do(PROMPT_INFO, MSG_M600_PRINT_PAUSED, MSG_DISMISS);
     #endif
 
     // Pause the print job and timer
@@ -6662,7 +6662,7 @@ inline void gcode_M17() {
           lcd_advanced_pause_show_message(ADVANCED_PAUSE_MESSAGE_UNLOAD);
           idle();
         #elif ENABLED(DWIN_LCD)
-          DWIN_MSG_P(MSG_FILAMENT_CHANGE_UNLOAD_1);
+          DWIN_MSG_P(MSG_UNLOADING_FILAMENT);
 	        // POP_WINDOW(UNLOAD_INFO_KEY);
           return_default_button_action();
           idle();
@@ -6684,11 +6684,11 @@ inline void gcode_M17() {
 			  // POP_WINDOW(CHANGE_FILAMENT_KEY); // Need a way to set wait_for_user to false
         return_default_button_action();
       #endif
-
-      #if ENABLED(HOST_PROMPT_SUPPORT)
-        hostui.prompt_do(PROMPT_USER_CONTINUE, MSG_FILAMENTCHANGE, MSG_CONTINUE);
-      #endif
     }
+
+    #if ENABLED(HOST_PROMPT_SUPPORT)
+      hostui.prompt_do(PROMPT_USER_CONTINUE, MSG_M600_INSERT_FILAMENT, MSG_CONTINUE);
+    #endif
 
     #if HAS_BUZZER
       filament_change_beep(max_beep_count, true);
@@ -6732,13 +6732,13 @@ inline void gcode_M17() {
         #if ENABLED(ULTIPANEL)
           lcd_advanced_pause_show_message(ADVANCED_PAUSE_MESSAGE_CLICK_TO_HEAT_NOZZLE);
         #elif ENABLED(DWIN_LCD)
-          DWIN_MSG_P(MSG_FILAMENT_CHANGE_HEAT_1);
+          DWIN_MSG_P(MSG_HEATER_TIMEOUT);
           // POP_WINDOW(CHANGE_FILAMENT_KEY); // Need a way to set wait_for_user to false  
           return_default_button_action();
         #endif
 
         #if ENABLED(HOST_PROMPT_SUPPORT)
-          hostui.prompt_do(PROMPT_USER_CONTINUE, MSG_HEATER_TIMEOUT, MSG_FILAMENT_CHANGE_HEAT_1);
+          hostui.prompt_do(PROMPT_USER_CONTINUE, MSG_M600_HEATER_TIMEOUT, MSG_CONTINUE);
         #endif
 
         // Wait for LCD click or M108
@@ -6763,7 +6763,7 @@ inline void gcode_M17() {
         #endif
 
         #if ENABLED(HOST_PROMPT_SUPPORT)
-          hostui.prompt_do(PROMPT_USER_CONTINUE, MSG_FILAMENT_CHANGE_INSERT_1, MSG_CONTINUE);
+          hostui.prompt_do(PROMPT_USER_CONTINUE, MSG_M600_INSERT_FILAMENT, MSG_CONTINUE);
         #endif
 
         // Start the heater idle timers
@@ -6806,13 +6806,17 @@ inline void gcode_M17() {
 
     if (load_length != 0) {
       if (nozzle_timed_out){
-        // Show "insert filament"
+        // Show "insert filament" if replaced by "heater timeout"
         #if ENABLED(ULTIPANEL)
           lcd_advanced_pause_show_message(ADVANCED_PAUSE_MESSAGE_INSERT);
         #elif ENABLED(DWIN_LCD)
           DWIN_MSG_P(MSG_FILAMENT_CHANGE_INSERT_1);
           // POP_WINDOW(CHANGE_FILAMENT_KEY); // Need a way to set wait_for_user to false
           return_default_button_action();
+        #endif
+
+        #if ENABLED(HOST_PROMPT_SUPPORT)
+          hostui.prompt_do(PROMPT_USER_CONTINUE, MSG_M600_INSERT_FILAMENT, MSG_CONTINUE);
         #endif
       }
 
@@ -6839,14 +6843,22 @@ inline void gcode_M17() {
       stepper.synchronize();
     }
 
-    #if ENABLED(ULTIPANEL) && ADVANCED_PAUSE_EXTRUDE_LENGTH > 0
+    #if EITHER(ULTIPANEL, HOST_PROMPT_SUPPORT) && ADVANCED_PAUSE_EXTRUDE_LENGTH > 0
 
       float extrude_length = initial_extrude_length;
 
       do {
         if (extrude_length > 0) {
           // "Wait for filament extrude"
-          lcd_advanced_pause_show_message(ADVANCED_PAUSE_MESSAGE_EXTRUDE);
+          #if ENABLED(ULTIPANEL)
+            lcd_advanced_pause_show_message(ADVANCED_PAUSE_MESSAGE_EXTRUDE);
+          #elif ENABLED(DWIN_LCD)
+            DWIN_MSG_P(MSG_FILAMENT_CHANGE_EXTRUDE_1);
+            return_default_button_action();
+          #endif
+          #if ENABLED(HOST_PROMPT_SUPPORT)
+
+          #endif
 
           // Extrude filament to get into hotend
           destination[E_AXIS] += extrude_length;
@@ -6857,7 +6869,19 @@ inline void gcode_M17() {
         // Show "Extrude More" / "Resume" menu and wait for reply
         KEEPALIVE_STATE(PAUSED_FOR_USER);
         wait_for_user = false;
-        lcd_advanced_pause_show_message(ADVANCED_PAUSE_MESSAGE_OPTION);
+        #if ENABLED(ULTIPANEL)
+          lcd_advanced_pause_show_message(ADVANCED_PAUSE_MESSAGE_OPTION);
+        #else
+          advanced_pause_menu_response = ADVANCED_PAUSE_RESPONSE_WAIT_FOR;
+          #if ENABLED(DWIN_LCD)
+            DWIN_MSG_P(DWIN_MSG_PRINT_PAUSED);
+            return_default_button_action();
+          #endif
+        #endif
+        #if ENABLED(HOST_PROMPT_SUPPORT)
+          hostui.prompt_do(PROMPT_FILAMENT_RUNOUT, MSG_M600_RESUME_READY, MSG_FILAMENT_CHANGE_OPTION_EXTRUDE, MSG_FILAMENT_CHANGE_OPTION_RESUME);
+        #endif
+
         while (advanced_pause_menu_response == ADVANCED_PAUSE_RESPONSE_WAIT_FOR) idle(true);
         KEEPALIVE_STATE(IN_HANDLER);
 
@@ -6872,7 +6896,7 @@ inline void gcode_M17() {
       // "Wait for print to resume"
       lcd_advanced_pause_show_message(ADVANCED_PAUSE_MESSAGE_RESUME);
     #elif ENABLED(DWIN_LCD)
-      DWIN_MSG_P(MSG_FILAMENT_CHANGE_RESUME_1);
+      DWIN_MSG_P(DWIN_MSG_RESUMING);
       return_default_button_action();
     #endif
 
