@@ -12,15 +12,13 @@ This is the source code for the modified firmware running on my [Creatbot F430](
  - [x] Tweak default steps/mm to real tuned values.
  - [x] Tweak default preheat settings.
  - [x] Park nozzle when paused while printing over serial.
-    - Use "G60 S0;G27" to park print head and "G61 S0" to restore print head.
+   - Use "G60 S0;G27" to park print head and "G61 S0" to restore print head.
  - [x] Enable Filament Runout Sensor while printing over serial.
+   - Uses M600 routine (requires host prompts)
  - [ ] Make USB Disk behave the same as typical SD Card.
  - [ ] Enable use of genuine BL Touch probes (may be a hardware problem).
  - [ ] Merge changes from Marlin 1.1.7, 1.1.8, and 1.1.9?
  - [ ] Upgrade to Marlin 2.1.x (LCD and USB need a lot of rework)
-
-### Bugs
- - M600 must be cleared with a M108 command, LCD doesn't work yet.
 
 ## Marlin 1.1
 <img align="right" src="../../raw/1.1.x/buildroot/share/pixmaps/logo/marlin-250.png" />
