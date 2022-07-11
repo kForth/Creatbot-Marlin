@@ -81,7 +81,7 @@
     #include "stepper.h"
     #include "language.h"
 
-    // Currently looking for: M108, M112, M410
+    // Currently looking for: M108, M112, M410, M876
     // If you alter the parser please don't forget to update the capabilities in Conditionals_post.h
 
     FORCE_INLINE void emergency_parser(const unsigned char c) {
@@ -114,6 +114,7 @@
             case ' ': break;
             case '1': state = state_M1;     break;
             case '4': state = state_M4;     break;
+            case '8': state = state_M8;     break;
             default: state = state_IGNORE;
           }
           break;
@@ -142,6 +143,26 @@
           state = (c == '0') ? state_M410 : state_IGNORE;
           break;
 
+        case state_M8:
+          state = (c == '7') ? state_M87 : state_IGNORE;
+          break;
+
+        case state_M87:
+          state = (c == '6') ? state_M876 : state_IGNORE;
+          break;
+
+        case state_M876:
+          state = (c == ' ') ? state_M876_ : state_IGNORE;
+          break;
+
+        case state_M876_:
+          state = (c == 'S') ? state_M876_S : state_IGNORE;
+          break;
+
+        case state_M876_S:
+          state = (c == '0') ? state_M876_S0 : (c == '1') ? state_M876_S1 : state_IGNORE;
+          break;
+
         case state_IGNORE:
           if (c == '\n') state = state_RESET;
           break;
@@ -157,6 +178,11 @@
                 break;
               case state_M410:
                 quickstop_stepper();
+                break;
+              case state_M876_S0:
+                hostui.handle_response(0);
+              case state_M876_S1:
+                hostui.handle_response(1);
                 break;
               default:
                 break;

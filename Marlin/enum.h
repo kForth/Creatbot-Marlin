@@ -110,6 +110,13 @@ enum EndstopEnum {
     state_M4,
     state_M41,
     state_M410,
+    state_M8,
+    state_M87,
+    state_M876,
+    state_M876_,
+    state_M876_S,
+    state_M876_S0,
+    state_M876_S1,
     state_IGNORE // to '\n'
   };
 #endif
