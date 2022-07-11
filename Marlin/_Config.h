@@ -405,8 +405,8 @@
       #define GRID_MAX_POINTS_X 4
       #define GRID_MAX_POINTS_Y GRID_MAX_POINTS_X
     #else
-      #define GRID_MAX_POINTS_X 7
-      #define GRID_MAX_POINTS_Y 5
+      #define GRID_MAX_POINTS_X 6
+      #define GRID_MAX_POINTS_Y 4
     #endif
     #ifdef BLTOUCH
       #ifdef LINEAR_GUIDE
