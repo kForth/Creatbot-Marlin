@@ -152,15 +152,20 @@
           break;
 
         case state_M876:
-          state = (c == ' ') ? state_M876_ : state_IGNORE;
-          break;
-
-        case state_M876_:
-          state = (c == 'S') ? state_M876_S : state_IGNORE;
+          switch(c){
+            case ' ': break;
+            case 'S': state = state_M876_S;    break;
+            default: state = state_IGNORE;
+          }
           break;
 
         case state_M876_S:
-          state = (c == '0') ? state_M876_S0 : (c == '1') ? state_M876_S1 : state_IGNORE;
+          switch(c){
+            case ' ': break;
+            case '0': state = state_M876_S0;    break;
+            case '1': state = state_M876_S1;    break;
+            default: state = state_IGNORE;
+          }
           break;
 
         case state_IGNORE:
@@ -181,6 +186,7 @@
                 break;
               case state_M876_S0:
                 hostui.handle_response(0);
+                break;
               case state_M876_S1:
                 hostui.handle_response(1);
                 break;
