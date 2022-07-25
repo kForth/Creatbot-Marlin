@@ -574,7 +574,7 @@
     #define AUTO_SHUTDOWN_TIME_IDLE     3600  //seconds = 1hour
     #define AUTO_SHUTDOWN_TIME_HEATING  3600  //seconds = 1hour
     #ifdef FILAMENT_DETECT
-      #define FILAMENT_WAIT_TIME        3600  //seconds = 2hours
+      #define FILAMENT_WAIT_TIME        3600  //seconds = 1hour
     #endif
   #endif  //AUTO_SHUTDOWN
 #endif //POWER_MANAGEMENT
