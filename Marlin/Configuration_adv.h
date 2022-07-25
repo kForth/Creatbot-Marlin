@@ -1584,6 +1584,7 @@
      */
     //#define USE_UHS2_USB
     //#define USE_UHS3_USB
+    //#define USE_CH376_USB
 
     /**
      * Native USB Host supported by some boards (USB OTG)

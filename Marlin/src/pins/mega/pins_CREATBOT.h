@@ -197,7 +197,7 @@
 	#define LED_BLUE_PIN		79
 #endif
 
-#ifdef UDISKSUPPORT
+#ifdef HAS_USB_READER
 	#define USB_SS		53
 	#define USB_MOSI	51
 	#define USB_MISO	50
