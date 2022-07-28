@@ -673,6 +673,9 @@ void afterFileItemAction(uint8_t mode
 		if (mode == PRINT) {
 			FILE_READER.openAndPrintFile(FILE_READER.filename);
 			return_default_button_action();
+			#ifdef ACTION_ON_START
+			hostui.start();
+			#endif
 		}
 		else if (mode == OPEN_DIR) {
 			FILE_READER.chdir(FILE_READER.filename);
@@ -955,76 +958,108 @@ void preheat_button_action(){
 	dwin_preheat(0);
 }
 
-#if HAS_READER
 void print_pause_button_action() {
-#if ENABLED(QUICK_PAUSE)
-	if(quickPausePrintJob()){
-		DWIN_MSG_P(DWIN_MSG_PRINT_PAUSED);
-		return_default_button_action();
+	if(isSerialPrinting){
+	#if defined(ACTION_ON_PAUSE)
+		hostui.pause();
+	#endif
+		return;
 	}
-#else
-	FILE_PAUSE_PRINT;
-  print_job_timer.pause();
-  #if ENABLED(PARK_HEAD_ON_PAUSE)
-    enqueue_and_echo_commands_P(PSTR("M125"));
-  #endif
-	DWIN_MSG_P(DWIN_MSG_PRINT_PAUSED);
-#endif //QUICK_PAUSE
+#if HAS_READER
+	else {
+	#if ENABLED(QUICK_PAUSE)
+		if(quickPausePrintJob()){
+			DWIN_MSG_P(DWIN_MSG_PRINT_PAUSED);
+			return_default_button_action();
+		}
+	#else
+		FILE_PAUSE_PRINT;
+	print_job_timer.pause();
+	#if ENABLED(PARK_HEAD_ON_PAUSE)
+		enqueue_and_echo_commands_P(PSTR("M125"));
+	#endif
+		DWIN_MSG_P(DWIN_MSG_PRINT_PAUSED);
+	#endif //QUICK_PAUSE
+	}
+#endif	//HAS_READER
 }
 
 void print_reuse_button_action() {
-#if ENABLED(QUICK_PAUSE)
-	if(quickReusePrintJob()){
-		DWIN_MSG_P(DWIN_MSG_PRINTING);
-		return_default_button_action();
+	if(isSerialPrinting){
+	#ifdef ACTION_ON_RESUME
+		hostui.resume();
+	#endif
+		return;
 	}
-#else
-  #if ENABLED(PARK_HEAD_ON_PAUSE)
-    enqueue_and_echo_commands_P(PSTR("M24"));
-  #else
-    FILE_START_PRINT;
-    print_job_timer.start();
-  #endif
-    return_default_button_action();
-#endif //QUICK_PAUSE
+#if HAS_READER
+	else {
+	#if ENABLED(QUICK_PAUSE)
+		if(quickReusePrintJob()){
+			DWIN_MSG_P(DWIN_MSG_PRINTING);
+			return_default_button_action();
+		}
+	#else
+	#if ENABLED(PARK_HEAD_ON_PAUSE)
+		enqueue_and_echo_commands_P(PSTR("M24"));
+	#else
+		FILE_START_PRINT;
+		print_job_timer.start();
+	#endif
+		return_default_button_action();
+	#endif //QUICK_PAUSE
+	}
+#endif	//HAS_READER
 }
 
 void print_cancel_button_action() {
-#if ENABLED(QUICK_PAUSE)
-	quickStopPrintJob();
-	DWIN_MSG_P(DWIN_MSG_WELCOME);
-	return_default_button_action();
-#else
-	FILE_STOP_PRINT;
-  clear_command_queue();
-  quickstop_stepper();
-  print_job_timer.stop();
-  thermalManager.disable_all_heaters();
-  #if FAN_COUNT > 0
-    for (uint8_t i = 0; i < FAN_COUNT; i++) fanSpeeds[i] = 0;
-  #endif
-  wait_for_heatup = false;
-	DWIN_MSG_P(DWIN_MSG_WELCOME);
-	return_default_button_action();
-#endif //QUICK_PAUSE
-}
-#else		//!HAS_READER
-void print_pause_button_action() {}
-void print_reuse_button_action() {}
-void print_cancel_button_action() {}
+	if(isSerialPrinting){
+	#ifdef ACTION_ON_CANCEL
+		hostui.cancel();
+	#endif
+		return;
+	}
+#if HAS_READER
+	else {
+	#if ENABLED(QUICK_PAUSE)
+		quickStopPrintJob();
+		DWIN_MSG_P(DWIN_MSG_WELCOME);
+		return_default_button_action();
+	#else
+		FILE_STOP_PRINT;
+	clear_command_queue();
+	quickstop_stepper();
+	print_job_timer.stop();
+	thermalManager.disable_all_heaters();
+	#if FAN_COUNT > 0
+		for (uint8_t i = 0; i < FAN_COUNT; i++) fanSpeeds[i] = 0;
+	#endif
+	wait_for_heatup = false;
+		DWIN_MSG_P(DWIN_MSG_WELCOME);
+		return_default_button_action();
+	#endif //QUICK_PAUSE
+	}
 #endif	//HAS_READER
+}
 
 #ifdef FILAMENT_CHANGE
 void print_change_button_action() {
-	if (!HAS_POPUP
-#ifdef ACCIDENT_DETECT
-	&& !isAccidentToPrinting
-#endif
-	) {
-		if(pauseToUnloadFilament()){
-			POP_WINDOW(WAIT_KEY);
+	if(isSerialPrinting){
+		enqueue_and_echo_commands_P(PSTR("M600"));
+		return;
+	}
+#if HAS_READER
+	else {
+		if (!HAS_POPUP
+	#ifdef ACCIDENT_DETECT
+		&& !isAccidentToPrinting
+	#endif
+		) {
+			if(pauseToUnloadFilament()){
+				POP_WINDOW(WAIT_KEY);
+			}
 		}
 	}
+#endif	//HAS_READER
 }
 #else
 void print_change_button_action() {}
