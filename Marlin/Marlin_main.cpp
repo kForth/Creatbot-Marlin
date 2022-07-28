@@ -6606,12 +6606,8 @@ inline void gcode_M17() {
     // Indicate that the printer is paused
     move_away_flag = true;
     
-    #if ENABLED(HOST_ACTION_COMMANDS)
-      #ifdef ACTION_ON_PAUSED
-        hostui.paused();
-      #elif defined(ACTION_ON_PAUSE)
-        hostui.pause();
-      #endif
+    #ifdef ACTION_ON_PAUSED
+      hostui.paused();
     #endif
     
     #if ENABLED(HOST_PROMPT_SUPPORT)
@@ -6922,8 +6918,6 @@ inline void gcode_M17() {
     
     #ifdef ACTION_ON_RESUMED
       hostui.resumed();
-    #elif defined(ACTION_ON_RESUME)
-      hostui.resume();
     #endif
     
     #if ENABLED(HOST_PROMPT_SUPPORT)
@@ -10871,6 +10865,10 @@ inline void gcode_M6001() {
 	RUNPLAN(PAUSE_REUSE_SPEED_MOVE);
 
 	set_current_to_destination();
+
+  #ifdef ACTION_ON_PAUSED
+    hostui.paused();
+  #endif
 }
 
 /*
@@ -10914,6 +10912,10 @@ inline void gcode_M6002() {
 		#ifdef DWIN_LCD
 			HIDE_POPUP;
 		#endif
+  
+    #ifdef ACTION_ON_RESUMED
+      hostui.resumed();
+    #endif
 	}
 #endif
 
@@ -10977,9 +10979,6 @@ void quickStopPrintJob(){
   STORE_SETTING(usedTime);
   quickstop_stepper();
   FILE_STOP_PRINT;
-  #ifdef ACTION_ON_CANCEL
-    hostui.cancel();
-  #endif
   print_job_timer.stop();
   thermalManager.disable_all_heaters();
   #if FAN_COUNT > 0
@@ -10991,6 +10990,10 @@ void quickStopPrintJob(){
 	set_bed_leveling_enabled(pauseLeveling);
 #endif
 	disable_all_steppers();
+
+  #ifdef ACTION_ON_CANCEL
+    hostui.cancel();
+  #endif
 }
 
 #endif
