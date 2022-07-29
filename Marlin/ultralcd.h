@@ -100,7 +100,7 @@
 
   #endif
 
-  #if ENABLED(FILAMENT_LCD_DISPLAY) && ENABLED(SDSUPPORT)
+  #if ENABLED(FILAMENT_LCD_DISPLAY) && HAS_READER
     extern millis_t previous_lcd_status_ms;
   #endif
 

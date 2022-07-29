@@ -508,35 +508,37 @@ FORCE_INLINE bool position_is_reachable_xy(const float &lx, const float &ly) {
 	#include "cardreader.h"
 	#define HAS_READER							true
 	#define FILE_READER							card
-	#define TOUCH_FILE(index)				FILE_READER.getfilename(index)
-	#define TOUCH_WORKDIR						FILE_READER.getWorkDirName()
-	#define GET_FILE_NR							FILE_READER.getnrfilenames()
-	#define CUR_FILE_IS_DIR					FILE_READER.filenameIsDir
-	#define FILE_IS_OPEN						FILE_READER.isFileOpen()
+	#define INIT_READER						 	card.initsd()
+	#define TOUCH_FILE(index)				card.getfilename(index)
+	#define TOUCH_WORKDIR						card.getWorkDirName()
+	#define GET_FILE_NR							card.getnrfilenames()
+	#define CUR_FILE_IS_DIR					card.filenameIsDir
+	#define FILE_IS_OPEN						card.isFileOpen()
 	#define FILE_IS_IDLE						(!HAS_SD_PRINT)
 	#define FILE_IS_PRINT						IS_SD_PRINTING
-	#define FILE_IS_PAUSE						FILE_READER.isPauseState
-	#define FILE_START_PRINT				FILE_READER.startFileprint()
-	#define FILE_PAUSE_PRINT				FILE_READER.pauseSDPrint()
-	#define FILE_STOP_PRINT					FILE_READER.stopSDPrint()
+	#define FILE_IS_PAUSE						card.isPauseState
+	#define FILE_START_PRINT				card.startFileprint()
+	#define FILE_PAUSE_PRINT				card.pauseSDPrint()
+	#define FILE_STOP_PRINT					card.stopSDPrint()
 	#define READER_STATE						IS_SD_INSERTED
 	#define READER_CONN							(IS_SD_INSERTED == 1)
-	#define READER_VALID						FILE_READER.cardOK
+	#define READER_VALID						card.cardOK
 #elif ENABLED(UDISKSUPPORT)
 	#include "UDiskReader.h"
 	#define HAS_READER							true
 	#define FILE_READER							UDisk
-	#define TOUCH_FILE(index)				FILE_READER.selectFile(index)
-	#define TOUCH_WORKDIR						FILE_READER.selectWorkDir()
-	#define GET_FILE_NR							FILE_READER.getNr()
+	#define INIT_READER						  UDisk.init()
+	#define TOUCH_FILE(index)				UDisk.selectFile(index)
+	#define TOUCH_WORKDIR						UDisk.selectWorkDir()
+	#define GET_FILE_NR							UDisk.getNr()
 	#define CUR_FILE_IS_DIR					IS_UDISK_DIR
 	#define FILE_IS_OPEN						IS_UDISK_FILE_OPEN
 	#define FILE_IS_IDLE						IS_UDISK_IDLE
 	#define FILE_IS_PRINT						IS_UDISK_PRINT
 	#define FILE_IS_PAUSE						IS_UDISK_PAUSE
-	#define FILE_START_PRINT				FILE_READER.startPrint()
-	#define FILE_PAUSE_PRINT				FILE_READER.pausePrint()
-	#define FILE_STOP_PRINT					FILE_READER.stopPrint()
+	#define FILE_START_PRINT				UDisk.startPrint()
+	#define FILE_PAUSE_PRINT				UDisk.pausePrint()
+	#define FILE_STOP_PRINT					UDisk.stopPrint()
 	#define READER_STATE						UDISK_STATE
 	#define READER_CONN							IS_UDISK_CONN
 	#define READER_VALID						IS_UDISK_OK

@@ -635,6 +635,10 @@ void UDiskReader::closefile() {
 	saving = logging = false;
 }
 
+
+void UDiskReader::removeFile(char *name){
+}
+
 int16_t UDiskReader::get(){
 	uint8_t get_char;
 

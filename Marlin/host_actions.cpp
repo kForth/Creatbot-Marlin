@@ -152,9 +152,8 @@ void HostUI::action(const char* fstr, const bool eol) {
         #endif
         break;
       case PROMPT_PAUSE_RESUME:
-        #if BOTH(ADVANCED_PAUSE_FEATURE, SDSUPPORT)
-          extern const char M24_STR[];
-          enqueue_and_echo_commands(M24_STR); // queue.inject_P(M24_STR);
+        #if BOTH(ADVANCED_PAUSE_FEATURE, HAS_READER)
+          enqueue_and_echo_commands("M24"); // queue.inject_P(M24_STR);
         #endif
         break;
       case PROMPT_INFO:
