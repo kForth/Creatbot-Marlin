@@ -14298,7 +14298,17 @@ void updateVersionString(char *dataStr){
   // SHORT_BUILD_VERSION => 1.1.x = 5 chars
   // ':' = 1 char
   // CREATBOT_VERSION => 5.6x = 4 chars
-	sprintf_P(dataStr, PSTR("V%s/%s"), SHORT_BUILD_VERSION, CREATBOT_VERSION);
+	// sprintf_P(dataStr, PSTR("V%s/%s"), SHORT_BUILD_VERSION, CREATBOT_VERSION);
+
+
+  static const char *month_names = "JanFebMarAprMayJunJulAugSepOctNovDec";
+  char s_month[5];
+  int month, day, year;
+
+  sscanf_P(STRING_DISTRIBUTION_DATE, PSTR("%s %d %d"), s_month, &day, &year);
+  month = (strstr(month_names, s_month)-month_names) / 3 + 1;
+
+  sprintf_P(dataStr, PSTR("V%s.%02d%02d%02d"), CREATBOT_VERSION, (year % 100), month, day);
 }
 
 void updateStateStrings(){

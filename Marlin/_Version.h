@@ -25,7 +25,7 @@
   /**
    * Creatbot release version identifier
    */
-  #define CREATBOT_VERSION "5.6d"
+  #define CREATBOT_VERSION "5.6.5"
 
   /**
    * Marlin release version identifier
