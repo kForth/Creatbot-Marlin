@@ -269,6 +269,7 @@
 #define MSG_STOP_SERIAL_PRINT								"Stop print from serial"
 #define MSG_DOING_FILE											"Now doing file: "
 #define MSG_FRESH_FILE											"Now fresh file: "
+#define MSG_ERASE_FILE											"Erasing file: "
 #define MSG_USB_PRINTING_BYTE								"USB Disk printing byte "
 #define MSG_USB_NOT_PRINTING								"Not USB Disk printing"
 #define MSG_USB_INSERT											"USB Disk insert"

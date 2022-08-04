@@ -7014,7 +7014,7 @@ inline void gcode_M17() {
    * Processed in write to file routine above
    */
   inline void gcode_M29() {
-    // card.saving = false;
+    // FILE_READER.saving = false;
   }
 
   /**
@@ -7113,14 +7113,16 @@ inline void gcode_M31() {
     }
   #endif // SDCARD_SORT_ALPHA && SDSORT_GCODE
 
+#endif // SDSUPPPORT
+
+#if HAS_READER
   /**
    * M928: Start SD Write
    */
   inline void gcode_M928() {
-    card.openLogFile(parser.string_arg);
+    FILE_READER.openLogFile(parser.string_arg);
   }
-
-#endif // SDSUPPPORT
+#endif // HAS_READER
 
 /**
  * Sensitive pin test for M42, M226
@@ -15543,13 +15545,13 @@ void loop() {
 
   if (commands_in_queue) {
 
-    #if ENABLED(SDSUPPORT)
+    #if HAS_READER
 
-      if (card.saving) {
+      if (FILE_READER.saving) {
         char* command = command_queue[cmd_queue_index_r];
         if (strstr_P(command, PSTR("M29"))) {
           // M29 closes the file
-          card.closefile();
+          FILE_READER.closefile();
           SERIAL_PROTOCOLLNPGM(MSG_FILE_SAVED);
 
           #if ENABLED(SERIAL_STATS_DROPPED_RX)
@@ -15564,8 +15566,8 @@ void loop() {
         }
         else {
           // Write the string from the read buffer to SD
-          card.write_command(command);
-          if (card.logging)
+          FILE_READER.write_command(command);
+          if (FILE_READER.logging)
             process_next_command(); // The card is saving because it's logging
           else
             ok_to_send();
@@ -15578,7 +15580,7 @@ void loop() {
 
       process_next_command();
 
-    #endif // SDSUPPORT
+    #endif // HAS_READER
 
 		#if ENABLED(QUICK_PAUSE)
 			if(invalidLoop){

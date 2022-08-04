@@ -325,14 +325,12 @@ void UDiskReader::getAbsWorkPath(char *t){
 	}
 }
 
-
-
 bool list_filter() {
 	if (temp.name[0] == NAME_0XE5) temp.name[0] = 0xE5;				//replace the 0x05 to 0xE5
 	if (temp.name[0] == NAME_DOT) return false;							//filter out the . and ..
 	if ((temp.attributes & ATT_SYSTEM) == ATT_SYSTEM) return false;		//filter out the system file
 	if (!((temp.attributes & MASK_FILE) == ATT_DIRECTORY)
-		& ((temp.name[8] != 'G') || (temp.name[9] == '~'))) return false;		//filter the gcode only.
+		& ((temp.name[8] != 'G') || (temp.name[9] == '~'))) return false;  //filter folder and gcode only.
 	return true;
 }
 
@@ -539,6 +537,28 @@ void UDiskReader::getStatus(){
 		SERIAL_ECHOLNPGM(MSG_USB_NOT_PRINTING);
 }
 
+
+void UDiskReader::write_command(char *buf) {
+  char* begin = buf;
+  char* npos = 0;
+  char* end = buf + strlen(buf) - 1;
+
+//   file.writeError = false;
+  if ((npos = strchr(buf, 'N')) != NULL) {
+    begin = strchr(npos, ' ') + 1;
+    end = strchr(npos, '*') - 1;
+  }
+  end[1] = '\r';
+  end[2] = '\n';
+  end[3] = '\0';
+  UDiskImpl.writeBlock(begin, strlen(begin));  // file.write(begin); 
+//   if (file.writeError) {
+//     SERIAL_ERROR_START();
+//     SERIAL_ERRORLNPGM(MSG_SD_ERR_WRITE_TO_FILE);
+//   }
+}
+
+
 void UDiskReader::printingHasFinished(){
 	stepper.synchronize();
 	closefile();
@@ -624,9 +644,31 @@ void UDiskReader::openFile(char * name, bool read, bool replace_current){
 			SERIAL_ECHOLNPGM(".");
 		}
 	} else {
-		//TODO - write.
+		if (UDiskImpl.fileOpen(fname) || UDiskImpl.fileCreate(fname)) {
+			getFileInfo();
+			file = *curfile;
+			isFileOpen = saving = true;
+			fileSize = curfile->filesize;
+			filePos = 0;
+
+			SERIAL_ECHOPGM(MSG_SD_FILE_OPENED);
+			SERIAL_ECHO(fname);
+			SERIAL_ECHOPGM(MSG_SD_SIZE);
+			SERIAL_ECHOLN(fileSize);
+			SERIAL_ECHOLNPGM(MSG_SD_FILE_SELECTED);
+
+		} else {
+			SERIAL_ECHOPGM(MSG_SD_OPEN_FILE_FAIL);
+			SERIAL_ECHO(fname);
+			SERIAL_ECHOLNPGM(".");
+		}
 	}
 
+}
+
+void UDiskReader::openLogFile(char * name, bool replace_current){
+	logging = true;
+	openFile(name, replace_current);
 }
 
 void UDiskReader::closefile() {
@@ -637,6 +679,37 @@ void UDiskReader::closefile() {
 
 
 void UDiskReader::removeFile(char *name){
+	if (!UDiskOK)	return;
+	SERIAL_ECHO_START();
+	SERIAL_ECHOPGM(MSG_ERASE_FILE);
+	SERIAL_ECHOLN(name);
+	stopPrint();
+
+	char *fname = name;
+	char *dirname_start, *dirname_end;
+	if (name[0] == '/') {
+		setroot();
+		dirname_start = &name[1];
+		while (dirname_start != NULL) {
+			dirname_end = strchr(dirname_start, '/');
+			if (dirname_end != NULL && dirname_end > dirname_start) {
+				char subdirname[FILENAME_LENGTH];
+				strncpy(subdirname, dirname_start, dirname_end - dirname_start);
+				subdirname[dirname_end - dirname_start] = 0;
+				//SERIAL_ECHOLN(subdirname);
+				chdir(subdirname);
+				dirname_start = dirname_end + 1;
+			} else {
+				fname = dirname_start;
+				break;
+			}
+		}
+		if (!fname[0]) return;
+	} else {
+		setSeek(workDir);
+	}
+
+	UDiskImpl.fileErase(fname);
 }
 
 int16_t UDiskReader::get(){

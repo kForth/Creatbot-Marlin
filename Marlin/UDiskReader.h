@@ -57,6 +57,8 @@ public:
 	void setIndex(long index);
 	
 	void removeFile(char *name);
+	void openLogFile(char *name, bool replace_current = true);
+	void write_command(char *buf);
 	
 	bool UDiskPrintState, UDiskPauseState, UDiskConn, UDiskOK, isDir, isFileOpen, saving, logging;
 	char filename[FILENAME_LENGTH], longFilename[LONG_FILENAME_LENGTH];
