@@ -866,6 +866,26 @@ class Temperature {
       #endif
     #endif
 
+
+    static int16_t maxDegHotend() {	// By LYN
+    	int16_t maxDeg = 0;
+    	HOTEND_LOOP() {
+    		maxDeg = max(maxDeg, temp_hotend[HOTEND_INDEX].celsius);
+    	}
+    	return maxDeg;
+    }
+
+    static bool hasHeat(){	// By LYN
+			HOTEND_LOOP() if (degTargetHotend(e)) { return true; }
+			#if HAS_TEMP_BED
+				if (degTargetBed()) return true;
+			#endif
+			#if HAS_TEMP_CHAMBER
+				if (degTargetChamber()) return true;
+			#endif
+			return false;
+    }
+
     #if HAS_HEATED_CHAMBER
       static void setTargetChamber(const celsius_t celsius) {
         temp_chamber.target = _MIN(celsius, CHAMBER_MAX_TARGET);

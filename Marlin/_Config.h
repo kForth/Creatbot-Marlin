@@ -50,7 +50,7 @@
 //===========================================================================
 
 // Stepper Driver Types taken from this website
-//https://www.3dprima.com/e n/parts/spare-parts/creatbot/creatbot-stepper-motor-driver/a-22193?currency=USD
+//https://www.3dprima.com/en/parts/spare-parts/creatbot/creatbot-stepper-motor-driver/a-22193?currency=USD
 #if (MODEL == D600_Pro) || (MODEL == D600)
     #define X_DRIVER_TYPE  TB6600      // Supposedly
     #define Y_DRIVER_TYPE  TB6600      // Supposedly
@@ -649,10 +649,10 @@
 #ifdef POWER_MANAGEMENT
     #define PSU_CONTROL
     #ifdef AUTO_SHUTDOWN
-        #define AUTO_SHUTDONW_TIME_DISPALY   180  //seconds = 3mins
-        #define AUTO_SHUTDOWN_TIME_IDLE     3600  //seconds = 1hour
-        #define AUTO_SHUTDOWN_TIME_HEATING  3600  //seconds = 1hour
-        #define FILAMENT_WAIT_TIME          3600  //seconds = 2hours
+      #define AUTO_SHUTDONW_TIME_DISPALY   180  //seconds = 3mins
+      #define AUTO_SHUTDOWN_TIME_IDLE     3600  //seconds = 1hour
+      #define AUTO_SHUTDOWN_TIME_HEATING  3600  //seconds = 1hour
+      #define FILAMENT_WAIT_TIME          3600  //seconds = 2hours
     #endif  // AUTO_SHUTDOWN
 #endif // POWER_MANAGEMENT
 
@@ -708,13 +708,13 @@
  */
 #define LCD_LANGUAGE LANGUAGE
 
-#ifdef MY_KEYPAD
+#ifdef HAS_KEYPAD
   #define MY_KEYPAD_Z_MOVE_SCALE  5
-#endif //MY_KEYPAD
+#endif //HAS_KEYPAD
 
-#ifdef DWIN_LCD
+#ifdef HAS_LCD
   #define DWIN_Z_MOVE_SCALE       5
-#endif //DWIN_LCD
+#endif //HAS_LCD
 
 #ifdef HAS_SD_READER
     #define SDSUPPORT

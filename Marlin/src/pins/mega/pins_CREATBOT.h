@@ -177,7 +177,7 @@
   #define SUICIDE_PIN_STATE HIGH
 #endif
 
-#ifdef MY_KEYPAD
+#ifdef HAS_KEYPAD
 	#define SHIFT_CLK			82
 	#define SHIFT_LD			83
 	#define SHIFT_OUT			38

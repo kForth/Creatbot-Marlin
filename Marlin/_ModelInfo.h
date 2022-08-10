@@ -28,7 +28,7 @@
   #define LCD12864
   #define HAS_SD_READER
   #define BOWDEN
-  #define MY_KEYPAD
+  #define HAS_KEYPAD
   #define POWER_MANAGEMENT
   #define ACCIDENT_DETECT
 #elif MODEL == DE || MODEL == DE_Plus
@@ -37,7 +37,7 @@
   #define COREXY
   #define HAS_SD_READER
   #define BOWDEN
-  #define MY_KEYPAD
+  #define HAS_KEYPAD
   #define POWER_MANAGEMENT
   #define ACCIDENT_DETECT
 #elif MODEL == D600
@@ -183,9 +183,9 @@
   #define REPRAP_DISCOUNT_SMART_CONTROLLER
 #endif
 #ifdef LCD480272
-  #define DWIN_LCD
-  #ifdef MY_KEYPAD
-    #undef MY_KEYPAD
+  #define HAS_LCD
+  #ifdef HAS_KEYPAD
+    #undef HAS_KEYPAD
   #endif
 #endif
 

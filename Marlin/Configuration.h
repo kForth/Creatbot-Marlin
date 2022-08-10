@@ -2732,7 +2732,7 @@
 //
 // Touch-screen LCD for Malyan M200/M300 printers
 //
-//#define MALYAN_LCD
+// #define MALYAN_LCD
 
 //
 // Touch UI for FTDI EVE (FT800/FT810) displays
@@ -2753,6 +2753,11 @@
 // 320x240 Nextion 2.8" serial TFT Resistive Touch Screen NX3224T028
 //
 //#define NEXTION_TFT
+
+//
+// Touch-screen LCD for CreatBot printers
+//
+#define CREATBOT_LCD
 
 //
 // Third-party or vendor-customized controller interfaces.
