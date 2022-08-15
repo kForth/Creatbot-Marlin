@@ -29,150 +29,93 @@
 #if ENABLED(CREATBOT_LCD)
 
 #include "../ui_api.h"
+#include "dwin_lcd.h"
 
 namespace ExtUI {
 
   void onStartup() {
-    // TODO
+    dwin_init();
   }
 
   void onIdle() {
-    // TODO
+    dwin_loop();
   }
 
   void onPrinterKilled(FSTR_P const error, FSTR_P const component) {
-    // TODO
+    return_default_button_action();
   }
+
   void onMediaInserted() { 
-    // TODO
+    return_default_button_action();
   }
   void onMediaError() { 
-    // TODO
+    return_default_button_action();
   }
   void onMediaRemoved() { 
-    // TODO
+    return_default_button_action();
   }
+
   void onPlayTone(const uint16_t frequency, const uint16_t duration) { 
-    // TODO
+    return_default_button_action();
   }
+  
   void onPrintTimerStarted() { 
-    // TODO
+    return_default_button_action();
   }
   void onPrintTimerPaused() { 
-    // TODO
+    return_default_button_action();
   }
   void onPrintTimerStopped() { 
-    // TODO
+    return_default_button_action();
   }
+  
   void onFilamentRunout(const extruder_t) { 
-    // TODO
+    return_default_button_action();
   }
   void onUserConfirmRequired(const char * const msg) { 
-    // TODO
+    return_default_button_action();
   }
   void onStatusChanged(const char * const msg) { 
-    // TODO
+    return_default_button_action();
   }
 
   void onHomingStart() {
-    // TODO
+    return_default_button_action();
   }
   void onHomingDone() {
-    // TODO
+    return_default_button_action();
   }
   void onPrintDone() { 
-    // TODO
+    return_default_button_action();
   }
 
   void onFactoryReset() {
-    // TODO
+    return_default_button_action();
   }
-
-  void onStoreSettings(char *buff) {
-    // Called when saving to EEPROM (i.e. M500). If the ExtUI needs
-    // permanent data to be stored, it can write up to eeprom_data_size bytes
-    // into buff.
-
-    // Example:
-    //  static_assert(sizeof(myDataStruct) <= eeprom_data_size);
-    //  memcpy(buff, &myDataStruct, sizeof(myDataStruct));
-
-    // TODO
-  }
-
-  void onLoadSettings(const char *buff) {
-    // Called while loading settings from EEPROM. If the ExtUI
-    // needs to retrieve data, it should copy up to eeprom_data_size bytes
-    // from buff
-
-    // Example:
-    //  static_assert(sizeof(myDataStruct) <= eeprom_data_size);
-    //  memcpy(&myDataStruct, buff, sizeof(myDataStruct));
-    
-    // TODO
-  }
-
-  void onPostprocessSettings() {
-    // Called after loading or resetting stored settings
-    
-    // TODO
-  }
-
-  void onSettingsStored(bool success) {
-    // Called after the entire EEPROM has been written,
-    // whether successful or not.
-    
-    // TODO
-  }
-
-  void onSettingsLoaded(bool success) {
-    // Called after the entire EEPROM has been read,
-    // whether successful or not.
-    
-    // TODO
-  }
+  void onStoreSettings(char *buff) { }
+  void onLoadSettings(const char *buff) { }
+  void onPostprocessSettings() { }
+  void onSettingsStored(bool success) { }
+  void onSettingsLoaded(bool success) { }
 
   #if HAS_MESH
-    void onLevelingStart() {
-      // TODO
-    }
-    void onLevelingDone() {
-      // TODO
-    }
-
-    void onMeshUpdate(const int8_t xpos, const int8_t ypos, const float zval) {
-      // Called when any mesh points are updated
-
-      // TODO
-    }
-
-    void onMeshUpdate(const int8_t xpos, const int8_t ypos, const probe_state_t state) {
-      // Called to indicate a special condition
-
-      // TODO
-    }
-
-    void onMeshUpdate(signed char xpos, signed char ypos, float const &zval) {
-      // Called from bbl.cpp > line 105 for some reason
-
-      // TODO
-    }
+    void onLevelingStart() { }
+    void onLevelingDone() { }
+    void onMeshUpdate(const int8_t xpos, const int8_t ypos, const float zval) { }
+    void onMeshUpdate(const int8_t xpos, const int8_t ypos, const probe_state_t state) { }
+    void onMeshUpdate(signed char xpos, signed char ypos, float const &zval) { }
   #endif
 
   #if ENABLED(POWER_LOSS_RECOVERY)
     void onPowerLossResume() {
       // Called on resume from power-loss
 
-      // TODO
+      return_default_button_action();
     }
   #endif
 
   #if HAS_PID_HEATING
-    void onPidTuning(const result_t rst) {
-      // Called for temperature PID tuning result
-
-      // TODO
-    }
+    void onPidTuning(const result_t rst) { }
   #endif
 
   void onSteppersDisabled() {}
