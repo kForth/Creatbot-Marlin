@@ -15,6 +15,10 @@
  */
 #define MODEL F430
 
+// Enable this option to use an encoder disc that toggles the runout pin
+// as the filament moves. Requires modifications to your printer.
+#define FILAMENT_MOTION_SENSOR
+
 #include "_ModelInfo.h"
 
 // Enable this for printers with a yellow motherboard (v9.5 or newer)
@@ -606,18 +610,24 @@
 
 #define FILAMENT_RUNOUT_SENSOR
 #if ENABLED(FILAMENT_RUNOUT_SENSOR)
-    #define NUM_RUNOUT_SENSORS EXTRUDERS // Number of sensors, up to one per extruder. Define a FIL_RUNOUT#_PIN for each.
+  #define NUM_RUNOUT_SENSORS EXTRUDERS // Number of sensors, up to one per extruder. Define a FIL_RUNOUT#_PIN for each.
 
-    #define FIL_RUNOUT_STATE     LOW        // Pin state indicating that filament is NOT present.
-    #define FIL_RUNOUT_PULLUP               // Use nternal pullup for filament runout pins.
-    //#define FIL_RUNOUT_PULLDOWN           // Use internal pulldown for filament runout pins.
-    //#define WATCH_ALL_RUNOUT_SENSORS      // Execute runout script on any triggering sensor, not only for the active extruder.
-    
-    // Commands to execute on filament runout.
-    // With multiple runout sensors use the %c placeholder for the current tool in commands (e.g., "M600 T%c")
-    // NOTE: After 'M412 H1' the host handles filament runout and this script does not apply.
-    #define FILAMENT_RUNOUT_SCRIPT "M600"
-    
+  #define FIL_RUNOUT_STATE     LOW        // Pin state indicating that filament is NOT present.
+  #define FIL_RUNOUT_PULLUP               // Use nternal pullup for filament runout pins.
+  //#define FIL_RUNOUT_PULLDOWN           // Use internal pulldown for filament runout pins.
+  //#define WATCH_ALL_RUNOUT_SENSORS      // Execute runout script on any triggering sensor, not only for the active extruder.
+  
+  // Commands to execute on filament runout.
+  // With multiple runout sensors use the %c placeholder for the current tool in commands (e.g., "M600 T%c")
+  // NOTE: After 'M412 H1' the host handles filament runout and this script does not apply.
+  #define FILAMENT_RUNOUT_SCRIPT "M600"
+
+  #ifdef FILAMENT_MOTION_SENSOR
+    // After a runout is detected, continue printing this length of filament
+    // before executing the runout script. Useful for a sensor at the end of
+    // a feed tube. Requires 4 bytes SRAM per sensor, plus 4 bytes overhead.
+    #define FILAMENT_RUNOUT_DISTANCE_MM 25
+  #endif
 #endif
 
 // Time intervals to save time used statistic
