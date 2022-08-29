@@ -51,13 +51,6 @@ uint16_t GCodeParser::codenum;
   uint8_t GCodeParser::subcode;
 #endif
 
-#if ENABLED(GCODE_MOTION_MODES)
-  int16_t GCodeParser::motion_mode_codenum = -1;
-  #if USE_GCODE_SUBCODES
-    uint8_t GCodeParser::motion_mode_subcode;
-  #endif
-#endif
-
 #if ENABLED(FASTER_GCODE_PARSER)
   // Optimized Parameters
   uint32_t GCodeParser::codebits;  // found bits
@@ -220,44 +213,7 @@ void GCodeParser::parse(char *p) {
       // Skip all spaces to get to the first argument, or nul
       while (*p == ' ') p++;
 
-      #if ENABLED(GCODE_MOTION_MODES)
-        if (letter == 'G'
-          && (codenum <= TERN(ARC_SUPPORT, 3, 1) || TERN0(BEZIER_CURVE_SUPPORT, codenum == 5) || TERN0(G38_PROBE_TARGET, codenum == 38))
-        ) {
-          motion_mode_codenum = codenum;
-          TERN_(USE_GCODE_SUBCODES, motion_mode_subcode = subcode);
-        }
-      #endif
-
       } break;
-
-    #if ENABLED(GCODE_MOTION_MODES)
-
-      #if EITHER(BEZIER_CURVE_SUPPORT, ARC_SUPPORT)
-        case 'I' ... 'J': case 'P':
-          if (TERN1(BEZIER_CURVE_SUPPORT, motion_mode_codenum != 5)
-            && TERN1(ARC_P_CIRCLES, !WITHIN(motion_mode_codenum, 2, 3))
-          ) return;
-      #endif
-
-      #if ENABLED(BEZIER_CURVE_SUPPORT)
-        case 'Q': if (motion_mode_codenum != 5) return;
-      #endif
-
-      #if ENABLED(ARC_SUPPORT)
-        case 'R': if (!WITHIN(motion_mode_codenum, 2, 3)) return;
-      #endif
-
-      LOGICAL_AXIS_GANG(case 'E':, case 'X':, case 'Y':, case 'Z':, case AXIS4_NAME:, case AXIS5_NAME:, case AXIS6_NAME:, case AXIS7_NAME:, case AXIS8_NAME:, case AXIS9_NAME:)
-      case 'F':
-        if (motion_mode_codenum < 0) return;
-        command_letter = 'G';
-        codenum = motion_mode_codenum;
-        TERN_(USE_GCODE_SUBCODES, subcode = motion_mode_subcode);
-        p--; // Back up one character to use the current parameter
-        break;
-
-    #endif
 
     default: return;
   }

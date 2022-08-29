@@ -21,9 +21,9 @@
  */
 #pragma once
 
-////////////////////////////
-// VENDOR VERSION EXAMPLE //
-////////////////////////////
+
+#define DEFAULT_MACHINE_NAME "External Sensor Board"
+#define BOARD_WEBSITE_URL    "https://github.com/kforth/Marlin-ExternalSensors"
 
 /**
  * Marlin release version identifier

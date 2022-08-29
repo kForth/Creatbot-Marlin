@@ -25,59 +25,6 @@
   #define __has_include(...) 1
 #endif
 
-#define ABCE 4
-#define XYZE 4
-#define ABC  3
-#define XYZ  3
-#define XY   2
-
-#define _AXIS(A) (A##_AXIS)
-
-#define _XSTOP_  0x01
-#define _YSTOP_  0x02
-#define _ZSTOP_  0x03
-#define _ISTOP_  0x04
-#define _JSTOP_  0x05
-#define _KSTOP_  0x06
-#define _USTOP_  0x07
-#define _VSTOP_  0x08
-#define _WSTOP_  0x09
-#define _XMIN_   0x11
-#define _YMIN_   0x12
-#define _ZMIN_   0x13
-#define _IMIN_   0x14
-#define _JMIN_   0x15
-#define _KMIN_   0x16
-#define _UMIN_   0x17
-#define _VMIN_   0x18
-#define _WMIN_   0x19
-#define _XMAX_   0x21
-#define _YMAX_   0x22
-#define _ZMAX_   0x23
-#define _IMAX_   0x24
-#define _JMAX_   0x25
-#define _KMAX_   0x26
-#define _UMAX_   0x27
-#define _VMAX_   0x28
-#define _WMAX_   0x29
-#define _XDIAG_  0x31
-#define _YDIAG_  0x32
-#define _ZDIAG_  0x33
-#define _IDIAG_  0x34
-#define _JDIAG_  0x35
-#define _KDIAG_  0x36
-#define _UDIAG_  0x37
-#define _VDIAG_  0x38
-#define _WDIAG_  0x39
-#define _E0DIAG_ 0xE0
-#define _E1DIAG_ 0xE1
-#define _E2DIAG_ 0xE2
-#define _E3DIAG_ 0xE3
-#define _E4DIAG_ 0xE4
-#define _E5DIAG_ 0xE5
-#define _E6DIAG_ 0xE6
-#define _E7DIAG_ 0xE7
-
 #define _FORCE_INLINE_ __attribute__((__always_inline__)) __inline__
 #define  FORCE_INLINE  __attribute__((always_inline)) inline
 #define NO_INLINE      __attribute__((noinline))
@@ -663,6 +610,11 @@
 #define IF(O, A, B) ((O) ? (A) : (B))
 #define IF_0(O, A) IF(O, A, 0)
 #define IF_1(O, A) IF(O, A, 1)
+#define IF_10(O) IF(O, 1, 0)
+#define IF_01(O) IF(O, 0, 1)
+
+#define TERN_IF(O, A, B) TERN(EVAL(IF_10(O)), A, B)
+#define TERN_IF_(O, A) TERN_(EVAL(IF_10(O)), A)
 
 //
 // REPEAT core macros. Recurse N times with ascending I.
@@ -731,7 +683,37 @@
 
 #define MAPLIST(OP,V...) EVAL(_MAPLIST(OP,V))
 
+// Remove parenthesis from arguments - useful for shielding commas
+#define _UNPAREN(...) __VA_ARGS__
+#define UNPAREN(A) _UNPAREN A
+
 // Temperature Sensor Config
-#define _HAS_E_TEMP(N) || (TEMP_SENSOR_##N != 0)
-#define HAS_E_TEMP_SENSOR (0 REPEAT(EXTRUDERS, _HAS_E_TEMP))
-#define TEMP_SENSOR_IS_MAX_TC(T) (TEMP_SENSOR_##T == -5 || TEMP_SENSOR_##T == -3 || TEMP_SENSOR_##T == -2)
+
+#define HAS_TEMP_SENSOR(T) NUM_TEMP_SENSORS >= INCREMENT(T)
+#define TEMP_SENSOR(T) TEMP_SENSOR_##T      // Type of temp sensor
+#define TEMP_SENSOR_PIN(N)  TEMP_##N##_PIN  // Sensor pin number
+
+#define TEMP_SENSOR_IS(T, N) (HAS_TEMP_SENSOR(T) && TEMP_SENSOR_##T == N)
+#define TEMP_SENSOR_IS_AD595(T) TEMP_SENSOR_IS(T, -1)
+#define TEMP_SENSOR_IS_AD8495(T) TEMP_SENSOR_IS(T, -4)
+#define TEMP_SENSOR_IS_DUMMY(T) (TEMP_SENSOR_IS(T, 998) || TEMP_SENSOR_IS(T, 999))
+#define TEMP_SENSOR_IS_CUSTOM(T) TEMP_SENSOR_IS(T, 1000)
+#define TEMP_SENSOR_IS_THERMISTOR(T) (HAS_TEMP_SENSOR(T) && TEMP_SENSOR(T) > 0)
+
+#define ANY_TEMP_SENSOR_IS(N)  (TEMP_SENSOR_IS(0, N)) \
+                            || (TEMP_SENSOR_IS(1, N)) \
+                            || (TEMP_SENSOR_IS(2, N)) \
+                            || (TEMP_SENSOR_IS(3, N)) \
+                            || (TEMP_SENSOR_IS(4, N)) \
+                            || (TEMP_SENSOR_IS(5, N)) \
+                            || (TEMP_SENSOR_IS(6, N)) \
+                            || (TEMP_SENSOR_IS(7, N))
+#define ANY_TEMP_SENSOR_IS_THERMISTOR  (TEMP_SENSOR(0) > 0) \
+                                    || (TEMP_SENSOR(1) > 0) \
+                                    || (TEMP_SENSOR(2) > 0) \
+                                    || (TEMP_SENSOR(3) > 0) \
+                                    || (TEMP_SENSOR(4) > 0) \
+                                    || (TEMP_SENSOR(5) > 0) \
+                                    || (TEMP_SENSOR(6) > 0) \
+                                    || (TEMP_SENSOR(7) > 0)
+#define ANY_TEMP_SENSOR_IS_CUSTOM ANY_TEMP_SENSOR_IS(1000)

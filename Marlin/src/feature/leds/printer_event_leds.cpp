@@ -36,7 +36,7 @@ PrinterEventLEDs printerEventLEDs;
   bool PrinterEventLEDs::leds_off_after_print; // = false
 #endif
 
-#if HAS_TEMP_HOTEND || HAS_HEATED_BED
+#if HAS_TEMP_SENSORS
 
   uint8_t PrinterEventLEDs::old_intensity = 0;
 
@@ -54,7 +54,7 @@ PrinterEventLEDs printerEventLEDs;
 
 #endif
 
-#if HAS_TEMP_HOTEND
+#if HAS_TEMP_SENSORS
 
   void PrinterEventLEDs::onHotendHeating(const celsius_t start, const celsius_t current, const celsius_t target) {
     const uint8_t blue = pel_intensity(start, current, target);

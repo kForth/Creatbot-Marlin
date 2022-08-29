@@ -22,7 +22,6 @@
 #pragma once
 
 #include "serial.h"
-#include "../module/motion.h"
 
 class SectionLog {
 public:
@@ -43,7 +42,6 @@ private:
       SERIAL_CHAR(' ');
       SERIAL_ECHOF(the_msg);
     }
-    SERIAL_CHAR(' ');
-    print_pos(current_position);
+    SERIAL_EOL();
   }
 };

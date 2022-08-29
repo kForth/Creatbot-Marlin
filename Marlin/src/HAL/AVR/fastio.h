@@ -319,15 +319,7 @@ enum ClockSource2 : uint8_t {
   #define PWM_CHK_SERVO(P) false
 #endif
 
-#if ENABLED(BARICUDA)
-  #if HAS_HEATER_1 && HAS_HEATER_2
-    #define PWM_CHK_HEATER(P) (P == HEATER_1_PIN || P == HEATER_2_PIN)
-  #elif HAS_HEATER_1
-    #define PWM_CHK_HEATER(P) (P == HEATER_1_PIN)
-  #endif
-#else
-    #define PWM_CHK_HEATER(P) false
-#endif
+  #define PWM_CHK_HEATER(P) false
 
 #define PWM_CHK(P) (PWM_CHK_HEATER(P) || PWM_CHK_SERVO(P) || PWM_CHK_MOTOR_CURRENT(P) || PWM_CHK_FAN_A(P) || PWM_CHK_FAN_B(P))
 

@@ -76,36 +76,12 @@ public:
   #if ENABLED(POWER_MONITOR_VOLTAGE)
     FORCE_INLINE static float getVolts() { return volts.value + (POWER_MONITOR_VOLTAGE_OFFSET); }
     void add_voltage_sample(const uint16_t value) { volts.add_sample(value); }
-  #else
+  #elif ENABLED(POWER_MONITOR_CURRENT)
     FORCE_INLINE static float getVolts() { return POWER_MONITOR_FIXED_VOLTAGE; }
   #endif
 
   #if HAS_POWER_MONITOR_WATTS
     FORCE_INLINE static float getPower() { return getAmps() * getVolts(); }
-  #endif
-
-  #if HAS_WIRED_LCD
-    #if HAS_MARLINUI_U8GLIB && DISABLED(LIGHTWEIGHT_UI)
-      FORCE_INLINE static bool display_enabled() { return flags != 0x00; }
-    #endif
-    #if ENABLED(POWER_MONITOR_CURRENT)
-      static void draw_current();
-      FORCE_INLINE static bool current_display_enabled() { return TEST(flags, PM_DISP_BIT_I); }
-      FORCE_INLINE static void set_current_display(const bool b) { SET_BIT_TO(flags, PM_DISP_BIT_I, b); }
-      FORCE_INLINE static void toggle_current_display() { TBI(flags, PM_DISP_BIT_I); }
-    #endif
-    #if ENABLED(POWER_MONITOR_VOLTAGE)
-      static void draw_voltage();
-      FORCE_INLINE static bool voltage_display_enabled() { return TEST(flags, PM_DISP_BIT_V); }
-      FORCE_INLINE static void set_voltage_display(const bool b) { SET_BIT_TO(flags, PM_DISP_BIT_V, b); }
-      FORCE_INLINE static void toggle_voltage_display() { TBI(flags, PM_DISP_BIT_V); }
-    #endif
-    #if HAS_POWER_MONITOR_WATTS
-      static void draw_power();
-      FORCE_INLINE static bool power_display_enabled() { return TEST(flags, PM_DISP_BIT_P); }
-      FORCE_INLINE static void set_power_display(const bool b) { SET_BIT_TO(flags, PM_DISP_BIT_P, b); }
-      FORCE_INLINE static void toggle_power_display() { TBI(flags, PM_DISP_BIT_P); }
-    #endif
   #endif
 
   static void reset() {

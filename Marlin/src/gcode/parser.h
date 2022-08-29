@@ -89,14 +89,6 @@ public:
     static uint8_t subcode;               // .1
   #endif
 
-  #if ENABLED(GCODE_MOTION_MODES)
-    static int16_t motion_mode_codenum;
-    #if USE_GCODE_SUBCODES
-      static uint8_t motion_mode_subcode;
-    #endif
-    FORCE_INLINE static void cancel_motion_mode() { motion_mode_codenum = -1; }
-  #endif
-
   #if ENABLED(DEBUG_GCODE_PARSER)
     static void debug();
   #endif
@@ -224,9 +216,6 @@ public:
 
   #endif // !FASTER_GCODE_PARSER
 
-  // Seen any axis parameter
-  static bool seen_axis() { return seen(STR_AXES_LOGICAL); }
-
   #if ENABLED(GCODE_QUOTED_STRINGS)
     static char* unescape_string(char* &src);
   #else
@@ -308,24 +297,13 @@ public:
       volumetric_unit_factor = POW(linear_unit_factor, 3);
     }
 
-    static float axis_unit_factor(const AxisEnum axis) {
-      if (false
-        || TERN0(AXIS4_ROTATES, axis == I_AXIS)
-        || TERN0(AXIS5_ROTATES, axis == J_AXIS)
-        || TERN0(AXIS6_ROTATES, axis == K_AXIS)
-        || TERN0(AXIS7_ROTATES, axis == U_AXIS)
-        || TERN0(AXIS8_ROTATES, axis == V_AXIS)
-        || TERN0(AXIS9_ROTATES, axis == W_AXIS)
-      ) return 1.0f;
-      #if HAS_EXTRUDERS
-        if (axis >= E_AXIS && volumetric_enabled) return volumetric_unit_factor;
-      #endif
+    static float axis_unit_factor(const uint8_t axis) {
       return linear_unit_factor;
     }
 
     static float linear_value_to_mm(const_float_t v)                  { return v * linear_unit_factor; }
-    static float axis_value_to_mm(const AxisEnum axis, const float v) { return v * axis_unit_factor(axis); }
-    static float per_axis_value(const AxisEnum axis, const float v)   { return v / axis_unit_factor(axis); }
+    static float axis_value_to_mm(const uint8_t axis, const float v) { return v * axis_unit_factor(axis); }
+    static float per_axis_value(const uint8_t axis, const float v)   { return v / axis_unit_factor(axis); }
 
   #else
 
@@ -333,8 +311,8 @@ public:
     static float mm_to_volumetric_unit(const_float_t mm) { return mm; }
 
     static float linear_value_to_mm(const_float_t v)             { return v; }
-    static float axis_value_to_mm(const AxisEnum, const float v) { return v; }
-    static float per_axis_value(const AxisEnum, const float v)   { return v; }
+    static float axis_value_to_mm(const uint8_t, const float v) { return v; }
+    static float per_axis_value(const uint8_t, const float v)   { return v; }
 
   #endif
 
@@ -353,8 +331,8 @@ public:
   #define W_AXIS_UNIT(V) TERN(AXIS9_ROTATES, (V), LINEAR_UNIT(V))
 
   static float value_linear_units()                      { return linear_value_to_mm(value_float()); }
-  static float value_axis_units(const AxisEnum axis)     { return axis_value_to_mm(axis, value_float()); }
-  static float value_per_axis_units(const AxisEnum axis) { return per_axis_value(axis, value_float()); }
+  static float value_axis_units(const uint8_t axis)     { return axis_value_to_mm(axis, value_float()); }
+  static float value_per_axis_units(const uint8_t axis) { return per_axis_value(axis, value_float()); }
 
   #if ENABLED(TEMPERATURE_UNITS_SUPPORT)
 
@@ -425,7 +403,7 @@ public:
   static int32_t   longval(const char c, const int32_t dval=0)    { return seenval(c) ? value_long()         : dval; }
   static uint32_t  ulongval(const char c, const uint32_t dval=0)  { return seenval(c) ? value_ulong()        : dval; }
   static float     linearval(const char c, const float dval=0)    { return seenval(c) ? value_linear_units() : dval; }
-  static float     axisunitsval(const char c, const AxisEnum a, const float dval=0)
+  static float     axisunitsval(const char c, const uint8_t a, const float dval=0)
                                                                          { return seenval(c) ? value_axis_units(a)  : dval; }
   static celsius_t celsiusval(const char c, const celsius_t dval=0)    { return seenval(c) ? value_celsius() : dval; }
   static feedRate_t feedrateval(const char c, const feedRate_t dval=0) { return seenval(c) ? value_feedrate() : dval; }

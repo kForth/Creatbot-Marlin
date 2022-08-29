@@ -53,27 +53,27 @@ void GcodeSuite::M305() {
     SERIAL_ECHO_MSG("!Invalid index. (0 <= P <= ", USER_THERMISTORS - 1, ")");
   else if (do_set) {
     if (parser.seenval('R')) // Pullup resistor value
-      if (!thermalManager.set_pull_up_res(t_index, parser.value_float()))
+      if (!tempSensors.set_pull_up_res(t_index, parser.value_float()))
         SERIAL_ECHO_MSG("!Invalid series resistance. (0 < R < 1000000)");
 
     if (parser.seenval('T')) // Resistance at 25C
-      if (!thermalManager.set_res25(t_index, parser.value_float()))
+      if (!tempSensors.set_res25(t_index, parser.value_float()))
         SERIAL_ECHO_MSG("!Invalid 25C resistance. (0 < T < 10000000)");
 
     if (parser.seenval('B')) // Beta value
-      if (!thermalManager.set_beta(t_index, parser.value_float()))
+      if (!tempSensors.set_beta(t_index, parser.value_float()))
         SERIAL_ECHO_MSG("!Invalid beta. (0 < B < 1000000)");
 
     if (parser.seenval('C')) // Steinhart-Hart C coefficient
-      if (!thermalManager.set_sh_coeff(t_index, parser.value_float()))
+      if (!tempSensors.set_sh_coeff(t_index, parser.value_float()))
         SERIAL_ECHO_MSG("!Invalid Steinhart-Hart C coeff. (-0.01 < C < +0.01)");
   }                       // If not setting then report parameters
   else if (t_index < 0) { // ...all user thermistors
     LOOP_L_N(i, USER_THERMISTORS)
-      thermalManager.M305_report(i);
+      tempSensors.M305_report(i);
   }
   else                    // ...one user thermistor
-    thermalManager.M305_report(t_index);
+    tempSensors.M305_report(t_index);
 }
 
 #endif // HAS_USER_THERMISTORS

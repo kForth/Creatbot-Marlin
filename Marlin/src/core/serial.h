@@ -24,10 +24,6 @@
 #include "../inc/MarlinConfig.h"
 #include "serial_hook.h"
 
-#if HAS_MEATPACK
-  #include "../feature/meatpack.h"
-#endif
-
 //
 // Debugging flags for use by M111
 //
@@ -335,40 +331,10 @@ void serial_spaces(uint8_t count);
 void serial_offset(const_float_t v, const uint8_t sp=0); // For v==0 draw space (sp==1) or plus (sp==2)
 
 void print_bin(const uint16_t val);
-void print_pos(NUM_AXIS_ARGS(const_float_t), FSTR_P const prefix=nullptr, FSTR_P const suffix=nullptr);
-
-inline void print_pos(const xyz_pos_t &xyz, FSTR_P const prefix=nullptr, FSTR_P const suffix=nullptr) {
-  print_pos(NUM_AXIS_ELEM(xyz), prefix, suffix);
-}
-
-#define SERIAL_POS(SUFFIX,VAR) do { print_pos(VAR, F("  " STRINGIFY(VAR) "="), F(" : " SUFFIX "\n")); }while(0)
-#define SERIAL_XYZ(PREFIX,V...) do { print_pos(V, F(PREFIX)); }while(0)
 
 //
 // Commonly-used strings in serial output
 //
 
-#define _N_STR(N) N##_STR
-#define _N_LBL(N) N##_LBL
-#define _N_STR_A(N) _N_STR(N)[]
-#define _N_LBL_A(N) _N_LBL(N)[]
-#define _SP_N_STR(N) SP_##N##_STR
-#define _SP_N_LBL(N) SP_##N##_LBL
-#define _SP_N_STR_A(N) _SP_N_STR(N)[]
-#define _SP_N_LBL_A(N) _SP_N_LBL(N)[]
+extern const char SP_A_STR[], SP_B_STR[], SP_C_STR[], SP_P_STR[], SP_T_STR[], NUL_STR[];
 
-extern const char SP_A_STR[], SP_B_STR[], SP_C_STR[], SP_P_STR[], SP_T_STR[], NUL_STR[],
-                  MAPLIST(_N_STR_A, LOGICAL_AXIS_NAMES), MAPLIST(_SP_N_STR_A, LOGICAL_AXIS_NAMES),
-                  MAPLIST(_N_LBL_A, LOGICAL_AXIS_NAMES), MAPLIST(_SP_N_LBL_A, LOGICAL_AXIS_NAMES);
-
-PGM_P const SP_AXIS_LBL[] PROGMEM = { MAPLIST(_SP_N_LBL, LOGICAL_AXIS_NAMES) };
-PGM_P const SP_AXIS_STR[] PROGMEM = { MAPLIST(_SP_N_STR, LOGICAL_AXIS_NAMES) };
-
-#undef _N_STR
-#undef _N_LBL
-#undef _N_STR_A
-#undef _N_LBL_A
-#undef _SP_N_STR
-#undef _SP_N_LBL
-#undef _SP_N_STR_A
-#undef _SP_N_LBL_A

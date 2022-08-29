@@ -22,7 +22,6 @@
 #pragma once
 
 #include "../inc/MarlinConfig.h"
-#include "../module/planner.h"
 #include "../module/thermistor/thermistors.h"
 
 class FilamentWidthSensor {
@@ -111,7 +110,8 @@ public:
       int8_t read_index = index_r - meas_delay_cm;
       if (read_index < 0) read_index += MMD_CM; // Loop around buffer if needed
       LIMIT(read_index, 0, MAX_MEASUREMENT_DELAY);
-      planner.apply_filament_width_sensor(ratios[read_index]);
+      // TODO: Something with the value:
+      // planner.apply_filament_width_sensor(ratios[read_index]);
     }
   }
 

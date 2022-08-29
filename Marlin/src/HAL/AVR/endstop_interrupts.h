@@ -25,8 +25,8 @@
  * Endstop Interrupts
  *
  * Without endstop interrupts the endstop pins must be polled continually in
- * the temperature-ISR via endstops.update(), most of the time finding no change.
- * With this feature endstops.update() is called only when we know that at
+ * the temperature-ISR via digitalInputs.update(), most of the time finding no change.
+ * With this feature digitalInputs.update() is called only when we know that at
  * least one endstop has changed state, saving valuable CPU cycles.
  *
  * This feature only works when all used endstop pins can generate either an
@@ -41,7 +41,7 @@
 #include <stdint.h>
 
 // One ISR for all EXT-Interrupts
-void endstop_ISR() { endstops.update(); }
+void endstop_ISR() { digitalInputs.update(); }
 
 /**
  * Patch for pins_arduino.h (...\Arduino\hardware\arduino\avr\variants\mega\pins_arduino.h)

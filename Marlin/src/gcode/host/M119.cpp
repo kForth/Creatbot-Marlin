@@ -21,13 +21,13 @@
  */
 
 #include "../gcode.h"
-#include "../../module/endstops.h"
+#include "../../module/digital_inputs.h"
 
 /**
  * M119: Output endstop states to serial output
  */
 void GcodeSuite::M119() {
 
-  endstops.report_states();
+  digitalInputs.report_states();
 
 }

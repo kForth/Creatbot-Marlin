@@ -24,11 +24,8 @@
 
 #if ENABLED(MARLIN_TEST_BUILD)
 
-#include "../module/endstops.h"
-#include "../module/motion.h"
-#include "../module/planner.h"
+#include "../module/digital_inputs.h"
 #include "../module/settings.h"
-#include "../module/stepper.h"
 #include "../module/temperature.h"
 
 // Individual tests are localized in each module.

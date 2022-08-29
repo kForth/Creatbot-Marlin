@@ -25,18 +25,9 @@
  * feature/runout.h - Runout sensor support
  */
 
-#include "../sd/cardreader.h"
-#include "../module/printcounter.h"
-#include "../module/planner.h"
-#include "../module/stepper.h" // for block_t
 #include "../gcode/queue.h"
-#include "../feature/pause.h"
 
 #include "../inc/MarlinConfig.h"
-
-#if ENABLED(EXTENSIBLE_UI)
-  #include "../lcd/extui/ui_api.h"
-#endif
 
 //#define FILAMENT_RUNOUT_SENSOR_DEBUG
 #ifndef FILAMENT_RUNOUT_THRESHOLD
@@ -104,41 +95,27 @@ class TFilamentMonitor : public FilamentMonitorBase {
       static void set_runout_distance(const_float_t mm) { response.runout_distance_mm = mm; }
     #endif
 
-    // Handle a block completion. RunoutResponseDelayed uses this to
-    // add up the length of filament moved while the filament is out.
-    static void block_completed(const block_t * const b) {
-      if (enabled) {
-        response.block_completed(b);
-        sensor.block_completed(b);
-      }
-    }
-
     // Give the response a chance to update its counter.
     static void run() {
-      if (enabled && !filament_ran_out && (printingIsActive() || did_pause_print)) {
+      if (enabled && !filament_ran_out) { // TODO:  && (printingIsActive() || did_pause_print)
         TERN_(HAS_FILAMENT_RUNOUT_DISTANCE, cli()); // Prevent RunoutResponseDelayed::block_completed from accumulating here
         response.run();
         sensor.run();
         const uint8_t runout_flags = response.has_run_out();
         TERN_(HAS_FILAMENT_RUNOUT_DISTANCE, sei());
         #if MULTI_FILAMENT_SENSOR
-          #if ENABLED(WATCH_ALL_RUNOUT_SENSORS)
-            const bool ran_out = !!runout_flags;  // any sensor triggers
-            uint8_t extruder = 0;
-            if (ran_out) {
-              uint8_t bitmask = runout_flags;
-              while (!(bitmask & 1)) {
-                bitmask >>= 1;
-                extruder++;
-              }
+          const bool ran_out = !!runout_flags;  // any sensor triggers
+          uint8_t extruder = 0;
+          if (ran_out) {
+            uint8_t bitmask = runout_flags;
+            while (!(bitmask & 1)) {
+              bitmask >>= 1;
+              extruder++;
             }
-          #else
-            const bool ran_out = TEST(runout_flags, active_extruder);  // suppress non active extruders
-            uint8_t extruder = active_extruder;
-          #endif
+          }
         #else
+          uint8_t extruder = 0;
           const bool ran_out = !!runout_flags;
-          uint8_t extruder = active_extruder;
         #endif
 
         #if ENABLED(FILAMENT_RUNOUT_SENSOR_DEBUG)
@@ -154,7 +131,6 @@ class TFilamentMonitor : public FilamentMonitorBase {
         if (ran_out) {
           filament_ran_out = true;
           event_filament_runout(extruder);
-          planner.synchronize();
         }
       }
     }
@@ -273,16 +249,6 @@ class FilamentSensorBase {
       }
 
     public:
-      static void block_completed(const block_t * const b) {
-        // If the sensor wheel has moved since the last call to
-        // this method reset the runout counter for the extruder.
-        if (TEST(motion_detected, b->extruder))
-          filament_present(b->extruder);
-
-        // Clear motion triggers for next block
-        motion_detected = 0;
-      }
-
       static void run() { poll_motion_sensor(); }
   };
 
@@ -366,15 +332,6 @@ class FilamentSensorBase {
 
       static void filament_present(const uint8_t extruder) {
         runout_mm_countdown[extruder] = runout_distance_mm;
-      }
-
-      static void block_completed(const block_t * const b) {
-        if (b->steps.x || b->steps.y || b->steps.z || did_pause_print) { // Allow pause purge move to re-trigger runout state
-          // Only trigger on extrusion with XYZ movement to allow filament change and retract/recover.
-          const uint8_t e = b->extruder;
-          const int32_t steps = b->steps.e;
-          runout_mm_countdown[e] -= (TEST(b->direction_bits, E_AXIS) ? -steps : steps) * planner.mm_per_step[E_AXIS_N(e)];
-        }
       }
   };
 

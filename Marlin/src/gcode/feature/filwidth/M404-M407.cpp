@@ -25,7 +25,6 @@
 #if ENABLED(FILAMENT_WIDTH_SENSOR)
 
 #include "../../../feature/filwidth.h"
-#include "../../../module/planner.h"
 #include "../../../MarlinCore.h"
 #include "../../gcode.h"
 

@@ -49,11 +49,6 @@ class MarlinSettings {
       #endif
     }
 
-    #if ENABLED(SD_FIRMWARE_UPDATE)
-      static bool sd_update_status();                       // True if the SD-Firmware-Update EEPROM flag is set
-      static bool set_sd_update_status(const bool enable);  // Return 'true' after EEPROM is set (-> always true)
-    #endif
-
     #if ENABLED(EEPROM_SETTINGS)
 
       static bool load();      // Return 'true' if data was loaded ok
@@ -63,19 +58,6 @@ class MarlinSettings {
         static bool loaded = false;
         if (!loaded && load()) loaded = true;
       }
-
-      #if ENABLED(AUTO_BED_LEVELING_UBL) // Eventually make these available if any leveling system
-                                         // That can store is enabled
-        static uint16_t meshes_start_index();
-        FORCE_INLINE static uint16_t meshes_end_index() { return meshes_end; }
-        static uint16_t calc_num_meshes();
-        static int mesh_slot_offset(const int8_t slot);
-        static void store_mesh(const int8_t slot);
-        static void load_mesh(const int8_t slot, void * const into=nullptr);
-
-        //static void delete_mesh();    // necessary if we have a MAT
-        //static void defrag_meshes();  // "
-      #endif
 
     #else // !EEPROM_SETTINGS
 
@@ -99,12 +81,6 @@ class MarlinSettings {
     #if ENABLED(EEPROM_SETTINGS)
 
       static bool eeprom_error, validating;
-
-      #if ENABLED(AUTO_BED_LEVELING_UBL)  // Eventually make these available if any leveling system
-                                          // That can store is enabled
-        static const uint16_t meshes_end; // 128 is a placeholder for the size of the MAT; the MAT will always
-                                          // live at the very end of the eeprom
-      #endif
 
       static bool _load();
       static bool size_error(const uint16_t size);

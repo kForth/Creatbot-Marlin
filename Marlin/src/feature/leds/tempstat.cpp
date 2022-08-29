@@ -36,9 +36,9 @@ void handle_status_leds() {
   static millis_t next_status_led_update_ms = 0;
   if (ELAPSED(millis(), next_status_led_update_ms)) {
     next_status_led_update_ms += 500; // Update every 0.5s
-    celsius_t max_temp = TERN0(HAS_HEATED_BED, _MAX(thermalManager.degTargetBed(), thermalManager.wholeDegBed()));
-    HOTEND_LOOP()
-      max_temp = _MAX(max_temp, thermalManager.wholeDegHotend(e), thermalManager.degTargetHotend(e));
+    celsius_t max_temp = TERN0(HAS_HEATED_BED, _MAX(tempSensors.degTargetBed(), tempSensors.wholeDegBed()));
+    TEMP_SENSOR_LOOP()
+      max_temp = _MAX(max_temp, tempSensors.wholeDegHotend(e), tempSensors.degTargetHotend(e));
     const int8_t new_red = (max_temp > 55) ? HIGH : (max_temp < 54 || old_red < 0) ? LOW : old_red;
     if (new_red != old_red) {
       old_red = new_red;

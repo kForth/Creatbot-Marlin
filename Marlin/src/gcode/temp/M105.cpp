@@ -33,9 +33,9 @@ void GcodeSuite::M105() {
 
   SERIAL_ECHOPGM(STR_OK);
 
-  #if HAS_TEMP_SENSOR
+  #if HAS_TEMP_SENSORS
 
-    thermalManager.print_heater_states(target_extruder OPTARG(HAS_TEMP_REDUNDANT, parser.boolval('R')));
+    tempSensors.print_heater_states(target_extruder OPTARG(HAS_TEMP_REDUNDANT, parser.boolval('R')));
 
     SERIAL_EOL();
 

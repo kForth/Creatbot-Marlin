@@ -43,7 +43,7 @@
 
 I2CPositionEncodersMgr I2CPEM;
 
-void I2CPositionEncoder::init(const uint8_t address, const AxisEnum axis) {
+void I2CPositionEncoder::init(const uint8_t address, const uint8_t axis) {
   encoderAxis = axis;
   i2cAddress = address;
 
@@ -338,15 +338,15 @@ bool I2CPositionEncoder::test_axis() {
 
   xyze_pos_t startCoord, endCoord;
   LOOP_NUM_AXES(a) {
-    startCoord[a] = planner.get_axis_position_mm((AxisEnum)a);
-    endCoord[a] = planner.get_axis_position_mm((AxisEnum)a);
+    startCoord[a] = planner.get_axis_position_mm((uint8_t)a);
+    endCoord[a] = planner.get_axis_position_mm((uint8_t)a);
   }
   startCoord[encoderAxis] = startPosition;
   endCoord[encoderAxis] = endPosition;
 
   planner.synchronize();
 
-  #if HAS_EXTRUDERS
+  #if HAS_TEMP_SENSORS
     startCoord.e = planner.get_axis_position_mm(E_AXIS);
     planner.buffer_line(startCoord, fr_mm_s, 0);
     planner.synchronize();
@@ -360,7 +360,7 @@ bool I2CPositionEncoder::test_axis() {
   }
 
   if (trusted) { // if trusted, commence test
-    TERN_(HAS_EXTRUDERS, endCoord.e = planner.get_axis_position_mm(E_AXIS));
+    TERN_(HAS_TEMP_SENSORS, endCoord.e = planner.get_axis_position_mm(E_AXIS));
     planner.buffer_line(endCoord, fr_mm_s, 0);
     planner.synchronize();
   }
@@ -396,8 +396,8 @@ void I2CPositionEncoder::calibrate_steps_mm(const uint8_t iter) {
 
   xyze_pos_t startCoord, endCoord;
   LOOP_NUM_AXES(a) {
-    startCoord[a] = planner.get_axis_position_mm((AxisEnum)a);
-    endCoord[a] = planner.get_axis_position_mm((AxisEnum)a);
+    startCoord[a] = planner.get_axis_position_mm((uint8_t)a);
+    endCoord[a] = planner.get_axis_position_mm((uint8_t)a);
   }
   startCoord[encoderAxis] = startDistance;
   endCoord[encoderAxis] = endDistance;
@@ -405,7 +405,7 @@ void I2CPositionEncoder::calibrate_steps_mm(const uint8_t iter) {
   planner.synchronize();
 
   LOOP_L_N(i, iter) {
-    TERN_(HAS_EXTRUDERS, startCoord.e = planner.get_axis_position_mm(E_AXIS));
+    TERN_(HAS_TEMP_SENSORS, startCoord.e = planner.get_axis_position_mm(E_AXIS));
     planner.buffer_line(startCoord, fr_mm_s, 0);
     planner.synchronize();
 
@@ -414,7 +414,7 @@ void I2CPositionEncoder::calibrate_steps_mm(const uint8_t iter) {
 
     //do_blocking_move_to(endCoord);
 
-    TERN_(HAS_EXTRUDERS, endCoord.e = planner.get_axis_position_mm(E_AXIS));
+    TERN_(HAS_TEMP_SENSORS, endCoord.e = planner.get_axis_position_mm(E_AXIS));
     planner.buffer_line(endCoord, fr_mm_s, 0);
     planner.synchronize();
 
@@ -500,7 +500,7 @@ void I2CPositionEncodersMgr::init() {
 
     encoders[i].set_active(encoders[i].passes_test(true));
 
-    TERN_(HAS_EXTRUDERS, if (I2CPE_ENC_1_AXIS == E_AXIS) encoders[i].set_homed());
+    TERN_(HAS_TEMP_SENSORS, if (I2CPE_ENC_1_AXIS == E_AXIS) encoders[i].set_homed());
   #endif
 
   #if I2CPE_ENCODER_CNT > 1
@@ -529,7 +529,7 @@ void I2CPositionEncodersMgr::init() {
 
     encoders[i].set_active(encoders[i].passes_test(true));
 
-    TERN_(HAS_EXTRUDERS, if (I2CPE_ENC_2_AXIS == E_AXIS) encoders[i].set_homed());
+    TERN_(HAS_TEMP_SENSORS, if (I2CPE_ENC_2_AXIS == E_AXIS) encoders[i].set_homed());
   #endif
 
   #if I2CPE_ENCODER_CNT > 2
@@ -558,7 +558,7 @@ void I2CPositionEncodersMgr::init() {
 
     encoders[i].set_active(encoders[i].passes_test(true));
 
-    TERN_(HAS_EXTRUDERS, if (I2CPE_ENC_3_AXIS == E_AXIS) encoders[i].set_homed());
+    TERN_(HAS_TEMP_SENSORS, if (I2CPE_ENC_3_AXIS == E_AXIS) encoders[i].set_homed());
   #endif
 
   #if I2CPE_ENCODER_CNT > 3
@@ -587,7 +587,7 @@ void I2CPositionEncodersMgr::init() {
 
     encoders[i].set_active(encoders[i].passes_test(true));
 
-    TERN_(HAS_EXTRUDERS, if (I2CPE_ENC_4_AXIS == E_AXIS) encoders[i].set_homed());
+    TERN_(HAS_TEMP_SENSORS, if (I2CPE_ENC_4_AXIS == E_AXIS) encoders[i].set_homed());
   #endif
 
   #if I2CPE_ENCODER_CNT > 4
@@ -616,7 +616,7 @@ void I2CPositionEncodersMgr::init() {
 
     encoders[i].set_active(encoders[i].passes_test(true));
 
-    TERN_(HAS_EXTRUDERS, if (I2CPE_ENC_5_AXIS == E_AXIS) encoders[i].set_homed());
+    TERN_(HAS_TEMP_SENSORS, if (I2CPE_ENC_5_AXIS == E_AXIS) encoders[i].set_homed());
   #endif
 
   #if I2CPE_ENCODER_CNT > 5
@@ -645,7 +645,7 @@ void I2CPositionEncodersMgr::init() {
 
     encoders[i].set_active(encoders[i].passes_test(true));
 
-    TERN_(HAS_EXTRUDERS, if (I2CPE_ENC_6_AXIS == E_AXIS) encoders[i].set_homed());
+    TERN_(HAS_TEMP_SENSORS, if (I2CPE_ENC_6_AXIS == E_AXIS) encoders[i].set_homed());
   #endif
 }
 
@@ -815,7 +815,7 @@ void I2CPositionEncodersMgr::M860() {
   if (I2CPE_idx == 0xFF) {
     LOOP_LOGICAL_AXES(i) {
       if (!I2CPE_anyaxis || parser.seen_test(AXIS_CHAR(i))) {
-        const uint8_t idx = idx_from_axis(AxisEnum(i));
+        const uint8_t idx = idx_from_axis(uint8_t(i));
         if ((int8_t)idx >= 0) report_position(idx, hasU, hasO);
       }
     }
@@ -842,7 +842,7 @@ void I2CPositionEncodersMgr::M861() {
   if (I2CPE_idx == 0xFF) {
     LOOP_LOGICAL_AXES(i) {
       if (!I2CPE_anyaxis || parser.seen(AXIS_CHAR(i))) {
-        const uint8_t idx = idx_from_axis(AxisEnum(i));
+        const uint8_t idx = idx_from_axis(uint8_t(i));
         if ((int8_t)idx >= 0) report_status(idx);
       }
     }
@@ -870,7 +870,7 @@ void I2CPositionEncodersMgr::M862() {
   if (I2CPE_idx == 0xFF) {
     LOOP_LOGICAL_AXES(i) {
       if (!I2CPE_anyaxis || parser.seen(AXIS_CHAR(i))) {
-        const uint8_t idx = idx_from_axis(AxisEnum(i));
+        const uint8_t idx = idx_from_axis(uint8_t(i));
         if ((int8_t)idx >= 0) test_axis(idx);
       }
     }
@@ -901,7 +901,7 @@ void I2CPositionEncodersMgr::M863() {
   if (I2CPE_idx == 0xFF) {
     LOOP_LOGICAL_AXES(i) {
       if (!I2CPE_anyaxis || parser.seen(AXIS_CHAR(i))) {
-        const uint8_t idx = idx_from_axis(AxisEnum(i));
+        const uint8_t idx = idx_from_axis(uint8_t(i));
         if ((int8_t)idx >= 0) calibrate_steps_mm(idx, iterations);
       }
     }
@@ -977,7 +977,7 @@ void I2CPositionEncodersMgr::M865() {
   if (!I2CPE_addr) {
     LOOP_LOGICAL_AXES(i) {
       if (!I2CPE_anyaxis || parser.seen(AXIS_CHAR(i))) {
-        const uint8_t idx = idx_from_axis(AxisEnum(i));
+        const uint8_t idx = idx_from_axis(uint8_t(i));
         if ((int8_t)idx >= 0) report_module_firmware(encoders[idx].get_address());
       }
     }
@@ -1008,12 +1008,12 @@ void I2CPositionEncodersMgr::M866() {
   if (I2CPE_idx == 0xFF) {
     LOOP_LOGICAL_AXES(i) {
       if (!I2CPE_anyaxis || parser.seen(AXIS_CHAR(i))) {
-        const uint8_t idx = idx_from_axis(AxisEnum(i));
+        const uint8_t idx = idx_from_axis(uint8_t(i));
         if ((int8_t)idx >= 0) {
           if (hasR)
-            reset_error_count(idx, AxisEnum(i));
+            reset_error_count(idx, uint8_t(i));
           else
-            report_error_count(idx, AxisEnum(i));
+            report_error_count(idx, uint8_t(i));
         }
       }
     }
@@ -1046,10 +1046,10 @@ void I2CPositionEncodersMgr::M867() {
   if (I2CPE_idx == 0xFF) {
     LOOP_LOGICAL_AXES(i) {
       if (!I2CPE_anyaxis || parser.seen(AXIS_CHAR(i))) {
-        const uint8_t idx = idx_from_axis(AxisEnum(i));
+        const uint8_t idx = idx_from_axis(uint8_t(i));
         if ((int8_t)idx >= 0) {
           const bool ena = onoff == -1 ? !encoders[I2CPE_idx].get_ec_enabled() : !!onoff;
-          enable_ec(idx, ena, AxisEnum(i));
+          enable_ec(idx, ena, uint8_t(i));
         }
       }
     }
@@ -1082,7 +1082,7 @@ void I2CPositionEncodersMgr::M868() {
   if (I2CPE_idx == 0xFF) {
     LOOP_LOGICAL_AXES(i) {
       if (!I2CPE_anyaxis || parser.seen(AXIS_CHAR(i))) {
-        const uint8_t idx = idx_from_axis(AxisEnum(i));
+        const uint8_t idx = idx_from_axis(uint8_t(i));
         if ((int8_t)idx >= 0) {
           if (newThreshold != -9999)
             set_ec_threshold(idx, newThreshold, encoders[idx].get_axis());
@@ -1116,7 +1116,7 @@ void I2CPositionEncodersMgr::M869() {
   if (I2CPE_idx == 0xFF) {
     LOOP_LOGICAL_AXES(i) {
       if (!I2CPE_anyaxis || parser.seen(AXIS_CHAR(i))) {
-        const uint8_t idx = idx_from_axis(AxisEnum(i));
+        const uint8_t idx = idx_from_axis(uint8_t(i));
         if ((int8_t)idx >= 0) report_error(idx);
       }
     }

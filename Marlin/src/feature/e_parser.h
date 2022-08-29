@@ -27,13 +27,6 @@
 
 #include "../inc/MarlinConfigPre.h"
 
-#if ENABLED(HOST_PROMPT_SUPPORT)
-  #include "host_actions.h"
-#endif
-
-// External references
-extern bool wait_for_user, wait_for_heatup;
-
 #if ENABLED(REALTIME_REPORTING_COMMANDS)
   // From motion.h, which cannot be included here
   void report_current_position_moving();
@@ -49,18 +42,11 @@ class EmergencyParser {
 
 public:
 
-  // Currently looking for: M108, M112, M410, M876 S[0-9], S000, P000, R000
+  // Currently looking for: M112, S000, P000, R000
   enum State : uint8_t {
     EP_RESET,
     EP_N,
-    EP_M,
-    EP_M1,
-    EP_M10, EP_M108,
-    EP_M11, EP_M112,
-    EP_M4, EP_M41, EP_M410,
-    #if ENABLED(HOST_PROMPT_SUPPORT)
-      EP_M8, EP_M87, EP_M876, EP_M876S, EP_M876SN,
-    #endif
+    EP_M, EP_M1, EP_M11, EP_M112,
     #if ENABLED(REALTIME_REPORTING_COMMANDS)
       EP_S, EP_S0, EP_S00, EP_GRBL_STATUS,
       EP_R, EP_R0, EP_R00, EP_GRBL_RESUME,
@@ -75,10 +61,6 @@ public:
 
   static bool killed_by_M112;
   static bool quickstop_by_M410;
-
-  #if ENABLED(HOST_PROMPT_SUPPORT)
-    static uint8_t M876_reason;
-  #endif
 
   EmergencyParser() { enable(); }
 
@@ -144,51 +126,18 @@ public:
         switch (c) {
           case ' ': break;
           case '1': state = EP_M1;     break;
-          case '4': state = EP_M4;     break;
-          #if ENABLED(HOST_PROMPT_SUPPORT)
-            case '8': state = EP_M8;     break;
-          #endif
           default: state  = EP_IGNORE;
         }
         break;
 
       case EP_M1:
         switch (c) {
-          case '0': state = EP_M10;    break;
           case '1': state = EP_M11;    break;
           default: state  = EP_IGNORE;
         }
         break;
 
-      case EP_M10: state = (c == '8') ? EP_M108 : EP_IGNORE; break;
       case EP_M11: state = (c == '2') ? EP_M112 : EP_IGNORE; break;
-      case EP_M4:  state = (c == '1') ? EP_M41  : EP_IGNORE; break;
-      case EP_M41: state = (c == '0') ? EP_M410 : EP_IGNORE; break;
-
-      #if ENABLED(HOST_PROMPT_SUPPORT)
-
-        case EP_M8:  state = (c == '7') ? EP_M87  : EP_IGNORE; break;
-        case EP_M87: state = (c == '6') ? EP_M876 : EP_IGNORE; break;
-
-        case EP_M876:
-          switch (c) {
-            case ' ': break;
-            case 'S': state = EP_M876S; break;
-            default: state = EP_IGNORE; break;
-          }
-          break;
-
-        case EP_M876S:
-          switch (c) {
-            case ' ': break;
-            case '0' ... '9':
-              state = EP_M876SN;
-              M876_reason = uint8_t(c - '0');
-              break;
-          }
-          break;
-
-      #endif
 
       case EP_IGNORE:
         if (ISEOL(c)) state = EP_RESET;
@@ -197,12 +146,7 @@ public:
       default:
         if (ISEOL(c)) {
           if (enabled) switch (state) {
-            case EP_M108: wait_for_user = wait_for_heatup = false; break;
             case EP_M112: killed_by_M112 = true; break;
-            case EP_M410: quickstop_by_M410 = true; break;
-            #if ENABLED(HOST_PROMPT_SUPPORT)
-              case EP_M876SN: hostui.handle_response(M876_reason); break;
-            #endif
             #if ENABLED(REALTIME_REPORTING_COMMANDS)
               case EP_GRBL_STATUS: report_current_position_moving(); break;
               case EP_GRBL_PAUSE: quickpause_stepper(); break;

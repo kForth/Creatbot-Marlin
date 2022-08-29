@@ -26,7 +26,6 @@
 
 #include "../gcode.h"
 #include "../../MarlinCore.h" // for pin_is_protected and idle()
-#include "../../module/planner.h"
 
 void protected_pin_err();
 
@@ -44,7 +43,6 @@ void GcodeSuite::M226() {
         protected_pin_err();
       else {
         int target = LOW;
-        planner.synchronize();
         pinMode(pin, INPUT);
         switch (pin_state) {
           case 1: target = HIGH; break;

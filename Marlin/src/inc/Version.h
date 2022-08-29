@@ -42,7 +42,7 @@
  * version was tagged.
  */
 #ifndef STRING_DISTRIBUTION_DATE
-  #define STRING_DISTRIBUTION_DATE "2022-08-06"
+  #define STRING_DISTRIBUTION_DATE "2022-08-31"
 #endif
 
 /**
@@ -52,7 +52,7 @@
  * to alert users to major changes.
  */
 
-#define MARLIN_HEX_VERSION 02010100
+#define MARLIN_HEX_VERSION 02010101
 #ifndef REQUIRED_CONFIGURATION_H_VERSION
   #define REQUIRED_CONFIGURATION_H_VERSION MARLIN_HEX_VERSION
 #endif
@@ -70,10 +70,10 @@
 #endif
 
 /**
- * Define a generic printer name to be output to the LCD after booting Marlin.
+ * Define a generic machine name
  */
 #ifndef MACHINE_NAME
-  #define MACHINE_NAME "3D Printer"
+  #define MACHINE_NAME "Extnernal Sensors"
 #endif
 
 /**

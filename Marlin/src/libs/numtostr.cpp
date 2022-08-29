@@ -267,23 +267,6 @@ const char* ftostr63(const_float_t f) {
   return &conv[0];
 }
 
-#if ENABLED(LCD_DECIMAL_SMALL_XY)
-
-  // Convert float to rj string with 1234, _123, -123, _-12, 12.3, _1.2, or -1.2 format
-  const char* ftostr4sign(const_float_t f) {
-    const int i = INTFLOAT(f, 1);
-    if (!WITHIN(i, -99, 999)) return i16tostr4signrj((int)f);
-    const bool neg = i < 0;
-    const int ii = neg ? -i : i;
-    conv[3] = neg ? '-' : (ii >= 100 ? DIGIMOD(ii, 100) : ' ');
-    conv[4] = DIGIMOD(ii, 10);
-    conv[5] = '.';
-    conv[6] = DIGIMOD(ii, 1);
-    return &conv[3];
-  }
-
-#endif
-
 // Convert float to fixed-length string with +12.3 / -12.3 format
 const char* ftostr31sign(const_float_t f) {
   int i = INTFLOAT(f, 1);

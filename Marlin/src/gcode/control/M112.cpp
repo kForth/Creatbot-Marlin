@@ -20,32 +20,19 @@
  *
  */
 
-#include "../../../inc/MarlinConfig.h"
+#include "../../inc/MarlinConfig.h"
 
-#if HAS_POWER_MONITOR
+#if DISABLED(EMERGENCY_PARSER)
 
-#include "../../../feature/power_monitor.h"
-#include "../../../MarlinCore.h"
-#include "../../gcode.h"
+#include "../gcode.h"
+#include "../../MarlinCore.h" // for kill, M112_KILL_STR
+#include "../../module/motion.h" // for quickstop_stepper
 
 /**
- * M430: Report the system power use (current, voltage, and watts)
- *
+ * M112: Full Shutdown
  */
-void GcodeSuite::M430() {
-  SERIAL_ECHOLNPGM(
-    #if ENABLED(POWER_MONITOR_CURRENT)
-      "Current: ", power_monitor.getAmps(), "A"
-      TERN_(POWER_MONITOR_VOLTAGE, "  ")
-    #endif
-    #if ENABLED(POWER_MONITOR_VOLTAGE)
-      "Voltage: ", power_monitor.getVolts(), "V"
-      TERN_(HAS_POWER_MONITOR_WATTS, "  ")
-    #endif
-    #if HAS_POWER_MONITOR_WATTS
-      "  Power: ", power_monitor.getPower(), "W"
-    #endif
-  );
+void GcodeSuite::M112() {
+  kill(FPSTR(M112_KILL_STR));
 }
 
-#endif // HAS_POWER_MONITOR
+#endif // !EMERGENCY_PARSER

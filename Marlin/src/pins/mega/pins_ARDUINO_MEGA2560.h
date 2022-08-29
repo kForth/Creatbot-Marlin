@@ -19,33 +19,31 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  *
  */
-
-#include "../../../inc/MarlinConfig.h"
-
-#if HAS_POWER_MONITOR
-
-#include "../../../feature/power_monitor.h"
-#include "../../../MarlinCore.h"
-#include "../../gcode.h"
+#pragma once
 
 /**
- * M430: Report the system power use (current, voltage, and watts)
- *
+ * External Sensor Board pin assignments
  */
-void GcodeSuite::M430() {
-  SERIAL_ECHOLNPGM(
-    #if ENABLED(POWER_MONITOR_CURRENT)
-      "Current: ", power_monitor.getAmps(), "A"
-      TERN_(POWER_MONITOR_VOLTAGE, "  ")
-    #endif
-    #if ENABLED(POWER_MONITOR_VOLTAGE)
-      "Voltage: ", power_monitor.getVolts(), "V"
-      TERN_(HAS_POWER_MONITOR_WATTS, "  ")
-    #endif
-    #if HAS_POWER_MONITOR_WATTS
-      "  Power: ", power_monitor.getPower(), "W"
-    #endif
-  );
-}
 
-#endif // HAS_POWER_MONITOR
+#include "env_validate.h"
+
+#define BOARD_INFO_NAME "Arduino Mega 2560"
+
+//
+// Filament Runout Sensors
+//
+#define FIL_RUNOUT_PIN                         2
+#define FIL_RUNOUT2_PIN                        3
+
+//
+// Temperature Sensors
+//
+#define TEMP_0_PIN                            13
+#define TEMP_1_PIN                            14
+
+//
+// Digital Inputs
+//
+#define DIGITAL_INPUT_0_PIN                   18
+#define DIGITAL_INPUT_1_PIN                   19
+#define DIGITAL_INPUT_2_PIN                   20
