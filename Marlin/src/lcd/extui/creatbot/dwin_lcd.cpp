@@ -13,17 +13,25 @@ Developer Lyn Lee, 3 June 2015.
 #include "../../../libs/duration_t.h"
 #include "../../../libs/buzzer.h"
 #include "../../../core/language.h"
+#include "../../../feature/bedlevel/bedlevel.h"
 #include "../../../module/temperature.h"
 #include "../../../module/planner.h"
+#include "../../../module/probe.h"
 #include "../../../module/settings.h"
 #include "../../../sd/cardreader.h"
 // #include "UDiskReader.h"
 // #include "WiFiSocket.h"
 
+#include "../ui_api.h"
+
+const bool probeDone = true;  // TODO: Implelemt this tracker?
+const bool printingFromHost = false; // TODO: Add a GCode command to toggle this flag? (was isSerialPrinting)
+#define FILE_IS_IDLE true // TODO: Get this from the sd card / usb reader
+// TODO: Fix calls to EEPROM_STORE and STORE_SETTING
 
 int lcd_preheat_hotend_temp[EXTRUDERS];
 int lcd_preheat_bed_temp;
-#ifdef HOTWIND_SYSTEM
+#ifdef HAS_HEATED_CHAMBER
 	int lcd_preheat_chamber_temp;
 #endif
 int lcd_preheat_fan_speed;
@@ -59,7 +67,7 @@ static char dwinWifiConnKey[LCD_MSG_CHAR_LEN + 1];
 #endif
 
 enum DATA_MODE{ INT_LCD, LONG_LCD };
-enum FAN_MODE{ GLOBAL_FAN, PREHEAT_FAN, TEMP_FAN, AIR_FAN };
+enum FAN_MODE{ GLOBAL_FAN, PREHEAT_FAN, AUTO_FAN, CHAMBER_FAN };
 //enum COLOR_MODE{ BLACK, WHITE, RED, ORANGE, YELLOW, GREEN, CYAN, BLUE, PURPLE };
 enum FILE_ACITON_MODE{ CANCEL, PRINT, OPEN_DIR };
 enum WIFI_ACTION_MODE{ WIFI_ACTION_SWITCH_TOGGLE, WIFI_ACTION_CONNECT, WIFI_ACTION_CANCEL, WIFI_ACTION_SWITCH_MODE, WIFI_ACTION_RESET, WIFI_ACTION_SCAN, WIFI_ACTION_NEXT, WIFI_ACTION_LAST, WIFI_ACTION_JOIN};
@@ -162,7 +170,7 @@ void resetColor(){
 void dwin_cooldwon(){
 	thermalManager.disable_all_heaters();
 #if FAN_COUNT > 0
-	for (uint8_t i = 0; i < FAN_COUNT; i++) fanSpeeds[i] = 0;
+	for (uint8_t i = 0; i < FAN_COUNT; i++) thermalManager.fan_speed[i] = 0;
 #endif
 	return_state_button_action();
 }
@@ -171,16 +179,16 @@ void dwin_preheat(uint8_t target){
 
 #if FAN_COUNT > 0
 	#if FAN_COUNT > 1
-		#define FAN_SPEED(x) fanSpeeds[active_extruder < FAN_COUNT ? active_extruder : 0] = x;
+		#define FAN_SPEED(x) thermalManager.fan_speed[active_extruder < FAN_COUNT ? active_extruder : 0] = x;
 	#else
-		#define FAN_SPEED(x) fanSpeeds[0] = x;
+		#define FAN_SPEED(x) thermalManager.fan_speed[0] = x;
 	#endif
 #else
 	#define FAN_SPEED(x) UNUSED(x);
 #endif
 
 
-#ifdef HOTWIND_SYSTEM
+#ifdef HAS_HEATED_CHAMBER
 	#define DWIN_PREHEAT(endnum, temph, tempb, tempc, fan) do{\
 		if(temph > 0) thermalManager.setTargetHotend(temph, endnum);\
 		thermalManager.setTargetBed(tempb);\
@@ -201,7 +209,7 @@ void dwin_preheat(uint8_t target){
 			0,
 			0,
 			lcd_preheat_bed_temp,
-		#ifdef HOTWIND_SYSTEM
+		#ifdef HAS_HEATED_CHAMBER
 			0,
 		#endif
 			lcd_preheat_fan_speed
@@ -213,7 +221,7 @@ void dwin_preheat(uint8_t target){
 			0,
 			0,
 			lcd_preheat_bed_temp,
-		#ifdef HOTWIND_SYSTEM
+		#ifdef HAS_HEATED_CHAMBER
 			lcd_preheat_chamber_temp,
 		#endif
 			lcd_preheat_fan_speed
@@ -223,7 +231,7 @@ void dwin_preheat(uint8_t target){
 			target,
 			lcd_preheat_hotend_temp[target],
 			lcd_preheat_bed_temp,
-		#ifdef HOTWIND_SYSTEM
+		#ifdef HAS_HEATED_CHAMBER
 			lcd_preheat_chamber_temp,
 		#endif
 			lcd_preheat_fan_speed
@@ -234,16 +242,16 @@ void dwin_preheat(uint8_t target){
 
 void dwin_move_home(uint8_t mode){
 	if (mode == HOME_ALL){
-		enqueue_and_echo_commands_P(PSTR("G28"));
+		queue.enqueue_one(PSTR("G28"));
 	} else if (mode == HOME_X){
-		enqueue_and_echo_commands_P(PSTR("G28 X"));
+		queue.enqueue_one(PSTR("G28 X"));
 	} else if (mode == HOME_Y){
-		enqueue_and_echo_commands_P(PSTR("G28 Y"));
+		queue.enqueue_one(PSTR("G28 Y"));
 	} else if (mode == HOME_Z){
 	#if ENABLED(Z_SAFE_HOMING)
-		enqueue_and_echo_commands_P(PSTR("G28"));
+		queue.enqueue_one(PSTR("G28"));
 	#else
-		enqueue_and_echo_commands_P(PSTR("G28 Z"));
+		queue.enqueue_one(PSTR("G28 Z"));
 	#endif
 	}
 
@@ -258,12 +266,12 @@ void dwin_move(int axis, float scale, bool dir){
 				max = current_position[axis] + 1000;
 
 	#if HAS_SOFTWARE_ENDSTOPS
-		if (soft_endstops_enabled) {
+		if (soft_endstop.enabled()) {
 			#if ENABLED(MIN_SOFTWARE_ENDSTOPS)
-				min = soft_endstop_min[axis];
+				min = soft_endstop.min[axis];
 			#endif
 			#if ENABLED(MAX_SOFTWARE_ENDSTOPS)
-				max = soft_endstop_max[axis];
+				max = soft_endstop.max[axis];
 			#endif
 		}
 	#endif
@@ -280,7 +288,6 @@ void dwin_move(int axis, float scale, bool dir){
 
 	if(((axis == X_AXIS || axis == Y_AXIS) && scale == 10) || (axis == Z_AXIS && scale == 1)){
 		planner.buffer_line(current_position, MMM_TO_MMS(dwin_manual_feedrate[axis]), active_extruder);
-		refresh_cmd_timeout();
 	} else {
 		manual_move_start_time = millis() + 300UL;
 		SBI(manual_move_axis, axis);
@@ -310,14 +317,13 @@ void manual_move_delay(){
 	if((manual_move_axis != 0) && ELAPSED(millis(), manual_move_start_time) && !planner.is_full()) {
 		float manual_feedrate = 100000;
 
-		LOOP_XYZE(i){
+		LOOP_LOGICAL_AXES(i){ // LOOP_XYZE
 			if(TEST(manual_move_axis, i))
 				manual_feedrate = min(manual_feedrate, dwin_manual_feedrate[i]);
 		}
 
 		if(manual_feedrate < 60000){
 			planner.buffer_line(current_position, MMM_TO_MMS(manual_feedrate), active_extruder);
-	    refresh_cmd_timeout();
 		}
 		manual_move_axis = 0;
 	}
@@ -394,7 +400,7 @@ void dwin_filament_unload(int hotend){
 
 	current_position[E_AXIS] += FILAMENT_UNLOAD_EXTRUDER_LENGTH;
 	planner.buffer_line(current_position, MMM_TO_MMS(dwin_manual_feedrate[E_AXIS]), active_extruder);
-	enqueue_and_echo_commands_P(PSTR("M6003"));
+	queue.enqueue_one(PSTR("M6003"));
 	POP_WINDOW(UNLOAD_INFO_KEY);
 }
 
@@ -820,7 +826,7 @@ void return_default_button_action(bool clickButton){
 void return_default_button_action(){
 #endif
 #if HAS_READER
-	if(isSerialPrinting)
+	if(printingFromHost)
 		GO_PAGE(PAGE_NORAML_SERIAL);
 	else
 		if (!FILE_IS_IDLE)
@@ -847,7 +853,7 @@ void return_default_button_action(){
 					GO_PAGE(PAGE_NORMAL_PREHEAT_NO_READER);
 			}
 #else		// !HAS_READER
-	if(isSerialPrinting)
+	if(printingFromHost)
 		GO_PAGE(PAGE_NORAML_SERIAL);
 	else
 		if(thermalManager.hasHeat())
@@ -899,9 +905,9 @@ void jump_setting_2(){
 #if HAS_LEVELING
 void jump_leveling_page(){
 #if ENABLED(AUTO_BED_LEVELING_BILINEAR)
-	if(FILE_IS_IDLE && !planner.blocks_queued() && !isSerialPrinting){
+	if(FILE_IS_IDLE && !planner.has_blocks_queued() && !printingFromHost){
 		if(leveling_is_valid()){
-			if(leveling_is_active()){
+			if(planner.leveling_active){
 				GO_PAGE(PAGE_LEVELING_VALID_ON);
 			} else{
 				GO_PAGE(PAGE_LEVELING_VALID_OFF);
@@ -911,7 +917,7 @@ void jump_leveling_page(){
 		}
 	} else{
 		if(leveling_is_valid()){
-			if(leveling_is_active()){
+			if(planner.leveling_active){
 				GO_PAGE(PAGE_LEVELING_DISABLE_ON);
 			} else{
 				GO_PAGE(PAGE_LEVELING_DISABLE_OFF);
@@ -927,9 +933,9 @@ void jump_leveling_page(){
 
 #if HAS_BED_PROBE
 void leveling_probe(){
-	if(FILE_IS_IDLE && !planner.blocks_queued() && !isSerialPrinting){
-  	probeDone = false;
-  	enqueue_and_echo_commands_P(PSTR("G28\nG29"));
+	if(FILE_IS_IDLE && !planner.has_blocks_queued() && !printingFromHost){
+		// probeDone = false;
+		queue.enqueue_one(PSTR("G28\nG29"));
 		jump_leveling_page();
 		POP_WINDOW(WAIT_KEY);
 	}
@@ -940,9 +946,9 @@ void leveling_probe(){};
 
 void leveling_toggle(){
 	if(leveling_is_valid()){
-		bool allowLeveling = leveling_is_active();
+		bool allowLeveling = planner.leveling_active;
 		set_bed_leveling_enabled(!allowLeveling);
-		EEPROM_STORE(planner.abl_enabled, setting_mesh_bilinear_ubl_status);
+		// EEPROM_STORE(planner.leveling_active, setting_mesh_bilinear_ubl_status);
 		jump_leveling_page();
 	}
 }
@@ -968,7 +974,7 @@ void print_pause_button_action() {
 	FILE_PAUSE_PRINT;
   print_job_timer.pause();
   #if ENABLED(PARK_HEAD_ON_PAUSE)
-    enqueue_and_echo_commands_P(PSTR("M125"));
+    queue.enqueue_one(PSTR("M125"));
   #endif
 	DWIN_MSG_P(DWIN_MSG_PRINT_PAUSED);
 #endif //QUICK_PAUSE
@@ -982,7 +988,7 @@ void print_reuse_button_action() {
 	}
 #else
   #if ENABLED(PARK_HEAD_ON_PAUSE)
-    enqueue_and_echo_commands_P(PSTR("M24"));
+    queue.enqueue_one(PSTR("M24"));
   #else
     FILE_START_PRINT;
     print_job_timer.start();
@@ -1003,7 +1009,7 @@ void print_cancel_button_action() {
   print_job_timer.stop();
   thermalManager.disable_all_heaters();
   #if FAN_COUNT > 0
-    for (uint8_t i = 0; i < FAN_COUNT; i++) fanSpeeds[i] = 0;
+    for (uint8_t i = 0; i < FAN_COUNT; i++) thermalManager.fan_speed[i] = 0;
   #endif
   wait_for_heatup = false;
 	DWIN_MSG_P(DWIN_MSG_WELCOME);
@@ -1019,7 +1025,7 @@ void print_cancel_button_action() {}
 #ifdef FILAMENT_CHANGE
 void print_change_button_action() {
 	if (!HAS_POPUP
-#ifdef ACCIDENT_DETECT
+#ifdef POWER_LOSS_RECOVERY
 	&& !isAccidentToPrinting
 #endif
 	) {
@@ -1040,11 +1046,11 @@ void open_filament_page_action(){
 void store_setting_action(){
 	POP_WINDOW(STORE_INFO_KEY);
 #ifdef DEBUG_FREE
-	SERIAL_ECHOLNPAIR("before save: ", freeMemory());
+	SERIAL_ECHOLNPAIR_F("before save: ", freeMemory());
 #endif
 	settings.save();
 #ifdef DEBUG_FREE
-	SERIAL_ECHOLNPAIR("after save: ", freeMemory());
+	SERIAL_ECHOLNPAIR_F("after save: ", freeMemory());
 #endif
 	HIDE_POPUP;
 }
@@ -1063,24 +1069,25 @@ void jump_reg_action(){
 
 void shuttingCancelAction(){
 #if FAN_COUNT > 0
-	for (uint8_t i = 0; i < FAN_COUNT; i++) fanSpeeds[i] = 0;
+	for (uint8_t i = 0; i < FAN_COUNT; i++) thermalManager.fan_speed[i] = 0;
 #endif
 	return_default_button_action();
 }
 
-#ifdef ACCIDENT_DETECT
+#ifdef POWER_LOSS_RECOVERY
 
 void accidentReuseAction(){
-	//return_default_button_action();
-	accidentToResume_Home();
+	// TODO: Implement accident recovery
+	// accidentToResume_Home();
 }
 
 void accidentCancelAction(){
 	return_default_button_action();
-	if (isAccident) {
-		isAccident = false;
-		STORE_SETTING(isAccident);
-	}
+	// TODO: Implement accident recovery
+	// if (isAccident) {
+	// 	isAccident = false;
+	// 	// STORE_SETTING(isAccident);
+	// }
 }	
 #else
 void accidentReuseAction() {};
@@ -1115,14 +1122,13 @@ void setupDEMO(){
 /********************************************* View Part ***********************************************/
 
 void dwin_update_msg(const char* msg) {
-  if(powerState <= POWER_COOLING) return;
+//   if(powerState <= POWER_COOLING) return;  // TODO: Implement power state tracking?
 	// center the str.
 	//char msg_ram[30] = { 0 };
 	//strcpy(msg_ram, msg);
 	//centerString(msg_ram, 30);
 	//SET_STR_P(MSG_ADDR, LCD_MSG_CHAR_LEN, msg_ram);
 	SET_STR_P(MSG_ADDR, LCD_MSG_CHAR_LEN, msg);
-
 }
 
 void dwin_update_msg_P(const char* msg){
@@ -1141,34 +1147,25 @@ void updateFanSpeed(uint8_t mode) {
 
 
 	if (mode == GLOBAL_FAN) {
-		int fanSpeed =
-		#if FAN_COUNT > 0
-			#if FAN_COUNT > 1
-				fanSpeeds[active_extruder < FAN_COUNT ? active_extruder : 0];
-			#else
-				fanSpeeds[0];
-			#endif
-		#else
-				0;
-		#endif
-		FAN_SPEED_UPDATE(fanSpeed, FAN_SPEED_ADDR);
+		FAN_SPEED_UPDATE(ExtUI::getTargetFan_percent(ExtUI::FAN0), FAN_SPEED_ADDR);
 	}
 	else if (mode == PREHEAT_FAN) {
 		FAN_SPEED_UPDATE(lcd_preheat_fan_speed, PREHEAT_FAN_SPEED_ADDR);
 	}
-	else if (mode == TEMP_FAN) {
-		FAN_SPEED_UPDATE(extruder_auto_fan_speed, TEMP_FAN_SPEED_ADDR);
+	else if (mode == AUTO_FAN) {
+		FAN_SPEED_UPDATE(ExtUI::getTargetFan_percent(ExtUI::FAN1), TEMP_FAN_SPEED_ADDR); // TODO: Auto fan number
 	}
-	else if (mode == AIR_FAN) {
-#ifdef HAS_AIR_FAN
-		FAN_SPEED_UPDATE(air_fan_speed, AIR_FAN_SPEED_ADDR);
-#endif
+	else if (mode == CHAMBER_FAN) {
+		#ifdef HAS_CHAMBER_FAN
+			FAN_SPEED_UPDATE(ExtUI::getTargetFan_percent(ExtUI::FAN2), AIR_FAN_SPEED_ADDR); // TODO: Chamber fan number
+		#endif
 	}
 }
 
 void dwin_update_version(){
-	char *ver = &versionFW[1];
-	SET_STR_P(VER_ADDR, LCD_VER_CHAR_LEN, ver);
+	// TODO: Implement version number
+	// char *ver = &versionFW[1];
+	// SET_STR_P(VER_ADDR, LCD_VER_CHAR_LEN, ver);
 }
 
 void dwin_update_icon() {
@@ -1227,7 +1224,7 @@ void dwin_update_state_info() {
 	UPDATE_LCD(thermalManager.degTargetHotend(2), EX2_TAR_ADDR);
 #endif
 	UPDATE_LCD(thermalManager.degTargetBed(), BED_TAR_ADDR);
-#ifdef HOTWIND_SYSTEM
+#ifdef HAS_HEATED_CHAMBER
 	UPDATE_LCD(thermalManager.degTargetChamber(), CHAMBER_TAR_ADDR);
 #endif
 
@@ -1240,13 +1237,13 @@ void dwin_update_state_info() {
 	UPDATE_LCD_31(thermalManager.degHotend(2), EX2_CUR_ADDR);
 #endif
 	UPDATE_LCD_31(thermalManager.degBed(), BED_CUR_ADDR);
-#ifdef HOTWIND_SYSTEM
+#ifdef HAS_HEATED_CHAMBER
 	UPDATE_LCD_31(thermalManager.degChamber(), CHAMBER_CUR_ADDR);
 #endif
 
 	//global_speed  & fan_speed & extrude_multiply
 	UPDATE_LCD(feedrate_percentage, SPEED_GLOBAL_ADDR);
-	UPDATE_LCD(flow_percentage[active_extruder], EXT_MULTIPLY_ADDR);
+	UPDATE_LCD(planner.flow_percentage[active_extruder], EXT_MULTIPLY_ADDR);
 	updateFanSpeed(GLOBAL_FAN);
 }
 
@@ -1273,17 +1270,17 @@ void dwin_update_setting_info() {
 	UPDATE_LCD(lcd_preheat_hotend_temp[2], PREHEAT_EXT_TEMP_ADDR_2);
 #endif
 	UPDATE_LCD(lcd_preheat_bed_temp, PREHEAT_BED_TEMP_ADDR);
-#ifdef HOTWIND_SYSTEM
+#ifdef HAS_HEATED_CHAMBER
 	UPDATE_LCD(lcd_preheat_chamber_temp, PREHEAT_CHAMBER_TEMP_ADDR);
 #endif
 
-	UPDATE_LCD_34(planner.axis_steps_per_mm[X_AXIS], X_STEP_ADDR);
-	UPDATE_LCD_34(planner.axis_steps_per_mm[Y_AXIS], Y_STEP_ADDR);
-	UPDATE_LCD_34(planner.axis_steps_per_mm[Z_AXIS], Z_STEP_ADDR);
-	UPDATE_LCD_34(planner.axis_steps_per_mm[E_AXIS], E_STEP_ADDR);
+	UPDATE_LCD_34(planner.settings.axis_steps_per_mm[X_AXIS], X_STEP_ADDR);
+	UPDATE_LCD_34(planner.settings.axis_steps_per_mm[Y_AXIS], Y_STEP_ADDR);
+	UPDATE_LCD_34(planner.settings.axis_steps_per_mm[Z_AXIS], Z_STEP_ADDR);
+	UPDATE_LCD_34(planner.settings.axis_steps_per_mm[E_AXIS], E_STEP_ADDR);
 
-	updateFanSpeed(TEMP_FAN);
-	updateFanSpeed(AIR_FAN);
+	updateFanSpeed(AUTO_FAN);
+	updateFanSpeed(CHAMBER_FAN);
 }
 
 #ifdef WIFI_SUPPORT
@@ -1320,14 +1317,13 @@ void dwin_update_wifi_info() {
 #if HAS_LEVELING
 void dwin_update_leveling_info(){
 	#if HAS_BED_PROBE
-//		float offset = zprobe_zoffset;
-//		UPDATE_LCD_22(-offset, SERVO_Z_OFFSET_ADDR);
-		UPDATE_LCD_22(-zprobe_zoffset, SERVO_Z_OFFSET_ADDR);
+		float offset = probe.offset.z; // was 'zprobe_zoffset'
+		UPDATE_LCD_22(-offset, SERVO_Z_OFFSET_ADDR);
 	#endif
 
 	#if	ENABLED(ENABLE_LEVELING_FADE_HEIGHT)
 //		float fade_height = 0.0;
-//		if(leveling_is_active()){
+//		if(planner.leveling_active){
 //			fade_height = planner.z_fade_height;
 //		}
 //		UPDATE_LCD_31(fade_height, FADE_HEIGHT_ADDR);
@@ -1338,15 +1334,16 @@ void dwin_update_leveling_info(){
 
 
 void dwin_update_time_info(uint8_t mode) {
-	char time_str[9] = { 0 };
+	// char time_str[9] = { 0 };
 
+	// TODO: Fix time reporting
 	if (mode == TIME_USED) {
-		(duration_t(usedTime)).toTimeDWIN(time_str, 4);
-		setValueAsAttr_P(PSTR(USED_TIME_ADDR), 0, time_str);
+		// (duration_t(usedTime)).toTimeDWIN(time_str, 4);
+		// setValueAsAttr_P(PSTR(USED_TIME_ADDR), 0, time_str);
 	}
 	else if (mode == TIME_PRINT) {
-		(duration_t(print_job_timer.duration()).toTimeDWIN(time_str, 2));
-		setValueAsAttr_P(PSTR(PRINT_TIME_ADDR), 0, time_str);
+		// (duration_t(print_job_timer.duration()).toTimeDWIN(time_str, 2));
+		// setValueAsAttr_P(PSTR(PRINT_TIME_ADDR), 0, time_str);
 	}
 #ifdef REG_SN
 	else if (mode == TIME_TRIAL) {
@@ -1690,7 +1687,7 @@ void dwin_scan() {
 
 						dwin_update_version();
 						dwin_update_index();
-						updateStateStrings();
+						// updateStateStrings();  // TODO Fix this function call?
 						return_default_button_action();
 						dwin_data_state = DATA_INIT;
 					}
@@ -1708,15 +1705,13 @@ void dwin_scan() {
 
 // resolve the back data.
 void resolveVar() {
+	#ifdef DEBUG_FREE
+		SERIAL_ECHOLNPAIR_F("resolver: ", freeMemory());
+	#endif
 
-
-#ifdef DEBUG_FREE
-	SERIAL_ECHOLNPAIR("resolver: ", freeMemory());
-#endif
-
-#define VAR_IS_ADDR(addr)	(uint16_tCompHex_P(PSTR(addr), dwin_getVar()->varAddr))
-#define VAR_IS_LEN(len)		(dwin_getVar()->dataLen == len)
-#define IS_VAR(len, addr)	(VAR_IS_LEN(len) && VAR_IS_ADDR(addr))
+	#define VAR_IS_ADDR(addr)	(uint16_tCompHex_P(PSTR(addr), dwin_getVar()->varAddr))
+	#define VAR_IS_LEN(len)		(dwin_getVar()->dataLen == len)
+	// #define IS_VAR(len, addr)	(VAR_IS_LEN(len) && VAR_IS_ADDR(addr))
 
 	if (VAR_IS_LEN(2)) {
 		uint16_t varValue = ((uint16_t)dwin_getVar()->data[0] << 8) | ((uint16_t)dwin_getVar()->data[1]);
@@ -1729,40 +1724,40 @@ void resolveVar() {
 			extrude_distance = varValue;
 		} else if (VAR_IS_ADDR(FILAMENT_EXT_INDEX_ADDR)) {			// extruder index
 			extrude_index = (uint8_t)varValue;
-		} else if (VAR_IS_ADDR(SET_EX0_TAR_ADDR)) {							// extruder 0 target temp.
-			thermalManager.setTargetHotend(varValue, 0);
+		} else if (VAR_IS_ADDR(SET_EX0_TAR_ADDR)) {					// extruder 0 target temp.
+			ExtUI::setTargetTemp_celsius(varValue, ExtUI::H0);
 		}
 		#if EXTRUDERS > 1
-		else if (VAR_IS_ADDR(SET_EX1_TAR_ADDR)) {								// extruder 1 target temp.
-			thermalManager.setTargetHotend(varValue, 1);
-		}
+			else if (VAR_IS_ADDR(SET_EX1_TAR_ADDR)) {					// extruder 1 target temp.
+				ExtUI::setTargetTemp_celsius(varValue, ExtUI::H1);
+			}
 		#endif
 		#if EXTRUDERS > 2
-		else if (VAR_IS_ADDR(SET_EX2_TAR_ADDR)) {								// extruder 2 target temp.
-			thermalManager.setTargetHotend(varValue, 2);
-		}
+			else if (VAR_IS_ADDR(SET_EX2_TAR_ADDR)) {					// extruder 2 target temp.
+				ExtUI::setTargetTemp_celsius(varValue, ExtUI::H2);
+			}
 		#endif
-		else if (VAR_IS_ADDR(SET_CHAMBER_TAR_ADDR)){						// chamber target temp.
-			thermalManager.setTargetChamber(varValue);
+		else if (VAR_IS_ADDR(SET_CHAMBER_TAR_ADDR)){				// chamber target temp.
+			ExtUI::setTargetTemp_celsius(varValue, ExtUI::CHAMBER);
 		}
-		else if (VAR_IS_ADDR(SET_BED_TAR_ADDR)) {								// bed target temp.
-			thermalManager.setTargetBed(varValue);
-		} else if (VAR_IS_ADDR(SET_SPEED_GLOBAL_ADDR)) {				// print speed
-			feedrate_percentage = varValue;
-		} else if (VAR_IS_ADDR(SET_FAN_SPEED_ADDR)) {						// fan speed
-			#if FAN_COUNT > 0
-				#if FAN_COUNT > 1
-					fanSpeeds[active_extruder < FAN_COUNT ? active_extruder : 0]
-				#else
-					fanSpeeds[0]
+		else if (VAR_IS_ADDR(SET_BED_TAR_ADDR)) {					// bed target temp.
+			ExtUI::setTargetTemp_celsius(varValue, ExtUI::BED);
+		} else if (VAR_IS_ADDR(SET_SPEED_GLOBAL_ADDR)) {			// print speed
+			ExtUI::setFeedrate_percent(varValue);
+		} else if (VAR_IS_ADDR(SET_FAN_SPEED_ADDR)) {				// fan speed
+			ExtUI::setTargetFan_percent(varValue * 2.55, ExtUI::FAN0);
+		} else if (VAR_IS_ADDR(SET_EXT_MULTIPLY_ADDR)) {			// flow
+			ExtUI::setFlow_percent(varValue, ExtUI::E0);
+			#if EXTRUDERS > 1
+				ExtUI::setFlow_percent(varValue, ExtUI::E1);
+				#if EXTRUDERS > 2
+					ExtUI::setFlow_percent(varValue, ExtUI::E2);
 				#endif
-										 = varValue * 2.55;
 			#endif
-		} else if (VAR_IS_ADDR(SET_EXT_MULTIPLY_ADDR)) {				// flow
-			flow_percentage[active_extruder] = varValue;
+		// TODO: ExtUI functions for lcd preheat temperatures?
 		} else if (VAR_IS_ADDR(SET_PREHEAT_FAN_SPEED_ADDR)) {		// preheat fan speed
 			lcd_preheat_fan_speed = varValue * 2.55;
-		} else if (VAR_IS_ADDR(SET_PREHEAT_EXT_TEMP_ADDR_0)) {	// preheat extruder 0 temp.
+		} else if (VAR_IS_ADDR(SET_PREHEAT_EXT_TEMP_ADDR_0)) {		// preheat extruder 0 temp.
 			lcd_preheat_hotend_temp[0] = varValue;
 		}
 		#if EXTRUDERS > 1
@@ -1778,13 +1773,13 @@ void resolveVar() {
 		else if (VAR_IS_ADDR(SET_PREHEAT_BED_TEMP_ADDR)) {			// preheat bed temp.
 			lcd_preheat_bed_temp = varValue;
 		}
-		#ifdef HOTWIND_SYSTEM
+		#ifdef HAS_HEATED_CHAMBER
 		else if (VAR_IS_ADDR(SET_PREHEAT_CHAMBER_TEMP_ADDR)){		// perheat chamber temp.
 			lcd_preheat_chamber_temp = varValue;
 		}
 		#endif
 		#ifdef REG_SN
-		else if (VAR_IS_ADDR(SET_REG_KEY_ADDR)) {								// register key
+		else if (VAR_IS_ADDR(SET_REG_KEY_ADDR)) {					// register key
 			regSN = (float)varValue / 100;
 			dwin_update_reg_info();
 			dwin_update_icon();
@@ -1792,63 +1787,70 @@ void resolveVar() {
 				updateStateStrings();
 				return_default_button_action();
 			}
-			STORE_SETTING(regSN);
+			// STORE_SETTING(regSN);
 		}
 		#endif
 		#if HAS_AUTO_FAN
 		else if (VAR_IS_ADDR(SET_TEMP_FAN_SPEED_ADDR)) {			// temp. fan speed
-			extruder_auto_fan_speed = varValue * 2.55;
+			thermalManager.autofan_speed[0] = (varValue * 2.55);
+			#if EXTRUDERS > 1
+				thermalManager.autofan_speed[1] = (varValue * 2.55);
+				#if EXTRUDERS > 2
+					thermalManager.autofan_speed[2] = (varValue * 2.55);
+				#endif
+			#endif
 		}
 		#endif
-		else if (VAR_IS_ADDR(SET_AIR_FAN_SPEED_ADDR)) {				// air fan speed
-			#ifdef HAS_AIR_FAN
-			air_fan_speed = varValue * 2.55;
+		else if (VAR_IS_ADDR(SET_AIR_FAN_SPEED_ADDR)) {				// chamber fan speed
+			#ifdef HAS_CHAMBER_FAN
+			ExtUI::setTargetFan_percent(varValue * 2.55, ExtUI::FAN2); // TODO: Chamber fan number?
 			#endif
 		}
 	#if HAS_BED_PROBE
 		else if (VAR_IS_ADDR(SET_SERVO_Z_OFFSET_ADDR)) {				// servo Z offset
-			zprobe_zoffset = -(float)(int16_t)varValue / 100;
-			refresh_zprobe_zoffset();
-			STORE_SETTING(zprobe_zoffset);
+			ExtUI::setZOffset_mm(-(float)(int16_t)varValue / 100);
 		}
 	#endif
 	#if	ENABLED(ENABLE_LEVELING_FADE_HEIGHT)
 		else if (VAR_IS_ADDR(SET_FADE_HEIGHT_ADDR)) {						// fade height
-			if(leveling_is_active()){
+			if(planner.leveling_active){
 				float fade_height = (float)varValue / 10;
 				set_z_fade_height(fade_height);
-				EEPROM_STORE(planner.z_fade_height, setting_z_fade_height);
+				// EEPROM_STORE(planner.z_fade_height, setting_z_fade_height);
 			}
 		}
 	#endif
 		else if (false) {
 		} else {
-			SERIAL_PROTOCOL_F(dwin_getVar()->varAddr, HEX);
+			SERIAL_ECHO_F((float)dwin_getVar()->varAddr, HEX);
 			SERIAL_EOL();
 		}
 	} else if (VAR_IS_LEN(4)) {
 		uint32_t varValue = ((uint32_t)dwin_getVar()->data[0] << 24) | ((uint32_t)dwin_getVar()->data[1] << 16) | ((uint32_t)dwin_getVar()->data[2] << 8) | ((uint32_t)dwin_getVar()->data[3]);
-
+		float stepValue = (float)varValue / 10000;
 		if (VAR_IS_ADDR(SET_X_STEP_ADDR)) {
-			planner.axis_steps_per_mm[X_AXIS] = (float)varValue / 10000;	// axis X motor step
-			planner.refresh_positioning();
+			ExtUI::setAxisSteps_per_mm(stepValue, ExtUI::X);
 		} else if (VAR_IS_ADDR(SET_Y_STEP_ADDR)) {
-			planner.axis_steps_per_mm[Y_AXIS] = (float)varValue / 10000;	// axis Y motor step
-			planner.refresh_positioning();
+			ExtUI::setAxisSteps_per_mm(stepValue, ExtUI::Y);
 		} else if (VAR_IS_ADDR(SET_Z_STEP_ADDR)) {
-			planner.axis_steps_per_mm[Z_AXIS] = (float)varValue / 10000;	// axis Z motor step
-			planner.refresh_positioning();
+			ExtUI::setAxisSteps_per_mm(stepValue, ExtUI::Z);
 		} else if (VAR_IS_ADDR(SET_E_STEP_ADDR)) {
-			planner.axis_steps_per_mm[E_AXIS] = (float)varValue / 10000;	// axis E motor step
-			planner.refresh_positioning();
+			ExtUI::setAxisSteps_per_mm(stepValue, ExtUI::E0);
+			#if EXTRUDERS > 1
+				ExtUI::setAxisSteps_per_mm(stepValue, ExtUI::E1);
+				#if EXTRUDERS > 2
+					ExtUI::setAxisSteps_per_mm(stepValue, ExtUI::E2);
+				#endif
+			#endif
 		} else {
-			SERIAL_PROTOCOL_F(dwin_getVar()->varAddr, HEX);
+			SERIAL_ECHO_F((float)dwin_getVar()->varAddr, HEX);
 			SERIAL_EOL();
 		}
 	} else if (VAR_IS_LEN((DEFAULT_STR_LEN * 2))) {
 		if(false){
 			;
 		}
+	// TODO: Check this stuff once the USB reader is implemented more
 	#if HAS_READER
 		else if (VAR_IS_ADDR(FILE_ITEM_0) || VAR_IS_ADDR(FILE_ITEM_1) || VAR_IS_ADDR(FILE_ITEM_2) || VAR_IS_ADDR(FILE_ITEM_3) || VAR_IS_ADDR(FILE_ITEM_4) ||
 			VAR_IS_ADDR(FILE_ITEM_5) || VAR_IS_ADDR(FILE_ITEM_6) || VAR_IS_ADDR(FILE_ITEM_7) || VAR_IS_ADDR(FILE_ITEM_8)) {
@@ -1868,14 +1870,14 @@ void resolveVar() {
 	#endif
 		else {
 			SERIAL_ECHOLNPGM("unknown var");
-			SERIAL_PROTOCOL_F(dwin_getVar()->varAddr, HEX);
+			SERIAL_ECHO_F((float)dwin_getVar()->varAddr, HEX);
 			SERIAL_EOL();
 		}
 	}
 	else {
 		SERIAL_ECHOLNPGM("unknown var_len");
-		SERIAL_PROTOCOL_F(dwin_getVar()->varAddr, HEX);
-		SERIAL_ECHOLNPAIR(":	", (int)dwin_getVar()->dataLen);
+		SERIAL_ECHO_F((float)dwin_getVar()->varAddr, HEX);
+		SERIAL_ECHOLNPAIR_F(":	", (float)dwin_getVar()->dataLen);
 	}
 }
 
@@ -1885,68 +1887,68 @@ void pageControl() {
 
 	if (touchLCD) return_default_page_time = millis() + LCD_TIMEOUT_TO_STATUS;
 
-#ifdef ACCIDENT_DETECT
-	if (isAccident && (powerState > POWER_COOLING) && !DWIN_IS_PAGE(PAGE_UNFINISH_CHOOSE)){
-		GO_PAGE(PAGE_UNFINISH_CHOOSE);
-	}
-#endif //ACCIDENT_DETECT
+	#ifdef POWER_LOSS_RECOVERY
+		if (isAccident && (powerState > POWER_COOLING) && !DWIN_IS_PAGE(PAGE_UNFINISH_CHOOSE)){
+			GO_PAGE(PAGE_UNFINISH_CHOOSE);
+		}
+	#endif //POWER_LOSS_RECOVERY
 
-#if HAS_BED_PROBE
-	if (IS_PROBE_PAGE && HAS_POPUP && probeDone){
-		HIDE_POPUP;
-		jump_leveling_page();
-		return_default_page_time = millis() + LCD_TIMEOUT_TO_STATUS;
-	}
-#endif
+	#if HAS_BED_PROBE
+		if (IS_PROBE_PAGE && HAS_POPUP && probeDone){
+			HIDE_POPUP;
+			jump_leveling_page();
+			return_default_page_time = millis() + LCD_TIMEOUT_TO_STATUS;
+		}
+	#endif
 
-	if (DWIN_IS_PAGE(PAGE_FILAMENT) && HAS_POPUP && !planner.blocks_queued())	HIDE_POPUP;
+	if (DWIN_IS_PAGE(PAGE_FILAMENT) && HAS_POPUP && !planner.has_blocks_queued())	HIDE_POPUP;
 
-#if HAS_READER
-	if(dwinReaderState != READER_STATE){
-		if(READER_CONN){
-			file_page = 1;
-			up_file_page = 1;
-			file_item_num = 0;
-			file_item_selected = -1;
+	#if HAS_READER
+		if(dwinReaderState != READER_STATE){
+			if(READER_CONN){
+				file_page = 1;
+				up_file_page = 1;
+				file_item_num = 0;
+				file_item_selected = -1;
 
-		#ifdef SDSUPPORT
-			card.initsd();
-		#endif
+			#ifdef SDSUPPORT
+				card.initsd();
+			#endif
 
-			if(dwinReaderState != 0xFF){
-				if(READER_VALID){
-					DWIN_MSG_P(DWIN_MSG_USB_READY);
+				if(dwinReaderState != 0xFF){
+					if(READER_VALID){
+						DWIN_MSG_P(DWIN_MSG_USB_READY);
+					#ifdef WIFI_SUPPORT
+						myWifi.actionSynPrinterInfo();
+					#endif
+					} else {
+						DWIN_MSG_P(DWIN_MSG_READER_CONN);
+					}
+				}
+			} else {
+			#if ENABLED(QUICK_PAUSE)
+				quickPausePrintJob();
+			#endif //QUICK_PAUSE
+				FILE_READER.release();
+
+				if(dwinReaderState != 0xFF){
+					DWIN_MSG_P(DWIN_MSG_READER_REMOVED);
 				#ifdef WIFI_SUPPORT
 					myWifi.actionSynPrinterInfo();
 				#endif
-				} else {
-					DWIN_MSG_P(DWIN_MSG_READER_CONN);
 				}
 			}
-		} else {
-		#if ENABLED(QUICK_PAUSE)
-			quickPausePrintJob();
-		#endif //QUICK_PAUSE
-			FILE_READER.release();
-
-			if(dwinReaderState != 0xFF){
-				DWIN_MSG_P(DWIN_MSG_READER_REMOVED);
-			#ifdef WIFI_SUPPORT
-				myWifi.actionSynPrinterInfo();
-			#endif
+			if (IS_MENU_PAGE || IS_PRINT_DEFAULT_PAGE || IS_FILE_PAGE) {
+				return_default_button_action();
 			}
-		}
-		if (IS_MENU_PAGE || IS_PRINT_DEFAULT_PAGE || IS_FILE_PAGE) {
-			return_default_button_action();
-		}
 
-		dwinReaderState = READER_STATE;
-	}
-#endif	//HAS_READER
+			dwinReaderState = READER_STATE;
+		}
+	#endif	//HAS_READER
 
-	if(isSerialPrinting){		// the default page is state page while printing from serial.
+	if(printingFromHost){		// the default page is state page while printing from serial.
 		if (return_default_page_time && (millis() > return_default_page_time) && !HAS_POPUP && IS_TIMEOUT_PAGE_SERIAL) return_state_button_action();
-	}else{
+	} else {
 		if (return_default_page_time && (millis() > return_default_page_time) && !HAS_POPUP && IS_TIMEOUT_PAGE)	return_default_button_action();
 	}
 
@@ -2015,7 +2017,7 @@ void dwin_run(){
 	if (IS_DWIN_DATA_READY) {
 		if (dwin_getVar()->valid) {
 		#ifdef DEBUG_FREE
-			SERIAL_ECHOLNPAIR("dwin_run: ", freeMemory());
+			SERIAL_ECHOLNPAIR_F("dwin_run: ", freeMemory());
 		#endif
 			resolveVar();
 		}

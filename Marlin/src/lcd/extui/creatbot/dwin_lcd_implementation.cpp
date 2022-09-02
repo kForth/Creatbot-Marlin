@@ -9,8 +9,14 @@
 
 #ifdef CREATBOT_LCD
 
+#include <avr/io.h>
+#include <avr/interrupt.h>
+#include <string.h>
+#include <wiring.c>
+#include "../../../core/serial.h"
+
 enum recv_state {PreRevc, GetFH1, GetFH2, GetLen, RevcDone};
-static boolean dwinExist;
+static bool dwinExist;
 static uint8_t recvState;
 static uint8_t recvLen;
 static uint8_t recvCount;
@@ -50,10 +56,10 @@ static dwinStateStruct dwinState = { 0, { 0, 0, 0 } };
 
 #ifndef DWIN_SERIAL_USE_BUILT_IN
 static uint8_t available(void) {
-	CRITICAL_SECTION_START;
+	// CRITICAL_SECTION_START;
   const uint8_t h = dwinBuffer.head,
   							t = dwinBuffer.tail;
-  CRITICAL_SECTION_END;
+//   CRITICAL_SECTION_END;
 	return (uint8_t)(LCD_BUF_LEN + h - t) % LCD_BUF_LEN;
 }
 
@@ -67,24 +73,24 @@ static void write(const uint8_t *buffer, size_t size) {
 }
 
 __attribute__((unused)) static uint8_t peek() {
-  CRITICAL_SECTION_START;
+//   CRITICAL_SECTION_START;
 	const uint8_t v = dwinBuffer.head == dwinBuffer.tail ? 0xFF : dwinBuffer.buffer[dwinBuffer.tail];
-  CRITICAL_SECTION_END;
+//   CRITICAL_SECTION_END;
   return v;
 }
 
 static uint8_t read() {
-  CRITICAL_SECTION_START;
+//   CRITICAL_SECTION_START;
 	const uint8_t v = dwinBuffer.head == dwinBuffer.tail ? 0xFF : dwinBuffer.buffer[dwinBuffer.tail];
 	dwinBuffer.tail = (uint8_t)(dwinBuffer.tail + 1) % LCD_BUF_LEN;
-  CRITICAL_SECTION_END;
+//   CRITICAL_SECTION_END;
   return v;
 }
 
 static void flush() {
-	CRITICAL_SECTION_START;
+	// CRITICAL_SECTION_START;
 	dwinBuffer.head = dwinBuffer.tail;
-	CRITICAL_SECTION_END;
+	// CRITICAL_SECTION_END;
 }
 
 static void begin(long baud) {
@@ -114,13 +120,13 @@ static void end() {
 
 ISR(USART3_RX_vect) {
 	uint8_t c = UDR3;
-	CRITICAL_SECTION_START;
+	// CRITICAL_SECTION_START;
 	uint8_t i = (uint8_t)(dwinBuffer.head + 1) % LCD_BUF_LEN;
 	if(i != dwinBuffer.tail) {
 		dwinBuffer.buffer[dwinBuffer.head] = c;
 		dwinBuffer.head = i;
 	}
-	CRITICAL_SECTION_END;
+	// CRITICAL_SECTION_END;
 }
 
 	#define DWIN_BEGIN			begin
@@ -470,27 +476,27 @@ void dwin_init() {
 
 void dwin_loop() {
 
-	//获取页面
+	//Get the page
 	if(!IS_GET_PAGE && (nextUpdateTime < millis())) {
 		nextUpdateTime = millis() + LCD_RUN_CYCLE;
 		getPage();
 	}
 
-	//获取触摸状态
+	//Get the touch status
 	if(!IS_GET_TOUCH) {
 		getTouch();
 		isTouch = -1;
 	}
 
-	//获取当前键值寄存器状态
+	//Get the current key value register status
 	if(!IS_GET_KEY && HAS_POP_TASK) {
 		currentKEY();
 	}
 
-	//接收数据
+	//Receive data
 	readData();
 
-	//分析数据
+	//analyze data
 	if(RECV_DONE) {
 		if(recBuffer[0] == READ_REGISTER) {
 			if((recvLen == 5) && (recBuffer[1] == REGISTER_PAGE) && IS_GET_PAGE) {
@@ -535,8 +541,8 @@ void dwin_loop() {
 		if(!dwinExist) dwinExist = true;
 	}
 
-	//超时处理
-	boolean dwinTimeout = false;
+	//Overtime
+	bool dwinTimeout = false;
 	for(uint8_t i = 0; i < 3; i++){
 		if(dwinState.timeoutTime[i] && millis() > dwinState.timeoutTime[i]){
 			dwinTimeout = true;
@@ -553,14 +559,14 @@ void dwin_loop() {
 		dwinExist = false;
 	}
 
-	//串口重置
+	//Serial reset
 	if(!dwinExist && (nextInitTime < millis())){
 		DWIN_END();
 		dwin_init();
 	}
 }
 
-boolean dwin_isExist(){
+bool dwin_isExist(){
 	return dwinExist;
 }
 
@@ -605,7 +611,7 @@ uint16_t currentPage(){
 }
 
 /** if current page is specified page. */
-boolean isPage(const char* index){
+bool isPage(const char* index){
 #ifdef DWIN_HEX_OPERATE_USE_STR
 	char page[5];
 	return (strcmp(uint16_tToHex(page,curPage), index) == 0) ? true : false;
@@ -615,7 +621,7 @@ boolean isPage(const char* index){
 }
 
 /** if current page is specified page. */
-boolean isPage(uint16_t index){
+bool isPage(uint16_t index){
 	return (curPage == index);
 }
 
@@ -690,7 +696,7 @@ uint8_t getPop() {
  * return true if success.
  * return false if error.
  */
-boolean setPop(const char* key){
+bool setPop(const char* key){
 	uint8_t tempKey = (uint8_t)strtol(key, nullptr, HEX);
 #ifdef DWIN_HEX_OPERATE_USE_STR
 	uint8_t lastKey = pop_last();
@@ -721,7 +727,7 @@ boolean setPop(const char* key){
 * return true if success.
 * return false if error.
 */
-boolean setPop(uint8_t key){
+bool setPop(uint8_t key){
 #ifdef DWIN_HEX_OPERATE_USE_STR
 	char tempKey[3];
 	return setPop(uint8_tToHex(tempKey, key));
@@ -758,10 +764,11 @@ boolean setPop(uint8_t key){
  */
 static inline bool checkValid(const char* addr){
 #if (MIN_VARIBLE_ADDR == 0)
-	if((uint32_t)strtoul(addr, nullptr, HEX) <= MAX_VARIBLE_ADDR){
+	if((uint32_t)strtoul(addr, nullptr, HEX) <= MAX_VARIBLE_ADDR)
 #else
-	if(WITHIN((uint32_t)strtoul(addr, nullptr, HEX), MIN_VARIBLE_ADDR, MAX_VARIBLE_ADDR)){
+	if(WITHIN((uint32_t)strtoul(addr, nullptr, HEX), MIN_VARIBLE_ADDR, MAX_VARIBLE_ADDR))
 #endif
+	{
 		sendStart();
 		return true;
 	} else{
@@ -777,10 +784,11 @@ static inline bool checkValid(const char* addr){
  */
 static inline bool checkValid(uint32_t addr){
 #if (MIN_VARIBLE_ADDR == 0)
-	if(addr <= MAX_VARIBLE_ADDR){
+	if(addr <= MAX_VARIBLE_ADDR)
 #else
-	if(WITHIN(addr, MIN_VARIBLE_ADDR, MAX_VARIBLE_ADDR)){
+	if(WITHIN(addr, MIN_VARIBLE_ADDR, MAX_VARIBLE_ADDR))
 #endif
+	{
 		sendStart();
 		return true;
 	} else{
@@ -1210,7 +1218,7 @@ char* uint16_tToHex(char* hex, uint16_t data){
  * data is a uint16_t data.
  * return if the uint16_t is equal to the HEX string.
  */
-boolean uint16_tCompHex(const char * hex, uint16_t data){
+bool uint16_tCompHex(const char * hex, uint16_t data){
 #ifdef DWIN_HEX_OPERATE_USE_STR
 	char hexData[5];
 	return (strcmp(uint16_tToHex(hexData, data), hex) == 0) ? true : false;
@@ -1396,7 +1404,7 @@ void fillRectangle_P(const char * addr, uint16_t x0, uint16_t y0, uint16_t x1, u
  * data is a uint16_t data.
  * return if the uint16_t is equal to the HEX string.
  */
-boolean uint16_tCompHex_P(const char *hex, uint16_t data){
+bool uint16_tCompHex_P(const char *hex, uint16_t data){
 	char rel_hex[5];
 	strncpy_P(rel_hex, hex, 5);
 	return uint16_tCompHex(rel_hex, data);

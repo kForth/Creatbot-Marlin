@@ -208,8 +208,7 @@
 
 // Default chamber fan speed when eeprom resets
 #ifdef HAS_CHAMBER_FAN
-    #define CHAMBER_FAN
-    #define DEFAULT_AIR_FAN_SPEED 0
+  #define DEFAULT_CHAMBER_FAN_SPEED 0
 #endif
 
 //===========================================================================

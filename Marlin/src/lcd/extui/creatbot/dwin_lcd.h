@@ -376,7 +376,7 @@
 	#define PAGE_STATE_PRINT				PAGE_STATE_PRINT_3
 	#define PAGE_FILAMENT						PAGE_FILAMENT_3
 #elif EXTRUDERS > 1
-	#ifdef HOTWIND_SYSTEM
+	#ifdef HAS_HEATED_CHAMBER
 		#define PAGE_STATE_NORMAL				PAGE_STATE_NORMAL_2_AIR
 		#define PAGE_STATE_PRINT				PAGE_STATE_PRINT_2_AIR
 	#else
@@ -385,7 +385,7 @@
 	#endif
 	#define PAGE_FILAMENT						PAGE_FILAMENT_2
 #elif EXTRUDERS > 0
-	#ifdef HOTWIND_SYSTEM
+	#ifdef HAS_HEATED_CHAMBER
 		#define PAGE_STATE_NORMAL				PAGE_STATE_NORMAL_1_AIR
 		#define PAGE_STATE_PRINT				PAGE_STATE_PRINT_1_AIR
 	#else
@@ -400,7 +400,7 @@
 
 extern int lcd_preheat_hotend_temp[EXTRUDERS];
 extern int lcd_preheat_bed_temp;
-#ifdef HOTWIND_SYSTEM
+#ifdef HAS_HEATED_CHAMBER
 	extern int lcd_preheat_chamber_temp;
 #endif
 extern int lcd_preheat_fan_speed;

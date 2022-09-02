@@ -34,11 +34,11 @@
 namespace ExtUI {
 
   void onStartup() {
-    dwin_init();
+    dwin_setup();
   }
 
   void onIdle() {
-    dwin_loop();
+    dwin_run();
   }
 
   void onPrinterKilled(FSTR_P const error, FSTR_P const component) {

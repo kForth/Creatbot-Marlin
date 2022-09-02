@@ -187,7 +187,7 @@
 #define FIL_RUNOUT2_PIN		34
 // #define FIL_RUNOUT3_PIN		32
 
-#ifdef ACCIDENT_DETECT
+#ifdef POWER_LOSS_RECOVERY
 	#define ACCIDENT_PIN		84
 #endif
 

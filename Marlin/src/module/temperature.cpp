@@ -1822,17 +1822,17 @@ void Temperature::manage_heater() {
       }
     #endif
 
-    #if EITHER(CHAMBER_FAN, CHAMBER_VENT) || DISABLED(PIDTEMPCHAMBER)
+    #if EITHER(HAS_CHAMBER_FAN, CHAMBER_VENT) || DISABLED(PIDTEMPCHAMBER)
       static bool flag_chamber_excess_heat; // = false;
     #endif
 
-    #if EITHER(CHAMBER_FAN, CHAMBER_VENT)
+    #if EITHER(HAS_CHAMBER_FAN, CHAMBER_VENT)
       static bool flag_chamber_off; // = false
 
       if (temp_chamber.target > CHAMBER_MINTEMP) {
         flag_chamber_off = false;
 
-        #if ENABLED(CHAMBER_FAN)
+        #if ENABLED(HAS_CHAMBER_FAN)
           int16_t fan_chamber_pwm;
           #if CHAMBER_FAN_MODE == 0
             fan_chamber_pwm = CHAMBER_FAN_BASE;
@@ -1875,7 +1875,7 @@ void Temperature::manage_heater() {
         #endif
       }
       else if (!flag_chamber_off) {
-        #if ENABLED(CHAMBER_FAN)
+        #if ENABLED(HAS_CHAMBER_FAN)
           flag_chamber_off = true;
           set_fan_speed(CHAMBER_FAN_INDEX, 0);
         #endif
