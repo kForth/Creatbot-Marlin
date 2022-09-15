@@ -285,108 +285,137 @@
 
 /*******************************************************************************/
 
-/********************* By LYN (dwin_lcd , encoded by GB2312.) ******************/
+/********************* By LYN (dwin_lcd , encoded by GB2312 自定义编码.) ******************/
 #if LANGUAGE == cn
-	#define DWIN_MSG_WELCOME						MACHINE_NAME " \xD7\xBC\xB1\xB8\xBE\xCD\xD0\xF7."				//准备就绪.
+	#define DWIN_MSG_WELCOME						MACHINE_NAME " \xA1\xA1\xA1\xA2\xA1\xA3\xA1\xA4."				//准备就绪.
 #else
 	#define DWIN_MSG_WELCOME						WELCOME_MSG
 #endif
 
 #if LANGUAGE == cn
-	#define DWIN_MSG_PRINTING						"\xD5\xFD\xD4\xDA\xB4\xF2\xD3\xA1..."										//正在打印...
+	#define DWIN_MSG_PRINTING						"\xA1\xA5\xA1\xA6\xA1\xA7\xA1\xA8..."										//正在打印...
 #else
 	#define DWIN_MSG_PRINTING						MSG_PRINTING
 #endif
 
 #if LANGUAGE == cn
-	#define DWIN_MSG_PRINTFINISHED			"\xB4\xF2\xD3\xA1\xD2\xD1\xCD\xEA\xB3\xC9."							//打印已完成.
+	#define DWIN_MSG_PRINTFINISHED			"\xA1\xA7\xA1\xA8\xA1\xA9\xA1\xAA\xA1\xAB."							//打印已完成.
 #else
 	#define DWIN_MSG_PRINTFINISHED			MSG_PRINTFINISHED
 #endif
 
 #if LANGUAGE == cn
-	#define DWIN_MSG_PRINT_PAUSED				"\xB4\xF2\xD3\xA1\xD2\xD1\xD4\xDD\xCD\xA3."							//打印已暂停.
+	#define DWIN_MSG_PRINT_PAUSED				"\xA1\xA7\xA1\xA8\xA1\xA9\xA1\xAC\xA1\xAD."							//打印已暂停.
 #else
 	#define DWIN_MSG_PRINT_PAUSED				MSG_PRINT_PAUSED
 #endif
 
 #if LANGUAGE == cn
-	#define DWIN_MSG_STOPPED						"\xB4\xF2\xD3\xA1\xD2\xD1\xC8\xA1\xCF\xFB."							//打印已取消.
+	#define DWIN_MSG_STOPPED						"\xA1\xA7\xA1\xA8\xA1\xA9\xA1\xAE\xA1\xAF."							//打印已取消.
 #else
 	#define DWIN_MSG_STOPPED						MSG_STOPPED
 #endif
 
 #if LANGUAGE == cn
-	#define DWIN_MSG_HEATING						"\xC5\xE7\xCD\xB7\xBC\xD3\xC8\xC8\xD6\xD0..."						//喷头预热中...
+	#define DWIN_MSG_HEATING						"\xA1\xB0\xA1\xB1\xA1\xB2\xA1\xB3\xA1\xB4..."						//喷头预热中...
 #else
 	#define DWIN_MSG_HEATING						MSG_HEATING
 #endif
 
 #if LANGUAGE == cn
-	#define DWIN_MSG_HEATING_COMPLETE		"\xC5\xE7\xCD\xB7\xBC\xD3\xC8\xC8\xCD\xEA\xB3\xC9."			//喷头预热完成.
+	#define DWIN_MSG_HEATING_COMPLETE		"\xA1\xB0\xA1\xB1\xA1\xB2\xA1\xB3\xA1\xAA\xA1\xAB."			//喷头预热完成.
 #else
 	#define DWIN_MSG_HEATING_COMPLETE		MSG_HEATING_COMPLETE
 #endif
 
 #if LANGUAGE == cn
-	#define DWIN_MSG_BED_HEATING				"\xB9\xA4\xD7\xF7\xCC\xA8\xBC\xD3\xC8\xC8\xD6\xD0..."		//工作台预热中...
+	#define DWIN_MSG_BED_HEATING				"\xA1\xB5\xA1\xB6\xA1\xB7\xA1\xB2\xA1\xB3\xA1\xB4..."		//工作台预热中...
 #else
 	#define DWIN_MSG_BED_HEATING				MSG_BED_HEATING
 #endif
 
 #if LANGUAGE == cn
-	#define DWIN_MSG_BED_DONE						"\xB9\xA4\xD7\xF7\xCC\xA8\xBC\xD3\xC8\xC8\xCD\xEA\xB3\xC9."		//工作台预热完成.
+	#define DWIN_MSG_BED_DONE						"\xA1\xB5\xA1\xB6\xA1\xB7\xA1\xB2\xA1\xB3\xA1\xAA\xA1\xAB."		//工作台预热完成.
 #else
 	#define DWIN_MSG_BED_DONE						MSG_BED_DONE
 #endif
 
 #if LANGUAGE == cn
-	#define DWIN_MSG_ATUO_SHUTDOWN			"\xD7\xD4\xB6\xAF\xB9\xD8\xBB\xFA\xD6\xD0..."						//自动关机中...
+	#define DWIN_MSG_ATUO_SHUTDOWN			"\xA1\xB8\xA1\xB9\xA1\xBA\xA1\xBB\xA1\xB4..."						//自动关机中...
 #else
 	#define DWIN_MSG_ATUO_SHUTDOWN			MSG_ATUO_SHUTDOWN
 #endif
 
 #if LANGUAGE == cn
-	#define DWIN_MSG_FILAMENT_NOT_READY	"\xBA\xC4\xB2\xC4\xCE\xB4\xBE\xCD\xD0\xF7."							//耗材未就绪.
+	#define DWIN_MSG_FILAMENT_NOT_READY	"\xA1\xBC\xA1\xBD\xA1\xBE\xA1\xA3\xA1\xA4."							//耗材未就绪.
 #else
 	#define DWIN_MSG_FILAMENT_NOT_READY	MSG_FILAMENT_NOT_READY
 #endif
 
 #if LANGUAGE == cn
-	#define DWIN_MSG_SD_INSERTED				"SD\xBF\xA8\xD2\xD1\xB2\xE5\xC8\xEB."										//SD卡已插入.
+  #define DWIN_MSG_USERWAIT           "\xA1\xC9\xA1\xCA\xA1\xCB\xA1\xCC\xA1\xCD\xA1\xB6..."		//等待用户操作...
+#else
+  #define DWIN_MSG_USERWAIT           MSG_USERWAIT
+#endif
+
+#if LANGUAGE == cn
+	#define DWIN_MSG_SD_INSERTED				"SD\xA1\xBF\xA1\xA9\xA1\xC0\xA1\xC1."										//SD卡已插入.
 #else
 	#define DWIN_MSG_SD_INSERTED				MSG_SD_INSERTED
 #endif
 
 #if LANGUAGE == cn
-	#define DWIN_MSG_SD_REMOVED					"SD\xBF\xA8\xD2\xD1\xB0\xCE\xB3\xF6."										//SD卡已拔出.
+	#define DWIN_MSG_SD_REMOVED					"SD\xA1\xBF\xA1\xA9\xA1\xC2\xA1\xC3."										//SD卡已拔出.
 #else
 	#define DWIN_MSG_SD_REMOVED					MSG_SD_REMOVED
 #endif
 
 #if LANGUAGE == cn
-	#define DWIN_MSG_NO_FILE						"\xBF\xD5\xCE\xC4\xBC\xFE\xBC\xD0!"											//空文件夹!
+	#define DWIN_MSG_NO_FILE						"\xA1\xC4\xA1\xC5\xA1\xC6\xA1\xC7!"											//空文件夹!
 #else
 	#define DWIN_MSG_NO_FILE						"Folder is Empty!"
 #endif
 
 #if LANGUAGE == cn
-	#define DWIN_MSG_USB_INSERTED				"U\xC5\xCC\xD2\xD1\xB2\xE5\xC8\xEB."										//U盘已插入.
+	#define DWIN_MSG_USB_INSERTED				"U\xA1\xC8\xA1\xA9\xA1\xC0\xA1\xC1."										//U盘已插入.
 #else
 	#define DWIN_MSG_USB_INSERTED				"USB disk inserted"
 #endif
 
 #if LANGUAGE == cn
-	#define DWIN_MSG_USB_REMOVED				"U\xC5\xCC\xD2\xD1\xB0\xCE\xB3\xF6."										//U盘已拔出.
+	#define DWIN_MSG_USB_REMOVED				"U\xA1\xC8\xA1\xA9\xA1\xC2\xA1\xC3."										//U盘已拔出.
 #else
 	#define DWIN_MSG_USB_REMOVED				"USB disk removed"
 #endif
 
 #if LANGUAGE == cn
-	#define DWIN_MSG_USB_READY					"U\xC5\xCC\xD2\xD1\xBE\xCD\xD0\xF7."										//U盘已就绪.
+	#define DWIN_MSG_USB_READY					"U\xA1\xC8\xA1\xA9\xA1\xA3\xA1\xA4."										//U盘已就绪.
 #else
 	#define DWIN_MSG_USB_READY					"USB disk ready"
 #endif
+/*******************************************************************************/
+
+/********************* By LYN (dwin_lcd , encoded by Unicode.) ******************/
+#ifdef FILE_UNICODE_SUPPORT
+	#undef DWIN_MSG_NO_FILE
+	#ifdef LCD_FILE_CHAR_MAXIMIZE
+		#if LANGUAGE == cn
+			#define DWIN_MSG_NO_FILE						"\x30\x00\x30\x00\x30\x00\x30\x00\x30\x00\x7A\x7A\x65\x87\x4E\xF6\x59\x39\x00\x21\x00"					//空文件夹!
+			#define DWIN_MSG_NO_FILE_LENGTH			22
+		#else
+			#define DWIN_MSG_NO_FILE						"\x30\x00\x30\x00\x30\x00\x30\x00\x00\x46\x00\x6F\x00\x6C\x00\x64\x00\x65\x00\x72\x00\x20\x00\x69\x00\x73\x00\x20\x00\x45\x00\x6D\x00\x70\x00\x74\x00\x79\x00\x21\x00"
+			#define DWIN_MSG_NO_FILE_LENGTH			42
+		#endif
+	#else
+		#if LANGUAGE == cn
+			#define DWIN_MSG_NO_FILE						"\x7A\x7A\x65\x87\x4E\xF6\x59\x39\x00\x21\x00"					//空文件夹!
+			#define DWIN_MSG_NO_FILE_LENGTH			12
+		#else
+			#define DWIN_MSG_NO_FILE						"\x00\x45\x00\x6D\x00\x70\x00\x74\x00\x79\x00\x20\x00\x46\x00\x6F\x00\x6C\x00\x64\x00\x65\x00\x72\x00\x21\x00"
+			#define DWIN_MSG_NO_FILE_LENGTH			28
+		#endif
+	#endif
+#endif //FILE_UNICODE_SUPPORT
 /*******************************************************************************/
 
 #if LANGUAGE == cn

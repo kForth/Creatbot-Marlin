@@ -81,7 +81,12 @@ int16_t Temperature::current_temperature_raw[HOTENDS] = { 0 },
 
 // Initialized by settings.load()
 #if ENABLED(PIDTEMP)
-  #if ENABLED(PID_PARAMS_PER_HOTEND) && HOTENDS > 1
+  #if PID_PARAMS_USE_TEMP_RANGE
+    float Temperature::Kp[PID_PARAMS_TEMP_RANGE_NUM], Temperature::Ki[PID_PARAMS_TEMP_RANGE_NUM], Temperature::Kd[PID_PARAMS_TEMP_RANGE_NUM];
+    #if ENABLED(PID_EXTRUSION_SCALING)
+      static float Temperature::Kc[PID_PARAMS_DIFF_TEMP_NUM];
+    #endif
+  #elif ENABLED(PID_PARAMS_PER_HOTEND) && HOTENDS > 1
     float Temperature::Kp[HOTENDS], Temperature::Ki[HOTENDS], Temperature::Kd[HOTENDS];
     #if ENABLED(PID_EXTRUSION_SCALING)
       float Temperature::Kc[HOTENDS];
@@ -97,6 +102,10 @@ int16_t Temperature::current_temperature_raw[HOTENDS] = { 0 },
 // Initialized by settings.load()
 #if ENABLED(PIDTEMPBED)
   float Temperature::bedKp, Temperature::bedKi, Temperature::bedKd;
+#endif
+
+#if ENABLED(PIDTEMP_CHAMBER)
+  float Temperature::chamberKp, Temperature::chamberKi, Temperature::chamberKd;
 #endif
 
 #if ENABLED(BABYSTEPPING)
@@ -154,6 +163,16 @@ volatile bool Temperature::temp_meas_ready = false;
         Temperature::pid_error_bed;
 #else
   millis_t Temperature::next_bed_check_ms;
+#endif
+
+#if ENABLED(PIDTEMP_CHAMBER)
+  float Temperature::temp_iState_chamber = 0.0,
+        Temperature::temp_dState_chamber = 0.0,
+        Temperature::pTerm_chamber,
+        Temperature::iTerm_chamber,
+        Temperature::dTerm_chamber,
+        Temperature::pid_error_chamber;
+  bool Temperature::pid_reset_chamber;
 #endif
 
 uint16_t Temperature::raw_temp_value[MAX_EXTRUDERS] = { 0 },
@@ -468,6 +487,118 @@ uint8_t Temperature::soft_pwm_amount[HOTENDS],
 
 #endif // HAS_PID_HEATING
 
+
+#if ENABLED(PIDTEMP_CHAMBER)
+  void Temperature::PID_autotune_Chamber(float temp){
+    float input = 0.0;
+    int cycles = 0;
+    bool heating = true;
+
+    uint32_t temp_ms = millis(), t1 = temp_ms, t2 = temp_ms;
+    long t_high = 0, t_low = 0;
+
+    long bias, d;
+    float Ku, Tu;
+    float workKp = 0, workKi = 0, workKd = 0;
+    float max = 0, min = 10000;
+
+    SERIAL_ECHOLNPGM("PID (Chamber) Auto Tune Start >>>>>>");
+
+    disable_all_heaters();
+
+    soft_pwm_amount_chamber = bias = d = (MAX_CHAMBER_POWER) >> 1;
+
+    wait_for_heatup = true;
+
+    // PID Tuning loop
+    while(wait_for_heatup){
+      uint32_t ms = millis();
+
+      if(temp_meas_ready){
+        updateTemperaturesFromRawValues();
+
+        input = current_temperature_chamber;
+        NOLESS(max, input);
+        NOMORE(min, input);
+
+        if(heating && input > temp){
+          if(ELAPSED(ms, t2 + 40000UL)){
+            heating = false;
+            soft_pwm_amount_chamber = (bias - d) >> 1;
+            t1 = ms;
+            t_high = t1 - t2;
+            max = temp;
+          }
+        }
+
+        if(!heating && input < temp){
+          if(ELAPSED(ms, t1 + 40000UL)){
+            heating = true;
+            t2 = ms;
+            t_low = t2 - t1;
+            if(cycles > 0){
+              bias += (d * (t_high - t_low)) / (t_low + t_high);
+              bias = constrain(bias, 20, MAX_CHAMBER_POWER - 20);
+              d = (bias > MAX_CHAMBER_POWER / 2) ? MAX_CHAMBER_POWER - 1 - bias : bias;
+
+              SERIAL_ECHOLNPAIR(" t_high: ", t_high);
+              SERIAL_ECHOLNPAIR(" t_low: ", t_low);
+              SERIAL_ECHOLNPAIR(" bias: ", bias);
+              SERIAL_ECHOLNPAIR(" d: ", d);
+              SERIAL_ECHOLNPAIR(" min: ", min);
+              SERIAL_ECHOLNPAIR(" max: ", max);
+
+              if(cycles > 2){
+                Ku = (4.0 * d) / (M_PI * (max - min) * 0.5);
+                Tu = ((float)(t_low + t_high) * 0.001);
+                SERIAL_ECHOLNPAIR(" Ku: ", Ku);
+                SERIAL_ECHOLNPAIR(" Tu: ", Tu);
+                workKp = 0.6 * Ku;
+                workKi = 2 * workKp / Tu;
+                workKd = workKp * Tu * 0.125;
+                SERIAL_ECHOLNPGM("\n Classic PID ");
+                SERIAL_ECHOLNPAIR(" Kp: ", workKp);
+                SERIAL_ECHOLNPAIR(" Ki: ", workKi);
+                SERIAL_ECHOLNPAIR(" Kd: ", workKd);
+              }
+            }
+            soft_pwm_amount_chamber = (bias + d) >> 1;
+            cycles++;
+            min = temp;
+          }
+        }
+      }
+
+      #define MAX_OVERSHOOT_PID_AUTOTUNE 20
+      if(input > temp + MAX_OVERSHOOT_PID_AUTOTUNE){
+        SERIAL_ECHOLNPGM("PID Auto tune failed! Temperature too high");
+        return;
+      }
+
+      // Every 2 seconds...
+      if(ELAPSED(ms, temp_ms + 2000UL)){
+        SERIAL_ECHOLNPAIR("current_chamber_temp: ", current_temperature_chamber);
+        temp_ms = ms;
+      } // every 2 seconds
+
+      // Over 2 minutes?
+      if(((ms - t1) + (ms - t2)) > (10L * 60L * 1000L * 2L)){
+        SERIAL_ECHOLNPGM("PID Auto tune failed! Timeout");
+        return;
+      }
+      if(cycles > 20){
+        SERIAL_ECHOLNPGM("PID Auto tune finished!");
+
+        SERIAL_ECHOLNPAIR("#define  KP ", workKp);
+        SERIAL_ECHOLNPAIR("#define  KI ", workKi);
+        SERIAL_ECHOLNPAIR("#define  KD ", workKd);
+        return;
+      }
+    }
+    disable_all_heaters();
+  }
+#endif
+
 /**
  * Class and Instance Methods
  */
@@ -541,6 +672,7 @@ void Temperature::_temp_error(const int8_t e, const char * const serial_msg, con
     if (!killed) {
       Running = false;
       killed = true;
+      updateTemperaturesFromRawValues();    //update temperature so can show us.
       kill(lcd_msg);
     }
     else
@@ -588,8 +720,27 @@ float Temperature::get_pid_output(const int8_t e) {
   float pid_output;
   #if ENABLED(PIDTEMP)
     #if DISABLED(PID_OPENLOOP)
+      #if PID_PARAMS_USE_TEMP_RANGE
+        static int16_t pidTempRange[PID_PARAMS_TEMP_RANGE_NUM] =  PID_TEMP_RANGE_ARRAY;
+        float pParam = PID_PARAM(Kp, 0);
+        float iParam = PID_PARAM(Ki, 0);
+        float dParam = PID_PARAM(Kd, 0);
+        for (int8_t s = PID_PARAMS_TEMP_RANGE_NUM - 1; s >= 0; s--){
+          if(target_temperature[HOTEND_INDEX] > pidTempRange[s]){
+            pParam = PID_PARAM(Kp, s);
+            iParam = PID_PARAM(Ki, s);
+            dParam = PID_PARAM(Kd, s);
+            break;
+          }
+        }
+      #else
+        float pParam = PID_PARAM(Kp, HOTEND_INDEX);
+        float iParam = PID_PARAM(Ki, HOTEND_INDEX);
+        float dParam = PID_PARAM(Kd, HOTEND_INDEX);
+      #endif
+
       pid_error[HOTEND_INDEX] = target_temperature[HOTEND_INDEX] - current_temperature[HOTEND_INDEX];
-      dTerm[HOTEND_INDEX] = K2 * PID_PARAM(Kd, HOTEND_INDEX) * (current_temperature[HOTEND_INDEX] - temp_dState[HOTEND_INDEX]) + K1 * dTerm[HOTEND_INDEX];
+      dTerm[HOTEND_INDEX] = K2 * dParam * (current_temperature[HOTEND_INDEX] - temp_dState[HOTEND_INDEX]) + K1 * dTerm[HOTEND_INDEX];
       temp_dState[HOTEND_INDEX] = current_temperature[HOTEND_INDEX];
       #if HEATER_IDLE_HANDLER
         if (heater_idle_timeout_exceeded[HOTEND_INDEX]) {
@@ -615,9 +766,9 @@ float Temperature::get_pid_output(const int8_t e) {
           temp_iState[HOTEND_INDEX] = 0.0;
           pid_reset[HOTEND_INDEX] = false;
         }
-        pTerm[HOTEND_INDEX] = PID_PARAM(Kp, HOTEND_INDEX) * pid_error[HOTEND_INDEX];
+        pTerm[HOTEND_INDEX] = pParam * pid_error[HOTEND_INDEX];
         temp_iState[HOTEND_INDEX] += pid_error[HOTEND_INDEX];
-        iTerm[HOTEND_INDEX] = PID_PARAM(Ki, HOTEND_INDEX) * temp_iState[HOTEND_INDEX];
+        iTerm[HOTEND_INDEX] = iParam * temp_iState[HOTEND_INDEX];
 
         pid_output = pTerm[HOTEND_INDEX] + iTerm[HOTEND_INDEX] - dTerm[HOTEND_INDEX];
 
@@ -644,6 +795,10 @@ float Temperature::get_pid_output(const int8_t e) {
         }
         else if (pid_output < 0) {
           if (pid_error[HOTEND_INDEX] < 0) temp_iState[HOTEND_INDEX] -= pid_error[HOTEND_INDEX]; // conditional un-integration
+          pid_output = 0;
+        }
+
+        if(current_temperature[HOTEND_INDEX] >= 500){
           pid_output = 0;
         }
       }
@@ -720,6 +875,43 @@ float Temperature::get_pid_output(const int8_t e) {
     return pid_output;
   }
 #endif // PIDTEMPBED
+
+#if ENABLED(PIDTEMP_CHAMBER)
+  float Temperature::get_pid_output_chamber() {
+    float pid_output;
+
+    pid_error_chamber = target_temperature_chamber - current_temperature_chamber;
+    dTerm_chamber = (1.0 - chamberK1) * chamberKd * (current_temperature_chamber - temp_dState_chamber) + chamberK1 * dTerm_chamber;
+    temp_dState_chamber = current_temperature_chamber;
+
+    if(pid_error_chamber > PID_RANGE_CHAMBER){
+      pid_output = MAX_CHAMBER_POWER;
+      pid_reset_chamber = true;
+    }else if(pid_error_chamber < -(PID_RANGE_CHAMBER) || target_temperature_chamber == 0){
+      pid_output = 0;
+      pid_reset_chamber = true;
+    }else{
+      if(pid_reset_chamber){
+        temp_iState_chamber = 0;
+        pid_reset_chamber = false;
+      }
+      pTerm_chamber = chamberKp * pid_error_chamber;
+      temp_iState_chamber += pid_error_chamber;
+      iTerm_chamber = chamberKi * temp_iState_chamber;
+
+      pid_output = pTerm_chamber + iTerm_chamber - dTerm_chamber;
+
+      if(pid_output > MAX_CHAMBER_POWER){
+        if(pid_error_chamber > 0) temp_iState_chamber -= pid_error_chamber;
+        pid_output = MAX_CHAMBER_POWER;
+      }else if(pid_output < 0){
+        if(pid_error_chamber < 0) temp_iState_chamber -= pid_error_chamber;
+        pid_output = 0;
+      }
+    }
+    return pid_output;
+  }
+#endif
 
 /**
  * Manage heating activities for extruder hot-ends and a heated bed
@@ -876,11 +1068,13 @@ void Temperature::manage_heater() {
   #endif // HAS_TEMP_BED
 
 	#if HAS_TEMP_CHAMBER
-		#ifdef HOTWIND_HYSTERESIS
+    #if ENABLED(PIDTEMP_CHAMBER)
+      soft_pwm_amount_chamber = WITHIN(current_temperature_chamber, CHAMBER_MINTEMP, CHAMBER_MAXTEMP) ? (int)get_pid_output_chamber() >> 1 : 0;
+		#elif defined(CHAMBER_HYSTERESIS)
 			if (WITHIN(current_temperature_chamber, CHAMBER_MINTEMP, CHAMBER_MAXTEMP)) {
 				if (current_temperature_chamber >= target_temperature_chamber)
 					soft_pwm_amount_chamber = 0;
-				else if (current_temperature_chamber <= target_temperature_chamber - (HOTWIND_HYSTERESIS))
+				else if (current_temperature_chamber <= target_temperature_chamber - (CHAMBER_HYSTERESIS))
 					soft_pwm_amount_chamber = MAX_BED_POWER >> 1;
 			} else {
 				soft_pwm_amount_chamber = 0;
@@ -939,7 +1133,7 @@ float Temperature::analog2temp(int raw, uint8_t e) {
 
     return celsius;
   }
-  return raw ? ((raw * ((5.0 * 100.0) / 1024.0) / OVERSAMPLENR) * TEMP_SENSOR_AD595_GAIN) + TEMP_SENSOR_AD595_OFFSET : 0;
+  return raw ? ((map(raw, 0, 0x3FF * OVERSAMPLENR, 0, 0x400 * OVERSAMPLENR) * ((5.0 * 100.0) / 1024.0) / OVERSAMPLENR) * TEMP_SENSOR_AD595_GAIN) + TEMP_SENSOR_AD595_OFFSET : 0;
 }
 
 // Derived from RepRap FiveD extruder::getTemperature()
@@ -1419,16 +1613,20 @@ void Temperature::init() {
       *state = target > 0 ? TRFirstHeating : TRInactive;
     }
 
+    bool nearTarget = WITHIN(current, tr_target_temperature[heater_index] - ((heater_index >= 0) ? TEMP_HYSTERESIS : TEMP_BED_HYSTERESIS),
+                                      tr_target_temperature[heater_index] + ((heater_index >= 0) ? TEMP_HYSTERESIS : TEMP_BED_HYSTERESIS));
+    bool awayTarget = !WITHIN(current,  tr_target_temperature[heater_index] - hysteresis_degc,
+                                        tr_target_temperature[heater_index] + hysteresis_degc);
     switch (*state) {
       // Inactive state waits for a target temperature to be set
       case TRInactive: break;
       // When first heating, wait for the temperature to be reached then go to Stable state
       case TRFirstHeating:
-        if (current < tr_target_temperature[heater_index]) break;
+        if (!nearTarget) break;
         *state = TRStable;
-      // While the temperature is stable watch for a bad temperature
+      // While the temperature is stable watch for firstPending bad temperature
       case TRStable:
-        if (current >= tr_target_temperature[heater_index] - hysteresis_degc) {
+        if (!awayTarget) {
           *timer = millis() + period_seconds * 1000UL;
           break;
         }
@@ -1755,6 +1953,15 @@ void Temperature::isr() {
     #define ISR_STATICS(n) static uint8_t soft_pwm_count_ ## n = 0
   #endif
 
+  #if ENABLED(SLOW_PID_BED) || ENABLED(SLOW_PID_CHAMBER)
+    static uint8_t pwm_count_slow = 1;              //中断计数
+    #define ISR_STATICS_SLOW(n)                                                    \
+      static uint8_t  slow_pwm_count_ ## n = 0,             /* 慢速PWM周期计数 */      \
+                      soft_pwm_count_ ## n = 0,             /* PWM脉宽计数 */         \
+                      state_heater_ ## n = 0,               /* 加热状态 */            \
+                      state_timer_heater_ ## n = 0          /* 最小状态计数 */
+  #endif
+
   // Statics per heater
   ISR_STATICS(0);
   #if HOTENDS > 1
@@ -1770,10 +1977,18 @@ void Temperature::isr() {
     #endif // HOTENDS > 2
   #endif // HOTENDS > 1
   #if HAS_HEATER_BED
-    ISR_STATICS(BED);
+    #if ENABLED(SLOW_PID_BED)
+      ISR_STATICS_SLOW(bed);
+    #else
+      ISR_STATICS(BED);
+    #endif
   #endif
 	#if HAS_HEATER_CHAMBER
-    ISR_STATICS(CHAMBER);
+    #if ENABLED(SLOW_PID_CHAMBER)
+      ISR_STATICS_SLOW(chamber);
+    #else
+      ISR_STATICS(CHAMBER);
+    #endif
 	#endif
 
   #if ENABLED(FILAMENT_WIDTH_SENSOR)
@@ -1813,12 +2028,12 @@ void Temperature::isr() {
         #endif // HOTENDS > 2
       #endif // HOTENDS > 1
 
-      #if HAS_HEATER_BED
+      #if HAS_HEATER_BED && DISABLED(SLOW_PID_BED)
         soft_pwm_count_BED = (soft_pwm_count_BED & pwm_mask) + soft_pwm_amount_bed;
         WRITE_HEATER_BED(soft_pwm_count_BED > pwm_mask ? HIGH : LOW);
       #endif
 
-			#if HAS_HEATER_CHAMBER
+			#if HAS_HEATER_CHAMBER && DISABLED(SLOW_PID_CHAMBER)
         soft_pwm_count_CHAMBER = (soft_pwm_count_CHAMBER & pwm_mask) + soft_pwm_amount_chamber;
         WRITE_HEATER_CHAMBER(soft_pwm_count_CHAMBER > pwm_mask ? HIGH : LOW);
 			#endif
@@ -1853,11 +2068,11 @@ void Temperature::isr() {
         #endif // HOTENDS > 2
       #endif // HOTENDS > 1
 
-      #if HAS_HEATER_BED
+      #if HAS_HEATER_BED && DISABLED(SLOW_PID_BED)
         if (soft_pwm_count_BED <= pwm_count_tmp) WRITE_HEATER_BED(LOW);
       #endif
 
-			#if HAS_HEATER_CHAMBER
+			#if HAS_HEATER_CHAMBER && DISABLED(SLOW_PID_CHAMBER)
         if (soft_pwm_count_CHAMBER <= pwm_count_tmp) WRITE_HEATER_CHAMBER(LOW);
 			#endif
 
@@ -1883,6 +2098,78 @@ void Temperature::isr() {
     // 4:                /  8 = 122.0703 Hz
     // 5:                /  4 = 244.1406 Hz
     pwm_count = pwm_count_tmp + _BV(SOFT_PWM_SCALE);
+
+
+  //SLOW PID (BY LYN)
+  #if ENABLED(SLOW_PID_BED) || ENABLED(SLOW_PID_CHAMBER)
+    #define SLOW_PWM_PERIOD_bed     0x0F    //每16次  //最小脉宽 1/(16000000/64/256/16) = 16.384ms    //周期 16.384 * 128 = 2.097s
+    #define SLOW_PWM_PERIOD_chamber 0x3F    //每64次  //最小脉宽 1/(16000000/64/256/64) = 65.536ms    //周期 65.536 * 128 = 8.388s
+    #define MIN_STATE_TIME_bed      12      //最小关点火时间   16.384 * 12 = 196ms
+    #define MIN_STATE_TIME_chamber  8       //最小关点火时间   65.536 * 8 = 524ms
+    #define WRITE_HEATER_bed(v)     WRITE_HEATER_BED(v)
+    #define WRITE_HEATER_chamber(v) WRITE_HEATER_CHAMBER(v)
+
+    #define SLOW_PWM_ROUTINE(n)                                                               \
+      if(slow_pwm_count_ ## n == 0){                   /* PWM周期开始 */                      \
+        soft_pwm_count_ ## n = soft_pwm_amount_ ## n;  /* 脉宽赋值 */                         \
+        if(soft_pwm_count_ ## n > 0){                                                         \
+          if(state_timer_heater_ ## n == 0){           /* 最小计数时间已到 */                 \
+            if(state_heater_ ## n == 0)                /* 当前状态是关火 */                   \
+              state_timer_heater_ ## n = MIN_STATE_TIME_ ## n;                                \
+            state_heater_ ## n = 1;                                                           \
+            WRITE_HEATER_ ## n(HIGH);                                                         \
+          }                                                                                   \
+        }else{                                                                                \
+          if(state_timer_heater_ ## n == 0){           /* 最小计数时间已到 */                 \
+            if(state_heater_ ## n == 1)                /* 当前状态是开火 */                   \
+              state_timer_heater_ ## n = MIN_STATE_TIME_ ## n;                                \
+            state_heater_ ## n = 0;                                                           \
+            WRITE_HEATER_ ## n(LOW);                                                          \
+          }                                                                                   \
+        }                                                                                     \
+      }
+
+    #define SLOW_PWM_OFF(n)                                                                   \
+      if(soft_pwm_count_ ## n < slow_pwm_count_ ## n){                                        \
+        if(state_timer_heater_ ## n == 0){            /* 最小计数时间已到 */                  \
+          if(state_heater_ ## n == 1)                 /* 当前状态是开火 */                    \
+            state_timer_heater_ ## n = MIN_STATE_TIME_ ## n;                                  \
+          state_heater_ ## n = 0;                                                             \
+          WRITE_HEATER_ ## n(LOW);                                                            \
+        }                                                                                     \
+      }
+
+    #define SLOW_PWM_COUNT(n)                                                                 \
+      if((pwm_count_slow & SLOW_PWM_PERIOD_ ## n) == 0){  /* 最小脉宽计数 */                  \
+        slow_pwm_count_ ## n++;                                                               \
+        slow_pwm_count_ ## n &= 0x7F;                       /* 周期计数 */                    \
+        if(state_timer_heater_ ## n > 0)                                                      \
+          state_timer_heater_ ## n--;                                                         \
+      }
+
+    #if ENABLED(SLOW_PID_BED)
+      SLOW_PWM_ROUTINE(bed)
+    #endif
+    #if ENABLED(SLOW_PID_CHAMBER)
+      SLOW_PWM_ROUTINE(chamber)
+    #endif
+
+    #if ENABLED(SLOW_PID_BED)
+      SLOW_PWM_OFF(bed)
+    #endif
+    #if ENABLED(SLOW_PID_CHAMBER)
+      SLOW_PWM_OFF(chamber)
+    #endif
+
+      pwm_count_slow ++;
+
+    #if ENABLED(SLOW_PID_BED)
+      SLOW_PWM_COUNT(bed)
+    #endif
+    #if ENABLED(SLOW_PID_CHAMBER)
+      SLOW_PWM_COUNT(chamber)
+    #endif
+  #endif
 
   #else // SLOW_PWM_HEATERS
 

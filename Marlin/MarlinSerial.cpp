@@ -114,6 +114,7 @@
             case ' ': break;
             case '1': state = state_M1;     break;
             case '4': state = state_M4;     break;
+            case '6': state = state_M6;     break;
             default: state = state_IGNORE;
           }
           break;
@@ -142,6 +143,25 @@
           state = (c == '0') ? state_M410 : state_IGNORE;
           break;
 
+        case state_M6:
+          state = (c == '1') ? state_M61 : state_IGNORE;
+          break;
+
+        case state_M61:
+          state = (c == '0') ? state_M610 : state_IGNORE;
+          break;
+
+        case state_M610:
+          switch (c) {
+            case '1': state = state_M6101;    break;
+            case '2': state = state_M6102;    break;
+            case '3': state = state_M6103;    break;
+            case '4': state = state_M6104;    break;
+            case '5': state = state_M6105;    break;
+            default: state = state_IGNORE;
+          }
+          break;
+
         case state_IGNORE:
           if (c == '\n') state = state_RESET;
           break;
@@ -158,6 +178,41 @@
               case state_M410:
                 quickstop_stepper();
                 break;
+          #ifdef ULTRA_SERIAL
+              case state_M6101:
+              #ifdef ACCIDENT_DETECT
+                accidentToResume_Home();
+              #endif
+                FILE_START_PRINT;
+                print_job_timer.start();
+                break;
+            #ifdef QUICK_PAUSE
+              case state_M6102:
+                quickReusePrintJob();
+                break;
+              case state_M6103:
+                quickPausePrintJob();
+                break;
+              case state_M6104:
+              #ifdef ACCIDENT_DETECT
+                accidentToCancel();
+              #endif
+                quickStopPrintJob();
+                break;
+            #endif
+              case state_M6105:
+                SERIAL_PROTOCOLPGM(MSG_OK);
+                print_heaterstates();
+                SERIAL_EOL();
+                print_extrastates();
+              #ifdef ACCIDENT_DETECT
+                if(isAccident){
+                  SERIAL_ECHOPGM("accidentLine:");
+                  SERIAL_ECHOLN(pauseByteOrLineN);
+                }
+              #endif
+                break;
+          #endif
               default:
                 break;
             }
@@ -242,7 +297,15 @@
     #endif // SERIAL_XON_XOFF
 
     #if ENABLED(EMERGENCY_PARSER)
-      emergency_parser(c);
+      #if ENABLED(ULTRA_SERIAL)
+        CBI(M_UCSRxB, M_RXCIEx);
+        sei();
+        emergency_parser(c);
+        cli();
+        SBI(M_UCSRxB, M_RXCIEx);
+      #else
+        emergency_parser(c);
+      #endif
     #endif
   }
 

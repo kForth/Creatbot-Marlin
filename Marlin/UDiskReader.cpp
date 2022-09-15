@@ -48,6 +48,21 @@ void USBFile::setLongFilename(vfat_t * vfat, uint8_t n){
 	for (uint8_t i = 0; i < n; i++) {
 		if ((i < MAX_VFAT_ENTRIES) && (vfat[i].checksum == checkNameSum())) {
 			uint8_t seq = i * FILENAME_LENGTH;
+		#ifdef FILE_UNICODE_SUPPORT
+			longFilename[seq * 2 + 0]	= vfat[i].name1[0] >> 8;					longFilename[seq * 2 + 1]	= vfat[i].name1[0];
+			longFilename[seq * 2 + 2]	= vfat[i].name1[1] >> 8;					longFilename[seq * 2 + 3]	= vfat[i].name1[1];
+			longFilename[seq * 2 + 4]	= vfat[i].name1[2] >> 8;					longFilename[seq * 2 + 5]	= vfat[i].name1[2];
+			longFilename[seq * 2 + 6]	= vfat[i].name1[3] >> 8;					longFilename[seq * 2 + 7]	= vfat[i].name1[3];
+			longFilename[seq * 2 + 8]	= vfat[i].name1[4] >> 8;					longFilename[seq * 2 + 9]	= vfat[i].name1[4];
+			longFilename[seq * 2 + 10]	= vfat[i].name2[0] >> 8;				longFilename[seq * 2 + 11]	= vfat[i].name2[0];
+			longFilename[seq * 2 + 12]	= vfat[i].name2[1] >> 8;				longFilename[seq * 2 + 13]	= vfat[i].name2[1];
+			longFilename[seq * 2 + 14]	= vfat[i].name2[2] >> 8;				longFilename[seq * 2 + 15]	= vfat[i].name2[2];
+			longFilename[seq * 2 + 16]	= vfat[i].name2[3] >> 8;				longFilename[seq * 2 + 17]	= vfat[i].name2[3];
+			longFilename[seq * 2 + 18]	= vfat[i].name2[4] >> 8;				longFilename[seq * 2 + 19]	= vfat[i].name2[4];
+			longFilename[seq * 2 + 20]	= vfat[i].name2[5] >> 8;				longFilename[seq * 2 + 21]	= vfat[i].name2[5];
+			longFilename[seq * 2 + 22]	= vfat[i].name3[0] >> 8;				longFilename[seq * 2 + 23]	= vfat[i].name3[0];
+			longFilename[seq * 2 + 24]	= vfat[i].name3[1] >> 8;				longFilename[seq * 2 + 25]	= vfat[i].name3[1];
+		#else
 			longFilename[seq + 0]	= vfat[i].name1[0] > 0x7F ? 0x2A : vfat[i].name1[0];
 			longFilename[seq + 1]	= vfat[i].name1[1] > 0x7F ? 0x2A : vfat[i].name1[1];
 			longFilename[seq + 2]	= vfat[i].name1[2] > 0x7F ? 0x2A : vfat[i].name1[2];
@@ -61,9 +76,20 @@ void USBFile::setLongFilename(vfat_t * vfat, uint8_t n){
 			longFilename[seq + 10]	= vfat[i].name2[5] > 0x7F ? 0x2A : vfat[i].name2[5];
 			longFilename[seq + 11]	= vfat[i].name3[0] > 0x7F ? 0x2A : vfat[i].name3[0];
 			longFilename[seq + 12]	= vfat[i].name3[1] > 0x7F ? 0x2A : vfat[i].name3[1];
+		#endif
 		} else {
 			break;
 		}
+	}
+}
+
+void USBFile::setLongFilenameFromName83(){
+	char *c = longFilename, *cc = filename;
+	while(*cc){
+		#ifdef FILE_UNICODE_SUPPORT
+		*(c++) = 0x00;
+		#endif
+		*(c++) = *(cc++);
 	}
 }
 
@@ -106,8 +132,8 @@ void UDiskReader::getUSBInfo() {
 }
 
 void UDiskReader::getCurFile() {
-	strcpy(filename, curfile->filename);
-	strcpy(longFilename, curfile->longFilename);
+	memcpy(filename, curfile->filename, FILENAME_LENGTH);
+	memcpy(longFilename, curfile->longFilename, LONG_FILENAME_LENGTH);
 	isDir = curfile->isSubDir;
 }
 
@@ -157,35 +183,68 @@ void UDiskReader::refresh(){
 			}
 		}
 #else
-		if (UDiskImpl.IsDiskConnect()) {
-			if (!UDiskConn) {
-				UDiskConn = true;
-				SERIAL_ECHOLNPGM(MSG_USB_INSERT);
-				return;
-			}
+    if(!UDiskConn){
+      if(UDiskImpl.isDeviceState(UDISK_INSERT) && UDiskImpl.IsDiskConnect()){
+        UDiskConn = true;
+        UDiskOK = false;
+        SERIAL_ECHOLNPGM(MSG_USB_INSERT);
+      }
+    } else {
+      if(UDiskImpl.isDeviceState(UDISK_REMOVE)){
+        UDiskConn = false;
+        UDiskOK = false;
+        SERIAL_ECHOLNPGM(MSG_USB_REMOVE);
+      }
+      if(!UDiskOK && UDiskImpl.isDeviceState(UDISK_INSERT)){
+        if(UDiskImpl.diskMount()){
+          UDiskImpl.setDeviceState(UDISK_READY);
+          getUSBInfo();
+          UDiskOK = true;
+          if (UDiskPauseState) {
+            setSeek(workDir);
 
-			if (!UDiskOK && UDiskImpl.diskMount()) {
-				getUSBInfo();
-				UDiskOK = true;
-				if (UDiskPauseState) {
-					setSeek(workDir);
+            if (UDiskImpl.fileOpen(file.filename)){
+              isFileOpen = true;
+            } else{
+              UDiskImpl.setDeviceState(UDISK_REMOVE);
+            }
+          }
+          else
+            setroot();
+        }
+      }
+    }
 
-					if (UDiskImpl.fileOpen(file.filename)){
-						isFileOpen = true;
-					} else{
-						stopPrint();
-					}
-				}
-				else
-					setroot();
-			}
-		} else {
-			if (UDiskConn) {
-				UDiskConn = false;
-				UDiskOK = false;
-				SERIAL_ECHOLNPGM(MSG_USB_REMOVE);
-			}
-		}
+
+//		if (UDiskImpl.IsDiskConnect()) {
+//			if (!UDiskConn) {
+//				UDiskConn = true;
+//				SERIAL_ECHOLNPGM(MSG_USB_INSERT);
+//				return;
+//			}
+//
+//			if (!UDiskOK && UDiskImpl.diskMount()) {
+//				getUSBInfo();
+//				UDiskOK = true;
+//				if (UDiskPauseState) {
+//					setSeek(workDir);
+//
+//					if (UDiskImpl.fileOpen(file.filename)){
+//						isFileOpen = true;
+//					} else{
+//						stopPrint();
+//					}
+//				}
+//				else
+//					setroot();
+//			}
+//		} else {
+//			if (UDiskConn) {
+//				UDiskConn = false;
+//				UDiskOK = false;
+//				SERIAL_ECHOLNPGM(MSG_USB_REMOVE);
+//			}
+//		}
 #endif
 	} else {
 #ifdef UDISK_DEBUG
@@ -282,6 +341,8 @@ void UDiskReader::selectFile(uint16_t index){
 
 	if (num) {
 		tempFile.setLongFilename(tempVfats, num);
+	} else {
+		tempFile.setLongFilenameFromName83();
 	}
 	/*********************************************************************************/
 
@@ -341,7 +402,11 @@ void UDiskReader::list_print(){
 		USBFile tempFile;
 		tempFile.set(&temp);
 
+#ifdef FILE_UNICODE_SUPPORT
+		if (tempFile.longFilename[0] || tempFile.longFilename[1]) {
+#else
 		if (tempFile.longFilename[0]) {
+#endif
 			SERIAL_ECHOLN(tempFile.longFilename);
 		} else {
 			SERIAL_ECHOLN(tempFile.filename);
@@ -636,16 +701,16 @@ void UDiskReader::closefile() {
 }
 
 int16_t UDiskReader::get(){
-	uint8_t get_char;
+  uint8_t get_char;
 
-	filePos = UDiskImpl.getOffset();
+  get_char = UDiskImpl.readByte();
+  if(UDiskImpl.getState() == USB_INT_SUCCESS){
+    filePos = UDiskImpl.getOffset();
+  }else{
+    UDiskImpl.setDeviceState(UDISK_REMOVE);
+  }
 
-	get_char = UDiskImpl.readByte();
-	if (UDiskImpl.getOffset() == 1) {
-		filePos = 1;
-	}
-	
-	return (int16_t)get_char;
+  return (int16_t)get_char;
 }
 
 void UDiskReader::setIndex(long index){

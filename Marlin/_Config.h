@@ -1,194 +1,50 @@
-#ifndef CREATBOT_CONFIG_H
-#define CREATBOT_CONFIG_H
+#ifndef _CONFIG_H
+#define _CONFIG_H
 
-#define MAKE_BEGIN
+#include "_Custom.h"
 
-#define OEM CreatBot
-#define MODEL F430
-#define EXTRUDERS 2
-#define LANGUAGE en
-#define KTC
-//#define NTC
-
-#define MAKE_BATCH
-#ifdef MAKE_BATCH
-//  #define MAKE_LCD                  2         // 0 is 2004, 1 is 12864, 2 is 480272
-//  #define MAKE_SYSTEM               1         // 0 is Normal, 1 is CoreXY, 2 is Linear guide, 3 is HXY
-//  #define MAKE_FILE_TYPE            1         // 0 is SD Card, 1 is USB Disk
-//  #define MAKE_HOTEND_SERIES        0         // 0 is D_SERIES, 1 is F_SERIES
-//  #define MAKE_NEAR_FEED
-//  #define MAKE_Z_1604
-//  #define MAKE_D_SERIES_USE_175
-//  #define MAKE_MY_KEYPAD
-//  #define MAKE_POWER_MANAGEMENT
-//  #define MAKE_NOT_AUTO_SHUTDOWN
-//  #define MAKE_HOTWIND
-//  #define MAKE_AUTO_LEVELING
-//  #define MAKE_WIFI_SUPPORT
-//  #define MAKE_Y_DUAL_STEPPER
-//  #define MAKE_F_SERIES_ALLOW_500
-//  #define MAKE_F_SERIES_BOARD_VERSION_LT_V95
-
-  #undef MAKE_BEGIN
-#else // not MAKE_BATCH
-
-/******屏幕配置******/
-//  #define LCD2004
-//  #define LCD12864
-  #define LCD480272
-
-/******运动架构******/
-//  #define COREXY
-  #define LINEAR_GUIDE
-//  #define HXY
-
-/******存储支持******/
-//  #define SDSUPPORT
-  #define UDISKSUPPORT
-
-/******喷头系列******/
-  #define D_SERIES
-//  #define F_SERIES
-
-//  #define NEAR_FEED                 //近端送丝
-//  #define Z_1604                    //丝杆参数
-//  #define MY_KEYPAD                 //键盘支持
-  #define QUICK_PAUSE               //快速暂停
-  #define FILAMENT_CHANGE           //更换耗材
-  #define FILAMENT_DETECT           //耗材检测
-  #define POWER_MANAGEMENT          //电源管理
-  #define ACCIDENT_DETECT           //断电续打
-//  #define HAS_AIR_FAN               //过滤风扇
-//  #define HOTWIND_SYSTEM            //热风系统
-//  #define AUTO_BED_LEVELING         //自动调平
-//  #define WIFI_SUPPORT              //支持WIFI
-//  #define COLOR_LED                 //灯光支持
-//  #define Y_DUAL_STEPPER_DRIVERS    //电机双Y
-//  #define MIXING_EXTRUDER						//混合喷头
-
-  #ifdef D_SERIES
-//    #define D_SERIES_USE_175        //送丝机1.75
-  #elif defined(F_SERIES)
-//    #define F_SERIES_ALLOW_500      //温度上限500度
-  #endif
-//  #define NOT_AUTO_SHUTDOWN         //禁用自动关机
-
-#endif // MAKE_BATCH
-
-#include "_ModelInfo.h"
-/************************************************************************************/
-
-
-/*********************************** DEBUG OPTION ***********************************/
-//#define BAUDRATE 115200
-
-//#define REG_SN 000.00
-
-//#define TEMP_ADJUST
-//#define DEBUG_FREE
-
-#define BL_TOUCH_SIGNAL_SELF_FILTER
-
-#ifdef QUICK_PAUSE
-//  #define DEBUG_CMD
-#endif
-
-
-#ifndef NOT_AUTO_SHUTDOWN
-//  #define AUTO_SHUTDOWN_DEBUG
-#endif
-
-#ifdef DWIN_LCD
-//  #define DWIN_LCD_DEDUG
-//  #define DWIN_SERIAL_USE_BUILT_IN
-//  #define DWIN_HEX_OPERATE_USE_STR
-#endif
-
-#ifdef UDISKSUPPORT
-//  #define UDISK_DEBUG
-//  #define UDisk_IMPL_NOT_PNP
-#endif
-
-#ifdef WIFI_SUPPORT
-//  #define WIFI_IMPL_DEBUG
-//  #define WIFI_DEBUG
-  #ifdef WIFI_IMPL_DEBUG
-    #undef WIFI_DEBUG
-  #endif
-  #ifdef WIFI_DEBUG
-    #define STATE_ACTION_STRING_LEN 24
-  #endif
-#endif
-
-#ifdef REG_SN
-  #define TOTAL_TIME_LIMIT  720000 // seconds 200hour For Part-Payment
-//	#define REG_USE_HARDWARE
-  #ifdef REG_USE_HARDWARE
-    #define REG_PLULIC_KEY  0xFFFFFFFF  // 公钥
-  #endif
-#endif
-
-#ifdef HOTWIND_SYSTEM
-  #define HOTWIND_HYSTERESIS  2 //度
-#endif
-/************************************************************************************/
-
-#define STRING_VERSION "5.6"
-
-#if defined(F_SERIES) && not defined(F_SERIES_BOARD_VERSION_LT_V95)
-  #define BOARD_VERSION_GT_V95     //F系列黄主板（主板版本大于9.5）
-#endif
-
-
-#ifdef KTC
-  #define T_SENSENR   -1    // KTC
-  #define HEATER_0_MAXTEMP 415
-  #define HEATER_1_MAXTEMP 415
-  #define HEATER_2_MAXTEMP 415
-  #define HEATER_3_MAXTEMP 415
-#elif defined(NTC)
+#ifdef NTC
   #define T_SENSENR   1     // NTC
-  #define HEATER_0_MAXTEMP 265
-  #define HEATER_1_MAXTEMP 265
-  #define HEATER_2_MAXTEMP 265
-  #define HEATER_3_MAXTEMP 265
-#endif
-#define BED_MAXTEMP 135
-
-#define PREHEAT_TEMP_HOTEND   210
-#define PREHEAT_TEMP_BED      45
-#define PREHEAT_FAN_SPEED     0
-
-#ifdef F_SERIES
-  #undef HEATER_0_MAXTEMP
-  #undef HEATER_1_MAXTEMP
-  #undef HEATER_2_MAXTEMP
-  #undef HEATER_3_MAXTEMP
-  #undef BED_MAXTEMP
-  #ifdef F_SERIES_ALLOW_500
+  #define HEATER_0_MAXTEMP    265
+  #define HEATER_1_MAXTEMP    265
+  #define HEATER_2_MAXTEMP    265
+  #define HEATER_3_MAXTEMP    265
+  #define BED_MAXTEMP         135
+#elif defined(KTC)
+  #define T_SENSENR   -1    // KTC
+  #ifdef T350
+    #define HEATER_0_MAXTEMP  365
+    #define HEATER_1_MAXTEMP  365
+    #define HEATER_2_MAXTEMP  365
+    #define HEATER_3_MAXTEMP  365
+    #define BED_MAXTEMP       135
+  #elif defined(T450)
+    #define HEATER_0_MAXTEMP  465
+    #define HEATER_1_MAXTEMP  465
+    #define HEATER_2_MAXTEMP  465
+    #define HEATER_3_MAXTEMP  465
+    #define BED_MAXTEMP       165
+  #elif defined(T500)
     #define HEATER_0_MAXTEMP  515
     #define HEATER_1_MAXTEMP  515
     #define HEATER_2_MAXTEMP  515
     #define HEATER_3_MAXTEMP  515
     #define BED_MAXTEMP       215
-
-    #undef PREHEAT_TEMP_HOTEND
-    #undef PREHEAT_TEMP_BED
-    #define PREHEAT_TEMP_HOTEND   400
-    #define PREHEAT_TEMP_BED      120
-  #else
-    #define HEATER_0_MAXTEMP  465
-    #define HEATER_1_MAXTEMP  465
-    #define HEATER_2_MAXTEMP  465
-    #define HEATER_3_MAXTEMP  465
-    #define BED_MAXTEMP       215
   #endif
 #endif
+
+#define PREHEAT_TEMP_HOTEND   210
+#define PREHEAT_TEMP_BED      45
+#define PREHEAT_FAN_SPEED     0
 
 #ifdef HOTWIND_SYSTEM
   #define TEMP_SENSOR_CHAMBER     1     // NTC
   #define CHAMBER_MINTEMP         -12
-  #define CHAMBER_MAXTEMP         75
+  #ifdef T500
+    #define CHAMBER_MAXTEMP       125
+  #else
+    #define CHAMBER_MAXTEMP       75
+  #endif
   #define MAX_CHAMBER_POWER       255
   #define PREHEAT_TEMP_CHAMBER    0
 #else
@@ -242,32 +98,113 @@
 #if ENABLED(PIDTEMP)
   //#define PID_DEBUG
   //#define PID_OPENLOOP 1
-  #define PID_FUNCTIONAL_RANGE 10
   #define K1 0.95 //smoothing factor within the PID
+  #ifdef USE_HEATING_TUBE_80W
+    #define PID_FUNCTIONAL_RANGE 30
+  #else
+    #define PID_FUNCTIONAL_RANGE 20
+  #endif
 
   #ifdef F_SERIES
-    #define  DEFAULT_Kp 12.9
-    #define  DEFAULT_Ki 0.76
-    #define  DEFAULT_Kd 55
+    #if MODEL == PEEK300
+      #define DEFAULT_Kp 8.53
+      #define DEFAULT_Ki 0.42
+      #define DEFAULT_Kd 43
+      #define PID_PARAMS_TEMP_RANGE   // Add PID_PARAMS_TEMP_RANGE
+    #else
+      #define DEFAULT_Kp 12.9
+      #define DEFAULT_Ki 0.76
+      #define DEFAULT_Kd 55
+    #endif
+
+    #ifdef PID_PARAMS_TEMP_RANGE
+      #define PID_PARAMS_TEMP_RANGE_NUM  3
+      #define PID_TEMP_RANGE_ARRAY { 0, 350, 450 }
+
+      #define DEFAULT_Kp_ARRAY { DEFAULT_Kp, 10.48, 10.79 }
+      #define DEFAULT_Ki_ARRAY { DEFAULT_Ki, 0.55,  0.52  }
+      #define DEFAULT_Kd_ARRAY { DEFAULT_Kd, 50,    56    }
+    #endif
   #else
     #define  DEFAULT_Kp 16.57
     #define  DEFAULT_Ki 1.26
     #define  DEFAULT_Kd 55
   #endif
+
+  #define PID_PARAMS_USE_TEMP_RANGE (ENABLED(PID_PARAMS_TEMP_RANGE) && PID_PARAMS_TEMP_RANGE_NUM > 1)
 #endif // PIDTEMP
 
+#define PIDTEMPBED
+#if ENABLED(PIDTEMPBED)
+  #if MODEL == D600 || MODEL == D600SE || MODEL == D600Pro
+    // 220 1250W silicone heater
+    #define SLOW_PID_BED
+    #ifdef SLOW_PID_BED
+      #define  DEFAULT_bedKp 37.28
+      #define  DEFAULT_bedKi 1.23
+      #define  DEFAULT_bedKd 281.7
+    #else
+      #define  DEFAULT_bedKp 43.54
+      #define  DEFAULT_bedKi 3.72
+      #define  DEFAULT_bedKd 127.5
+    #endif
+  #else
+    // 24V ??W silicone heater
+    #define  DEFAULT_bedKp 345.78
+    #define  DEFAULT_bedKi 14.59
+    #define  DEFAULT_bedKd 2047.99
+  #endif
+#endif // PIDTEMPBED
+
+#ifdef HOTWIND_SYSTEM
+  #define PIDTEMP_CHAMBER
+  #define chamberK1 0.95
+  #ifdef PIDTEMP_CHAMBER
+    #define SLOW_PID_CHAMBER
+    #if MODEL == F160 || MODEL == F160PEEK
+      #define PID_RANGE_CHAMBER 3         //积分时间24秒，3个PID周期
+      #define DEFAULT_chamberKp 115.24
+      #define DEFAULT_chamberKi 4.78
+      #define DEFAULT_chamberKd 693.86
+    #elif MODEL == F430
+      #define PID_RANGE_CHAMBER 3         //积分时间24秒，3个PID周期
+      #define DEFAULT_chamberKp 88.87
+      #define DEFAULT_chamberKi 3.69
+      #define DEFAULT_chamberKd 535.07
+    #elif MODEL == D600 || MODEL == D600SE || MODEL == D600Pro
+      #define PID_RANGE_CHAMBER 3         //积分时间40秒，5个PID周期
+      #define DEFAULT_chamberKp 42.02
+      #define DEFAULT_chamberKi 1.05
+      #define DEFAULT_chamberKd 421.64
+    #elif MODEL == F1000
+      #undef PIDTEMP_CHAMBER    //F1000采用分段加热继电器
+    #elif MODEL == PEEK300
+      #define PID_RANGE_CHAMBER 10        //积分时间40秒，5个PID周期
+      #define DEFAULT_chamberKp 16.57
+      #define DEFAULT_chamberKi 0.41
+      #define DEFAULT_chamberKd 166.31
+    #else
+      #error "need test"
+    #endif
+  #else
+    #define CHAMBER_HYSTERESIS        2 // 度
+  #endif // PIDTEMP_CHAMBER
+#endif 
 
 #ifdef AUTO_BED_LEVELING
   #define AUTO_BED_LEVELING_BILINEAR
-  #define BLTOUCH
+
+  #ifndef USE_CUSTOM_SERVO0
+    #define BLTOUCH
+  #else
+    #define DEACTIVATE_SERVOS_AFTER_MOVE
+  #endif
 
   #define NUM_SERVOS 1
   #define Z_ENDSTOP_SERVO_NR 0
-  #define DEACTIVATE_SERVOS_AFTER_MOVE
-
   #define Z_SAFE_HOMING        // safe homing to prevent servo cann't probe the bed.
 
-  #if MODEL == DE || MODEL == DE_Plus
+  #if MODEL == DE || MODEL == DEPlus
     #define PROBE_XY_NUM 5
     #ifdef BLTOUCH
       #define X_PROBE_OFFSET_FROM_EXTRUDER -25
@@ -281,9 +218,9 @@
 //      #define Z_PROBE_OFFSET_FROM_EXTRUDER -6
       #define Z_PROBE_OFFSET_FROM_EXTRUDER -8
     #endif
-  #elif MODEL == D600 || MODEL == D600_SE || MODEL == D600_Pro
+  #elif MODEL == D600 || MODEL == D600SE || MODEL == D600Pro
+    #define PROBE_XY_NUM 7
     #ifdef BLTOUCH
-      #define PROBE_XY_NUM 5
       #ifdef F_SERIES
         #define X_PROBE_OFFSET_FROM_EXTRUDER 30
         #define Y_PROBE_OFFSET_FROM_EXTRUDER 74
@@ -293,13 +230,15 @@
       #endif
       #define Z_PROBE_OFFSET_FROM_EXTRUDER -1
     #else
-      #error "Not BL_TOUCH??"
+      #ifdef USE_CUSTOM_SERVO0
+        #define SERVO0_MIN_PULSE  348
+        #define SERVO0_MAX_PULSE  2636
+      #endif
+      #define Z_SERVO_ANGLES {5, 175}
+      #define X_PROBE_OFFSET_FROM_EXTRUDER 74
+      #define Y_PROBE_OFFSET_FROM_EXTRUDER 72
+      #define Z_PROBE_OFFSET_FROM_EXTRUDER -14
     #endif
-  #elif MODEL == Other_MODEL
-    #define PROBE_XY_NUM 5
-    #define X_PROBE_OFFSET_FROM_EXTRUDER -21
-    #define Y_PROBE_OFFSET_FROM_EXTRUDER 22
-    #define Z_PROBE_OFFSET_FROM_EXTRUDER -1
   #elif MODEL == F430 || MODEL == F260
     #if MODEL == F260
       #define PROBE_XY_NUM 4
@@ -331,6 +270,15 @@
         #define Z_PROBE_OFFSET_FROM_EXTRUDER -8
       #endif
     #endif
+  #elif MODEL == F430Plus
+    #define PROBE_XY_NUM 5
+    #ifdef BLTOUCH
+      #define X_PROBE_OFFSET_FROM_EXTRUDER 30
+      #define Y_PROBE_OFFSET_FROM_EXTRUDER 64
+      #define Z_PROBE_OFFSET_FROM_EXTRUDER -1
+    #else
+      #error "Not BL_TOUCH??"
+    #endif
   #elif MODEL == F160 || MODEL == F200 || MODEL == F220
     #define PROBE_XY_NUM 3
     #ifdef BLTOUCH
@@ -352,20 +300,42 @@
   #elif MODEL == PEEK300
     #define PROBE_XY_NUM 5
     #ifdef BLTOUCH
-      #define X_PROBE_OFFSET_FROM_EXTRUDER 22
-      #define Y_PROBE_OFFSET_FROM_EXTRUDER 41
-      #define Z_PROBE_OFFSET_FROM_EXTRUDER -1
+      #ifdef HXY
+        #define X_PROBE_OFFSET_FROM_EXTRUDER 22
+        #define Y_PROBE_OFFSET_FROM_EXTRUDER 41
+        #define Z_PROBE_OFFSET_FROM_EXTRUDER -1
+      #else
+        #define X_PROBE_OFFSET_FROM_EXTRUDER 23
+        #define Y_PROBE_OFFSET_FROM_EXTRUDER 42
+        #define Z_PROBE_OFFSET_FROM_EXTRUDER -1
+      #endif
     #else
-      #error "Not BL_TOUCH??"
+      #ifdef USE_CUSTOM_SERVO0
+        #define SERVO0_MIN_PULSE  512
+        #define SERVO0_MAX_PULSE  2528
+        #define SERVO0_DEALY 350
+      #endif
+      #define Z_SERVO_ANGLES {75, 105}
+      #define X_PROBE_OFFSET_FROM_EXTRUDER 35
+      #define Y_PROBE_OFFSET_FROM_EXTRUDER 68
+      #define Z_PROBE_OFFSET_FROM_EXTRUDER -2
     #endif
-  #elif MODEL == F1000
+    #elif MODEL == F1000
     #define PROBE_XY_NUM 10
     #ifdef BLTOUCH
       #define X_PROBE_OFFSET_FROM_EXTRUDER 30
       #define Y_PROBE_OFFSET_FROM_EXTRUDER 31
       #define Z_PROBE_OFFSET_FROM_EXTRUDER -1
     #else
-      #error "Not BL_TOUCH??"
+      #ifdef USE_CUSTOM_SERVO0
+        #define SERVO0_MIN_PULSE  348
+        #define SERVO0_MAX_PULSE  2636
+        #define SERVO0_DEALY      1800
+      #endif
+      #define Z_SERVO_ANGLES {20, 160}
+      #define X_PROBE_OFFSET_FROM_EXTRUDER 46
+      #define Y_PROBE_OFFSET_FROM_EXTRUDER 57
+      #define Z_PROBE_OFFSET_FROM_EXTRUDER -13
     #endif
   #else
     #error "This MODEL don't have AUTO_BED_LEVELING Features."
@@ -375,6 +345,35 @@
   #define RIGHT_PROBE_BED_POSITION  (min(X_MAX_POS, X_MAX_POS + X_PROBE_OFFSET_FROM_EXTRUDER) - 5)
   #define FRONT_PROBE_BED_POSITION  (max(Y_MIN_POS, Y_MIN_POS + Y_PROBE_OFFSET_FROM_EXTRUDER) + 5)
   #define BACK_PROBE_BED_POSITION   (min(Y_MAX_POS, Y_MAX_POS + Y_PROBE_OFFSET_FROM_EXTRUDER) - 5)
+#endif
+
+#ifdef BLTOUCH
+  #undef SERVO_SPEED_SLOWLY //incompatible
+  #define SERVO0_DEALY  50  //ms
+#else
+  #ifndef SERVO0_DEALY
+    #define SERVO0_DEALY  300 //ms
+  #endif
+#endif
+
+#define SERVO_DELAY { SERVO0_DEALY }
+
+#ifdef SWITCHING_NOZZLE
+  #undef NUM_SERVOS
+  #define NUM_SERVOS 2
+
+  #undef SERVO_DELAY
+  #define SERVO_DELAY { SERVO0_DEALY, 1400 }
+
+  #define SWITCHING_NOZZLE_SERVO_NR     1
+  #define SWITCHING_NOZZLE_SERVO_ANGLES { 30, 150 }   // Angles for E0, E1
+  #define ALIGN_NOZZLE_AGNLE            90    //deg
+
+  #define SWITCHING_NOZZLE_MIN_PULSE    512   //us
+  #define SWITCHING_NOZZLE_MAX_PULSE    2528  //us
+
+  #define SWITCHING_NOZZLE_E_CHANGE     4     //mm
+  #define SWITCHING_NOZZLE_E_SPEED      80    //mm/s
 #endif
 
 
@@ -389,14 +388,18 @@
 #endif
 
 
-#ifdef Z_1605
+#ifdef Z05
   #if MODEL == F1000
+    #define Z_STEP_VALUE 1920
+  #elif MODEL == PEEK300
     #define Z_STEP_VALUE 1600
   #else
     #define Z_STEP_VALUE 640
   #endif
 #else
   #if MODEL == F1000
+    #define Z_STEP_VALUE 2400
+  #elif MODEL == PEEK300
     #define Z_STEP_VALUE 2000
   #else
     #define Z_STEP_VALUE 800
@@ -404,42 +407,66 @@
 #endif
 
 #ifdef D_SERIES
-  #ifdef D_SERIES_USE_175
-    #define E_STEP_VALUE 810
-  #else
+  #ifdef D_SERIES_USE_300
     #define E_STEP_VALUE 600
+  #else
+    #define E_STEP_VALUE 810
   #endif
 #elif defined(F_SERIES)
-  #define E_STEP_VALUE 130
+  #define E_STEP_VALUE 142
 #else
   #error "Need define the model's series."
 #endif
 
 #ifdef LINEAR_GUIDE
-  #if MODEL == D600 || MODEL == D600_SE || MODEL == D600_Pro || MODEL == F1000
-    #define DEFAULT_AXIS_STEPS_PER_UNIT   {800.0/3, 800.0/3, Z_STEP_VALUE, E_STEP_VALUE }
-  #elif MODEL == Other_MODEL
-    #define DEFAULT_AXIS_STEPS_PER_UNIT   {128.0/3, 128.0/3, Z_STEP_VALUE, E_STEP_VALUE }
-  #elif MODEL == F430 || MODEL == F260 || MODEL == F200 || MODEL == F220
-    #ifdef MAKE_Y_DUAL_STEPPER
-      #define DEFAULT_AXIS_STEPS_PER_UNIT   {78.7402, 52.4934, Z_STEP_VALUE, E_STEP_VALUE }
+  #if MODEL == D600 || MODEL == D600SE || MODEL == D600Pro || MODEL == F1000
+    #ifdef USE_SIFU_MOTOR
+      #define DEFAULT_AXIS_STEPS_PER_UNIT   {800.0/3, 800.0/3, Z_STEP_VALUE, E_STEP_VALUE }
     #else
-      #define DEFAULT_AXIS_STEPS_PER_UNIT   {78.7402, 131.2336, Z_STEP_VALUE, E_STEP_VALUE }
+      #define DEFAULT_AXIS_STEPS_PER_UNIT   {320.0/3, 320.0/3, Z_STEP_VALUE, E_STEP_VALUE }
+    #endif
+  #elif MODEL == F430 || MODEL == F430Plus || MODEL == F260 || MODEL == F200 || MODEL == F220
+    #ifdef MAKE_Y_DUAL_STEPPER
+      #define DEFAULT_AXIS_STEPS_PER_UNIT   {10000.0/127, 20000.0/381, Z_STEP_VALUE, E_STEP_VALUE }
+    #else
+      #define DEFAULT_AXIS_STEPS_PER_UNIT   {10000.0/127, 50000.0/381, Z_STEP_VALUE, E_STEP_VALUE }
     #endif
   #else
     #error "This MODEL don't have LINEAR_GUIDE system."
   #endif
 #elif defined(HXY)
   #if MODEL == PEEK300
-    #define DEFAULT_AXIS_STEPS_PER_UNIT   {78.7402, 78.7402, Z_STEP_VALUE, E_STEP_VALUE }
+    #define DEFAULT_AXIS_STEPS_PER_UNIT   {10000.0/127, 10000.0/127, Z_STEP_VALUE, E_STEP_VALUE }
   #else
     #error "This MODEL don't have HXY system."
   #endif
 #else
-  #define DEFAULT_AXIS_STEPS_PER_UNIT   {78.7402, 78.7402, Z_STEP_VALUE, E_STEP_VALUE }
+  #if MODEL == PEEK300
+    #define DEFAULT_AXIS_STEPS_PER_UNIT   {80, 80, Z_STEP_VALUE, E_STEP_VALUE }
+  #else
+    #define DEFAULT_AXIS_STEPS_PER_UNIT   {10000.0/127, 10000.0/127, Z_STEP_VALUE, E_STEP_VALUE }
+  #endif
 #endif
 
+#if MODEL == F1000
+  #define DEFAULT_MAX_FEEDRATE          { 300, 300, 7.5, 40 }
+#elif MODEL == PEEK300
+  #define DEFAULT_MAX_FEEDRATE          { 300, 300, 6, 40 }
+#else
+  #define DEFAULT_MAX_FEEDRATE          { 300, 300, 10, 40 }
+#endif
+#define DEFAULT_MAX_ACCELERATION        { 2000, 2000, 10, 3000 }
+
+
 #define LCD_LANGUAGE LANGUAGE
+
+#ifdef ULTRA_SERIAL
+  #define TX_BUFFER_SIZE 256
+  #define EMERGENCY_PARSER
+#else
+  #define TX_BUFFER_SIZE 0
+  #undef EMERGENCY_PARSER
+#endif
 
 #define AUTO_TIME_USED_INTERVAL         1   //seconds
 #define AUTO_SAVE_SETTING_INTERVAL      600 //seconds
@@ -462,11 +489,11 @@
         #define FILAMENT_WAIT_TIME        60    //seconds = 1min
       #endif
     #else //!AUTO_SHUTDOWN_DEBUG
-      #define AUTO_SHUTDONW_TIME_DISPALY  180   //seconds = 3mins
-      #define AUTO_SHUTDOWN_TIME_IDLE     300   //seconds = 5mins
-      #define AUTO_SHUTDOWN_TIME_HEATING  1800  //seconds = 30mins
+      #define AUTO_SHUTDONW_TIME_DISPALY  60    //seconds = 1mins
+      #define AUTO_SHUTDOWN_TIME_IDLE     600   //seconds = 10mins
+      #define AUTO_SHUTDOWN_TIME_HEATING  1200  //seconds = 20mins
       #ifdef FILAMENT_DETECT
-        #define FILAMENT_WAIT_TIME        3600  //seconds = 2hours
+        #define FILAMENT_WAIT_TIME        1200  //seconds = 20mins
       #endif
     #endif //AUTO_SHUTDOWN_DEBUG
   #endif  //AUTO_SHUTDOWN
@@ -477,18 +504,15 @@
     #if MODEL == F160
       #define PAUSE_STOP_X      (X_MAX_POS - 10)
       #define PAUSE_STOP_Y      (Y_MAX_POS - 10)
-    #elif MODEL == F430 || MODEL == PEEK300
+    #elif MODEL == F430 || MODEL == F430Plus || MODEL == PEEK300
       #define PAUSE_STOP_X      (X_MAX_POS/2)
       #define PAUSE_STOP_Y      (220)
-    #elif MODEL == D600 || MODEL == D600_SE || MODEL == D600_Pro
-      #define PAUSE_STOP_X      (200)
-      #define PAUSE_STOP_Y      (220)
+    #elif MODEL == D600 || MODEL == D600SE || MODEL == D600Pro
+      #define PAUSE_STOP_X      (X_MAX_POS/2)
+      #define PAUSE_STOP_Y      (200)
     #elif MODEL == F1000
       #define PAUSE_STOP_X      (X_MAX_POS/2)
-      #define PAUSE_STOP_Y      (10)
-    #elif MODEL == Other_MODEL
-      #define PAUSE_STOP_X      (X_MAX_POS/2)
-      #define PAUSE_STOP_Y      (10)
+      #define PAUSE_STOP_Y      (200)
     #else
       #define PAUSE_STOP_X      (X_MAX_POS - 10)
       #define PAUSE_STOP_Y      (Y_MAX_POS - 10)
@@ -533,7 +557,7 @@
 #ifdef FILAMENT_DETECT
   #define FILAMENT_DETECT_AGAIN
   #ifdef FILAMENT_DETECT_AGAIN
-    #define FILAMENT_ERROR_BLOCK            50 //ms
+    #define FILAMENT_ERROR_BLOCK            500 //ms
   #endif
 #endif
 
@@ -542,12 +566,12 @@
 #endif //MY_KEYPAD
 
 #ifdef DWIN_LCD
-  #define DWIN_Z_MOVE_SCALE       5
+  #define DWIN_Z_MOVE_SCALE       50
 #endif //DWIN_LCD
 
 
 #ifdef HAS_AIR_FAN
-  #define DEFAULT_AIR_FAN_SPEED 255
+  #define DEFAULT_AIR_FAN_SPEED 0
 #endif
 
 #define MOTHERBOARD BOARD_CREATBOT
@@ -570,4 +594,4 @@
 #define DEFAULT_MACHINE_UUID      "00000000-0000-0000-0000-000000000000"
 #define WEBSITE_URL               "www.CreatBot.com"
 
-#endif //CREATBOT_CONFIG_H
+#endif //_CONFIG_H

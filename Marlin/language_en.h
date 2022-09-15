@@ -575,7 +575,7 @@
   #define MSG_DWELL                           _UxGT("Sleep...")
 #endif
 #ifndef MSG_USERWAIT
-  #define MSG_USERWAIT                        _UxGT("Click to resume...")
+  #define MSG_USERWAIT                        _UxGT("Wait for user...")
 #endif
 #ifndef MSG_PRINT_PAUSED
   #define MSG_PRINT_PAUSED                    _UxGT("Print paused")

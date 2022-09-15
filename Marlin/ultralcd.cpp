@@ -3323,14 +3323,14 @@ void kill_screen(const char* lcd_msg) {
 		static bool allowLeveling = false;
 		static void lcd_leveling_toggle() {
 			set_bed_leveling_enabled(allowLeveling);
-			EEPROM_STORE(planner.abl_enabled, setting_mesh_bilinear_ubl_status);
+			EEPROM_STORE(planner.abl_enabled, mesh_bilinear_ubl_status);
 		}
 
 		#if ENABLED(ENABLE_LEVELING_FADE_HEIGHT)
 			static float fade_height = 0;
 			static void lcd_leveling_set_z_fade_height() {
 				set_z_fade_height(fade_height);
-				EEPROM_STORE(planner.z_fade_height, setting_z_fade_height);
+				STORE_PLAN(z_fade_height);
 			}
 		#endif
 

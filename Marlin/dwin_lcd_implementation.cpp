@@ -29,6 +29,7 @@ static uint32_t nextInitTime;
 static dwin_ring_buffer dwinBuffer = { { 0 }, 0, 0 };
 #endif
 
+#ifndef DWIN_USE_OS
 static pop_ring_buffer popKey = { { 0 }, 0, 0 };
 static dwinVarStruct dwinVar = { 0, 0, 0, { 0 } };
 static dwinStateStruct dwinState = { 0, { 0, 0, 0 } };
@@ -47,6 +48,23 @@ static dwinStateStruct dwinState = { 0, { 0, 0, 0 } };
 
 #define SET_DWIN_STATE(x)	do{ dwinState.dwin_state |= (_BV(x)); dwinState.timeoutTime[x] = millis() + LCD_TIMEOUT; } while(0)
 #define CLS_DWIN_STATE(x)	do{ dwinState.dwin_state &= ~(_BV(x)); dwinState.timeoutTime[x] = 0; } while(0)
+#else // DWIN_USE_OS
+static pop_ring_buffer popVar = { { 0 }, { 0 }, 0, 0 };
+static dwinVarStruct dwinVar = { 0, 0, 0, { 0 } };
+static uint32_t timeoutTime = 0;
+static uint16_t currentPopIndex;
+
+#define RECV_DONE				(recvState == RevcDone)
+#define HAS_POP_TASK		(pop_room() != POPUP_BUF_SIZE)
+#define IS_POP_FULL			(pop_room() == 1)
+
+#define IS_GET_PAGE			true
+#define IS_GET_TOUCH		true
+
+#define SET_DWIN_STATE(x)	NOOP
+#define CLS_DWIN_STATE(x)	do{ timeoutTime = millis() + LCD_OS_TIMEOUT; } while(0)
+#endif //DWIN_USE_OS
+
 
 #ifndef DWIN_SERIAL_USE_BUILT_IN
 static uint8_t available(void) {
@@ -140,7 +158,7 @@ ISR(USART3_RX_vect) {
 #endif
 
 
-
+#ifndef DWIN_USE_OS
 static void pop_init() {
 	popKey.head = 1;
 	popKey.tail = 0;
@@ -179,6 +197,58 @@ static uint8_t pop_remove() {
 static uint8_t pop_room() {
 	return ((POPUP_BUF_SIZE + popKey.tail - popKey.head) % POPUP_BUF_SIZE) - 1;
 }
+#else
+static void pop_init(){
+	popVar.head = 1;
+	popVar.tail = 0;
+	popVar.index[0] = POPUP_INDEX_HIDE_POP;
+	popVar.delay[0] = POPUP_DELAY_NO_DELAY;
+}
+
+static uint8_t pop_room(){
+	if(popVar.tail == popVar.head){
+		return POPUP_BUF_SIZE;
+	}else{
+		return ((POPUP_BUF_SIZE + popVar.tail - popVar.head) % POPUP_BUF_SIZE);
+	}
+}
+
+static void pop_insert(uint16_t index, uint16_t delay){
+	uint8_t i = (uint8_t)(popVar.head + 1) % POPUP_BUF_SIZE;
+	if(i != popVar.tail){
+		popVar.index[popVar.head] = index;
+		popVar.delay[popVar.head] = delay;
+		popVar.head = i;
+	}
+}
+
+static void pop_remove(){
+	if(HAS_POP_TASK){
+		popVar.tail = (uint8_t)(popVar.tail + 1) % POPUP_BUF_SIZE;
+	}
+}
+
+static uint16_t pop_next_index(){
+	if(HAS_POP_TASK){
+		return popVar.index[popVar.tail];
+	}else{
+		return POPUP_INDEX_NO_POP;
+	}
+}
+
+static uint16_t pop_next_delay(){
+	if(HAS_POP_TASK){
+		return popVar.delay[popVar.tail];
+	}else{
+		return POPUP_DELAY_NO_DELAY;
+	}
+}
+
+static uint16_t pop_last_delay(){
+  uint8_t i = (POPUP_BUF_SIZE + popVar.head - 1) % POPUP_BUF_SIZE;
+  return popVar.delay[i];
+}
+#endif
 
 
 
@@ -217,7 +287,7 @@ static void readData() {
 			recBuffer[recvCount++] = c;
 			if(recvCount == recvLen) {
 				recvState = RevcDone;					//the transmission is complete.
-				break;
+					break;
 			}
 		}
 	}
@@ -297,6 +367,7 @@ static void sendEnd() {
   cmdLen = 0;
 }
 
+#ifndef USE_VARIABLE_AS_REGISTER
 /**
  * register addr is from 0x00 to 0xFF
  * addr is a constant that defined in other part of program.
@@ -340,6 +411,7 @@ static void readRegister(const unsigned char addr, unsigned char dataLen) {
   cmdBuffer[5] = dataLen;
   cmdLen += 4;
 }
+#endif
 
 /**
  * variable addr is from 0x0000 to MAX_VARIBLE_ADDR
@@ -460,7 +532,11 @@ void dwin_init() {
 	nextUpdateTime = 0;
 
 	pop_init();
+#ifdef DWIN_USE_OS
+	timeoutTime = 0;
+#else
 	memset(&dwinState, 0, sizeof(dwinState));
+#endif
 	memset(&dwinVar, 0, sizeof(dwinVar));
 
 	nextInitTime = millis() + LCD_INIT_TIMEOUT;
@@ -470,6 +546,7 @@ void dwin_init() {
 
 void dwin_loop() {
 
+#ifndef DWIN_USE_OS
 	//获取页面
 	if(!IS_GET_PAGE && (nextUpdateTime < millis())) {
 		nextUpdateTime = millis() + LCD_RUN_CYCLE;
@@ -486,12 +563,14 @@ void dwin_loop() {
 	if(!IS_GET_KEY && HAS_POP_TASK) {
 		currentKEY();
 	}
+#endif
 
 	//接收数据
 	readData();
 
 	//分析数据
 	if(RECV_DONE) {
+#ifndef USE_VARIABLE_AS_REGISTER
 		if(recBuffer[0] == READ_REGISTER) {
 			if((recvLen == 5) && (recBuffer[1] == REGISTER_PAGE) && IS_GET_PAGE) {
 				CLS_DWIN_STATE(BIT_GET_PAGE);
@@ -501,13 +580,16 @@ void dwin_loop() {
 				CLS_DWIN_STATE(BIT_GET_TOUCH);
 				if(recBuffer[3] == 0x5A) {
 					isTouch = 1;
+				#ifndef DWIN_USE_OS
 					sendStart();
 					writeRegister(REGISTER_TOUCH_STATUS, "00");
 					sendEnd();
+				#endif
 				}else {
 					isTouch = 0;
 				}
 			}
+		#ifndef DWIN_USE_OS
 			if((recvLen == 4) && (recBuffer[1] == REGISTER_KEY) && IS_GET_KEY) {
 				CLS_DWIN_STATE(BIT_GET_KEY);
 				uint8_t key = recBuffer[3];
@@ -525,17 +607,64 @@ void dwin_loop() {
 					}
 				}
 			}
-		} else if (recBuffer[0] == READ_VARIABLE){
+		#endif
+		} else
+#endif
+		if(recBuffer[0] == READ_VARIABLE){
 			dwinVar.valid = true;
 			dwinVar.varAddr = ((uint16_t)recBuffer[1] << 8) | ((uint16_t)recBuffer[2]);
 			dwinVar.dataLen = recBuffer[3] * 2;
 			memcpy(dwinVar.data, &recBuffer[4], dwinVar.dataLen);
+
+		#ifdef USE_VARIABLE_AS_REGISTER
+			if((dwinVar.dataLen == 2) && (dwinVar.varAddr == VARIABLE_PAGE_READ) && IS_GET_PAGE){
+				dwinVar.valid = false;
+				CLS_DWIN_STATE(BIT_GET_PAGE);
+				curPage = ((uint16_t)dwin_getVar()->data[0] << 8) | ((uint16_t)dwin_getVar()->data[1]);
+			}
+			if((dwinVar.dataLen == 2) && (dwinVar.varAddr == VARIABLE_TOUCH_STATUS) && IS_GET_TOUCH){
+				dwinVar.valid = false;
+				CLS_DWIN_STATE(BIT_GET_TOUCH);
+				uint8_t touchState = dwin_getVar()->data[1];
+				if((touchState & 0xFD) == 0){	//过滤 0x00和0x02
+					isTouch = 0;
+				} else {
+					isTouch = 1;
+				}
+			}
+		#endif
+		#ifdef DWIN_USE_OS
+			if((dwinVar.dataLen == 2) && (dwinVar.varAddr == VARIABLE_POP_INDEX)){
+				dwinVar.valid = false;
+				CLS_DWIN_STATE(BIT_GET_KEY);
+				uint16_t tempValue = ((uint16_t)dwin_getVar()->data[0] << 8) | ((uint16_t)dwin_getVar()->data[1]);
+
+				if(tempValue != POPUP_INDEX_NO_POP && tempValue < POPUP_RETURN_HIDE_KEY){
+					dwinVar.valid = true;
+        #ifdef DWIN_LCD_USE_T5_CPU
+          dwinVar.varAddr = 0x5700;       // RETURN_KEY move to CMD_ADDR
+        #else
+					dwinVar.varAddr = 0x0700;				// RETURN_KEY move to CMD_ADDR
+        #endif
+				}else{
+					currentPopIndex = tempValue;
+				}
+			}
+    #endif
 		}
 
 		if(!dwinExist) dwinExist = true;
 	}
 
 	//超时处理
+#ifdef DWIN_USE_OS
+	if(timeoutTime && (millis() > timeoutTime)){
+		timeoutTime = 0;
+		curPage = -1;
+		isTouch = -1;
+		dwinExist = false;
+	}
+#else
 	boolean dwinTimeout = false;
 	for(uint8_t i = 0; i < 3; i++){
 		if(dwinState.timeoutTime[i] && millis() > dwinState.timeoutTime[i]){
@@ -552,11 +681,18 @@ void dwin_loop() {
 		isTouch = -1;
 		dwinExist = false;
 	}
+#endif
 
 	//串口重置
-	if(!dwinExist && (nextInitTime < millis())){
-		DWIN_END();
-		dwin_init();
+	if(!dwinExist){
+		if(nextInitTime < millis()){
+			DWIN_END();
+			dwin_init();
+		}
+	} else {
+	#ifdef DWIN_USE_OS
+		sendPop();
+	#endif
 	}
 }
 
@@ -570,9 +706,15 @@ dwinVarStruct* dwin_getVar(){
 
 /** get the current page addr. */
 void getPage() {
+#ifdef DWIN_LCD_USE_T5_CPU
+	sendStart();
+	readVariable(VARIABLE_PAGE_READ, 0x01);
+	sendEnd();
+#else
 	sendStart();
 	readRegister(REGISTER_PAGE, 0x02);
 	sendEnd();
+#endif
 	SET_DWIN_STATE(BIT_GET_PAGE);
 }
 
@@ -581,9 +723,18 @@ void getPage() {
  * index is a constant HEX string , the addr of specified page.
  */
 void setPage(const char* index) {
+#ifdef DWIN_LCD_USE_T5_CPU
+  sendStart();
+	writeVariable(VARIABLE_PAGE_SET + 1, index);
+  sendEnd();
+  sendStart();
+	writeVariable(VARIABLE_PAGE_SET, "5A01");
+	sendEnd();
+#else
   sendStart();
   writeRegister(REGISTER_PAGE, index);
   sendEnd();
+#endif
 }
 
 /**
@@ -594,9 +745,26 @@ void setPage(uint16_t index){
 	unsigned char temp[2];
 	temp[0] = index >> 8;
 	temp[1] = index & 0x00FF;
+#ifdef DWIN_LCD_USE_T5_CPU
+  sendStart();
+	writeVariable(VARIABLE_PAGE_SET + 1, temp, 2);
+  sendEnd();
 	sendStart();
+	writeVariable(VARIABLE_PAGE_SET, "5A01");
+	sendEnd();
+#else
+  sendStart();
 	writeRegister(REGISTER_PAGE, temp, 2);
 	sendEnd();
+#endif
+}
+
+/**
+ * force set to the specified page
+ * index is a uint16_t (2 bytes), the addr of specified page.
+ */
+void forceSetPage(uint16_t index){
+  curPage = index;
 }
 
 /** return the current page. */
@@ -621,23 +789,43 @@ boolean isPage(uint16_t index){
 
 /** enable dwin_lcd touch. */
 void enableTouch(){
+#ifdef DWIN_LCD_USE_T5_CPU
+  uint8_t var = 0x00;
+  sendStart();
+  writeVariable(VARIABLE_TOUCH_ENABLE, &var, 1);
+  sendEnd();
+#else
 	sendStart();
 	writeRegister(REGISTER_TOUCH_ENABLE, "FF");
 	sendEnd();
+#endif
 }
 
 /** disable dwin_lcd touch. */
 void disableTouch(){
+#ifdef DWIN_LCD_USE_T5_CPU
+  uint8_t var = 0x01;
+  sendStart();
+  writeVariable(VARIABLE_TOUCH_ENABLE, &var, 1);
+  sendEnd();
+#else
 	sendStart();
 	writeRegister(REGISTER_TOUCH_ENABLE, "00");
 	sendEnd();
+#endif
 }
 
 /** get the touch state. */
 void getTouch(){
+#ifdef DWIN_LCD_USE_T5_CPU
+	sendStart();
+	readVariable(VARIABLE_TOUCH_STATUS, 0x01);
+	sendEnd();
+#else
 	sendStart();
 	readRegister(REGISTER_TOUCH_STATUS, 0x01);
 	sendEnd();
+#endif
 	SET_DWIN_STATE(BIT_GET_TOUCH);
 }
 
@@ -653,28 +841,40 @@ uint8_t touchState(){
 
 /** if key register is busy. */
 void currentKEY(){
+#ifdef DWIN_LCD_USE_T5_CPU
+#else
 	sendStart();
 	readRegister(REGISTER_KEY, 0x01);
 	sendEnd();
+#endif
 	SET_DWIN_STATE(BIT_GET_KEY);
 }
 
 /** trigger a key defined in LCD. */
 void triggerKEY(const char* key){
+#ifdef DWIN_LCD_USE_T5_CPU
+  UNUSED(key);
+#else
 	sendStart();
 	writeRegister(REGISTER_KEY, key);
 	sendEnd();
 	currentKEY();
+#endif
 }
 
 /** trigger a key defined in LCD. */
 void triggerKEY(uint8_t key){
+#ifdef DWIN_LCD_USE_T5_CPU
+  UNUSED(key);
+#else
 	sendStart();
 	writeRegister(REGISTER_KEY, &key, 1);
 	sendEnd();
 	currentKEY();
+#endif
 }
 
+#ifndef DWIN_USE_OS
 /** 
  * the key in dwin_lcd
  * return -1 is not a window
@@ -691,22 +891,22 @@ uint8_t getPop() {
  * return false if error.
  */
 boolean setPop(const char* key){
-	uint8_t tempKey = (uint8_t)strtol(key, nullptr, HEX);
+	uint8_t tempKey = (uint8_t)strtoul(key, nullptr, HEX);
 #ifdef DWIN_HEX_OPERATE_USE_STR
 	uint8_t lastKey = pop_last();
 	if(tempKey == lastKey) {
 		return true;
 	} else {
-		if(lastKey == POPUP_HIDDEN_KEY) {
-			if(pop_room() > 0) {
+		if(pop_room() > 0){
+			if((lastKey == POPUP_HIDDEN_KEY) || (tempKey == POPUP_HIDDEN_KEY)){
 				pop_insert(tempKey);
 				return true;
-			}
-		}else{
-			if(pop_room() > 1) {
-				pop_insert(POPUP_HIDDEN_KEY);
-				pop_insert(tempKey);
-				return true;
+			}else{
+				if(pop_room() > 1){
+					pop_insert(POPUP_HIDDEN_KEY);
+					pop_insert(tempKey);
+					return true;
+				}
 			}
 		}
 		return false;
@@ -730,25 +930,89 @@ boolean setPop(uint8_t key){
 	if(key == lastKey) {
 		return true;
 	} else {
-		if(lastKey == POPUP_HIDDEN_KEY) {
-			if(pop_room() > 0) {
+		if(pop_room() > 0){
+			if((lastKey == POPUP_HIDDEN_KEY) || (key == POPUP_HIDDEN_KEY)){
 				pop_insert(key);
 				return true;
-			}
-		}else{
-			if(pop_room() > 1) {
-				pop_insert(POPUP_HIDDEN_KEY);
-				pop_insert(key);
-				return true;
+			}else{
+				if(pop_room() > 1){
+					pop_insert(POPUP_HIDDEN_KEY);
+					pop_insert(key);
+					return true;
+				}
 			}
 		}
 		return false;
 	}
 #endif
 }
+#else
+/**
+ * the pop index in dwin_lcd
+ * return currentPopIndex that update from dwin_lcd by dwin_os (parsing variable 0x0603)
+ */
+uint16_t getPop(){
+	return currentPopIndex;
+}
+
+/**
+ * insert a pop in pop buf.
+ * return true if success.
+ * return false if error.
+ */
+boolean setPop(const char* index, uint16_t delay){
+  uint16_t tempIndex = (uint16_t)strtoul(index, nullptr, HEX);
+#ifdef DWIN_HEX_OPERATE_USE_STR
+  if(IS_POP_FULL){
+    return false;
+  }else{
+    pop_insert(tempIndex, delay);
+    return true;
+  }
+#else
+  return setPop(tempIndex, delay);
+#endif
+}
+
+/**
+ * insert a pop in pop buf.
+ * return true if success.
+ * return false if error.
+ */
+boolean setPop(uint16_t index, uint16_t delay){
+#ifdef DWIN_HEX_OPERATE_USE_STR
+  char tempKey[5];
+  return setPop(uint16_tToHex(tempKey, index), delay);
+#else
+  if(IS_POP_FULL){
+    return false;
+  }else{
+    pop_insert(index, delay);
+    return true;
+  }
+#endif
+}
 
 
-
+/**
+ * send a pop to dwin_lcd
+ */
+void sendPop(){
+	if(HAS_POP_TASK){
+		if(pop_next_index() == POPUP_INDEX_HIDE_POP || currentPopIndex == POPUP_INDEX_NO_POP){
+			char temp[5];
+			sendStart();
+			writeVariable(VARIABLE_POP_DELAY, uint16_tToHex(temp, pop_next_delay()));
+			sendEnd();
+			sendStart();
+			writeVariable(VARIABLE_POP_INDEX, uint16_tToHex(temp, pop_next_index()));
+			sendEnd();
+			currentPopIndex = pop_next_index();
+			pop_remove();
+		}
+	}
+}
+#endif
 
 
 
@@ -1021,16 +1285,10 @@ void setValueAsString(const char* addr, const uint16_t space, const char* data){
 		size_t len = strlen(data);
 		unsigned char temp[LCD_BUF_LEN];
 		memset(temp, 0, sizeof(temp));
+		memcpy(temp, data, len);
+
 		sendStart();
 		writeVariable(addr, temp, space);
-		sendEnd();
-
-		memcpy(temp, data, len);
-		len = (len % 2) ? len + 1 : len;		// store data per word, so if the length is odd, it should add a 0x00 behind the data.
-		len = (len <= space) ? len : space;		// cuz the addr is a constant from LCD. so the space of addr is fixed, then the length of data should not large than space.
-
-		sendStart();
-		writeVariable(addr, temp, len);
 		sendEnd();
 	}
 }
@@ -1046,13 +1304,54 @@ void setValueAsString(uint16_t addr, const uint16_t space, const char* data){
 		size_t len = strlen(data);
 		unsigned char temp[LCD_BUF_LEN];
 		memset(temp, 0, sizeof(temp));
+		memcpy(temp, data, len);
+
+		sendStart();
+    writeVariable(addr, temp, space);
+		sendEnd();
+	}
+}
+
+
+/**
+ * set a unicode string value to lcd's variable.
+ * addr is a constant HEX string, the addr of the variable from LCD.
+ * space is the the space of addr.
+ * data is the char pointer (sting) that you want to set.
+ */
+void setValueAsUnicodeString(const char* addr, const uint16_t space, const char* data){
+	if(checkValid(addr)){
+		size_t len = unicodeStrlen(data);
+		unsigned char temp[LCD_BUF_LEN];
+		memset(temp, 0, sizeof(temp));
 		sendStart();
 		writeVariable(addr, temp, space);
 		sendEnd();
 
 		memcpy(temp, data, len);
-		len = (len % 2) ? len + 1 : len;
-		len = (len <= space) ? len : space;
+
+		sendStart();
+		writeVariable(addr, temp, len);
+		sendEnd();
+	}
+}
+
+/**
+ * set a unicode string value to lcd's variable.
+ * addr is a uint16_t (2 bytes), the addr of the variable from LCD.
+ * space is the the space of addr.
+ * data is the char pointer (sting) that you want to set.
+ */
+void setValueAsUnicodeString(uint16_t addr, const uint16_t space, const char* data){
+	if(checkValid(addr)){
+		size_t len = unicodeStrlen(data);
+		unsigned char temp[LCD_BUF_LEN];
+		memset(temp, 0, sizeof(temp));
+		sendStart();
+		writeVariable(addr, temp, space);
+		sendEnd();
+
+		memcpy(temp, data, len);
 
 		sendStart();
 		writeVariable(addr, temp, len);
@@ -1094,15 +1393,9 @@ void setValueAsAttr(uint16_t addr, uint8_t offset, char* data){
  * x0, y0, x1, y1, color is the position and color of the rectangle.
  */
 void drawRectangle(const char* addr, uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, const char* color){
-	//char data[29] = "00030001";
 	char data[29];
 
 	char temp1[5], temp2[5], temp3[5], temp4[5];
-	//strcat(data, uint16_tToHex(temp1, x0));
-	//strcat(data, uint16_tToHex(temp2, y0));
-	//strcat(data, uint16_tToHex(temp3, x1));
-	//strcat(data, uint16_tToHex(temp4, y1));
-	//strcat(data, color);
 	sprintf(data, "%s%s%s%s%s%s", "00030001", uint16_tToHex(temp1, x0), uint16_tToHex(temp2, y0), uint16_tToHex(temp3, x1), uint16_tToHex(temp4, y1), color);
 	setValueAsAttr(addr, 0, data);
 }
@@ -1113,19 +1406,36 @@ void drawRectangle(const char* addr, uint16_t x0, uint16_t y0, uint16_t x1, uint
  * x0, y0, x1, y1, color is the position and color of the rectangle.
  */
 void fillRectangle(const char* addr, uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, const char* color){
-	//char data[29] = "00040001";
 	char data[29];
 
 	char temp1[5], temp2[5], temp3[5], temp4[5];
-	//strcat(data, uint16_tToHex(temp1, x0));
-	//strcat(data, uint16_tToHex(temp2, y0));
-	//strcat(data, uint16_tToHex(temp3, x1));
-	//strcat(data, uint16_tToHex(temp4, y1));
-	//strcat(data, color);
 	sprintf(data, "%s%s%s%s%s%s", "00040001", uint16_tToHex(temp1, x0), uint16_tToHex(temp2, y0), uint16_tToHex(temp3, x1), uint16_tToHex(temp4, y1), color);
 	setValueAsAttr(addr, 0, data);
 }
 
+/*
+ * clear a canvas in LCD.
+ * addr is a constant HEX string , the addr of the variable from LCD.
+ */
+void clearCanvas(const char* addr){
+  setValueAsInt(addr, (uint16_t)0x0000);
+}
+
+/**
+ * return the length of a unicode string.
+ * unicode string is a char array that end by 0x0000.
+ * Always is a even number.
+ * Max length is 256(0x100)(128 words).
+ */
+size_t unicodeStrlen(const char * uni){
+	if(uni == nullptr){
+		return 0;
+	} else {
+		size_t i = 0;
+		for(i = 0; (uni[i] || uni[i+1]) && (i < 0xFF); i+=2);
+		return i;
+	}
+}
 
 
 /**
@@ -1242,12 +1552,21 @@ bool isPage_P(const char * index) {
 	return isPage(rel_index);
 }
 
+#ifdef DWIN_USE_OS
+/** trigger a key defined in LCD. */
+bool setPop_P(const char* index, uint16_t delay){
+	char rel_index[5];
+	strncpy_P(rel_index, index, 5);
+	return setPop(rel_index, delay);
+}
+#else
 /** trigger a key defined in LCD. */
 bool setPop_P(const char * key){
 	char rel_key[3];
 	strncpy_P(rel_key, key, 3);
 	return setPop(rel_key);
 }
+#endif
 
 /**
 * get a value from lcd's variable.
@@ -1276,10 +1595,10 @@ void getValueForLong_P(const char * addr){
 * addr is a constant HEX string, the addr of the variable from LCD.
 * return a char pointer (string). The length is 32 chars.
 */
-void getValueForString_P(const char * addr){
+void getValueForString_P(const char* addr, unsigned char dataLen){
 	char rel_addr[5];
 	strncpy_P(rel_addr, addr, 5);
-	getValueForString(rel_addr);
+	getValueForString(rel_addr, dataLen);
 }
 
 /**
@@ -1353,6 +1672,18 @@ void setValueAsString_P(const char * addr, const uint16_t space, const char * da
 	setValueAsString(rel_addr, space, data);
 }
 
+/**
+ * set a unicode string value to lcd's variable.
+ * addr is a constant HEX string, the addr of the variable from LCD.
+ * space is the the space of addr.
+ * data is the char pointer (sting) that you want to set.
+ */
+void setValueAsUnicodeString_P(const char* addr, const uint16_t space, const char* data){
+	char rel_addr[5];
+	strncpy_P(rel_addr, addr, 5);
+	setValueAsUnicodeString(rel_addr, space, data);
+}
+
 
 /**
 * set a value to lcd's variable's attribute.
@@ -1389,6 +1720,17 @@ void fillRectangle_P(const char * addr, uint16_t x0, uint16_t y0, uint16_t x1, u
 	strncpy_P(rel_color, color, 5);
 	fillRectangle(rel_addr, x0, y0, x1, y1, rel_color);
 }
+
+/*
+ * clear a canvas in LCD.
+ * addr is a constant HEX string , the addr of the variable from LCD.
+ */
+void clearCanvas_P(const char* addr){
+  char rel_addr[5];
+  strncpy_P(rel_addr, addr, 5);
+  clearCanvas(rel_addr);
+}
+
 
 /*
  * Compare a uint16_t with a HEX String

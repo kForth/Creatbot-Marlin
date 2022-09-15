@@ -18,6 +18,7 @@ public:
 	void init();
 	void set(dir_t* dir);
 	void setLongFilename(vfat_t* vfat, uint8_t n);
+	void setLongFilenameFromName83();
 	char filename[FILENAME_LENGTH], longFilename[LONG_FILENAME_LENGTH];
 	uint32_t cluster, filesize, modifyDT;
 	bool isRoot, isSubDir, isFile;

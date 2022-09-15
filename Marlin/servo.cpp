@@ -58,6 +58,8 @@
 #include <Arduino.h>
 
 #include "servo.h"
+#include "types.h"
+#include "utility.h"
 
 #define usToTicks(_us)    (( clockCyclesPerMicrosecond()* (_us)) / 8)     // converts microseconds to tick (assumes prescale of 8)  // 12 Aug 2009
 #define ticksToUs(_ticks) (( (unsigned)(_ticks) * 8)/ clockCyclesPerMicrosecond() ) // converts from ticks back to microseconds
@@ -93,7 +95,19 @@ static inline void handle_interrupts(timer16_Sequence_t timer, volatile uint16_t
 
   Channel[timer]++;    // increment to the next channel
   if (SERVO_INDEX(timer, Channel[timer]) < ServoCount && Channel[timer] < SERVOS_PER_TIMER) {
+  #ifdef SERVO_SPEED_SLOWLY  // By LYN
+    ServoInfo_t *curServo = &SERVO(timer, Channel[timer]);
+    if(curServo->curTicks < curServo->ticks){
+      curServo->curTicks += 40;
+      NOMORE(curServo->curTicks, curServo->ticks);
+    }else if(curServo->curTicks > curServo->ticks){
+      curServo->curTicks -= 40;
+      NOLESS(curServo->curTicks, curServo->ticks);
+    }
+    *OCRnA = *TCNTn + curServo->curTicks;
+  #else
     *OCRnA = *TCNTn + SERVO(timer, Channel[timer]).ticks;
+  #endif
     if (SERVO(timer, Channel[timer]).Pin.isActive)    // check if activated
       digitalWrite(SERVO(timer, Channel[timer]).Pin.nbr, HIGH); // it's an active channel so pulse it high
   }
@@ -244,6 +258,9 @@ Servo::Servo() {
     this->servoIndex = ServoCount++;                    // assign a servo index to this instance
 //By LYN    servo_info[this->servoIndex].ticks = usToTicks(DEFAULT_PULSE_WIDTH);   // store default values  - 12 Aug 2009
     servo_info[this->servoIndex].ticks = usToTicks(DEFAULT_PULSE_WIDTH - TRIM_DURATION);   // By LYN
+  #ifdef SERVO_SPEED_SLOWLY   // By LYN
+    servo_info[this->servoIndex].curTicks = usToTicks(DEFAULT_PULSE_WIDTH - TRIM_DURATION);
+  #endif
   }
   else
     this->servoIndex = INVALID_SERVO;  // too many servos
@@ -312,9 +329,9 @@ bool Servo::attached() { return servo_info[this->servoIndex].Pin.isActive; }
 void Servo::move(int value) {
   constexpr uint16_t servo_delay[] = SERVO_DELAY;
   static_assert(COUNT(servo_delay) == NUM_SERVOS, "SERVO_DELAY must be an array NUM_SERVOS long.");
-  if (this->attach(0) >= 0) {
+  if (this->attach(0, SERVO_MIN(), SERVO_MAX()) >= 0) {
     this->write(value);
-    delay(servo_delay[this->servoIndex]);
+    safe_delay(servo_delay[this->servoIndex]);
     #if ENABLED(DEACTIVATE_SERVOS_AFTER_MOVE)
       this->detach();
     #endif

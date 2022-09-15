@@ -49,6 +49,8 @@
   #define EXTRUDER_IDX  active_extruder
 #endif
 
+#define TEMP_RANGE_LOOP() for (int8_t s = 0; s < PID_PARAMS_TEMP_RANGE_NUM; s++)
+
 /**
  * States for ADC reading in the ISR
  */
@@ -140,20 +142,25 @@ class Temperature {
                      soft_pwm_count_fan[FAN_COUNT];
     #endif
 
-    #if ENABLED(PIDTEMP) || ENABLED(PIDTEMPBED)
+    #if ENABLED(PIDTEMP) || ENABLED(PIDTEMPBED) || ENABLED(PIDTEMP_CHAMBER)
       #define PID_dT ((OVERSAMPLENR * float(ACTUAL_ADC_SAMPLES)) / (F_CPU / 64.0 / 256.0))
     #endif
 
     #if ENABLED(PIDTEMP)
 
-      #if ENABLED(PID_PARAMS_PER_HOTEND) && HOTENDS > 1
+      #if PID_PARAMS_USE_TEMP_RANGE
+        static float Kp[PID_PARAMS_TEMP_RANGE_NUM], Ki[PID_PARAMS_TEMP_RANGE_NUM], Kd[PID_PARAMS_TEMP_RANGE_NUM];
+        #if ENABLED(PID_EXTRUSION_SCALING)
+          static float Kc[PID_PARAMS_TEMP_RANGE_NUM];
+        #endif
+        #define PID_PARAM(param, s) Temperature::param[s]
+      #elif ENABLED(PID_PARAMS_PER_HOTEND) && HOTENDS > 1
 
         static float Kp[HOTENDS], Ki[HOTENDS], Kd[HOTENDS];
         #if ENABLED(PID_EXTRUSION_SCALING)
           static float Kc[HOTENDS];
         #endif
         #define PID_PARAM(param, h) Temperature::param[h]
-
       #else
 
         static float Kp, Ki, Kd;
@@ -174,6 +181,10 @@ class Temperature {
 
     #if ENABLED(PIDTEMPBED)
       static float bedKp, bedKi, bedKd;
+    #endif
+
+    #if ENABLED(PIDTEMP_CHAMBER)
+      static float chamberKp, chamberKi, chamberKd;
     #endif
 
     #if ENABLED(BABYSTEPPING)
@@ -199,8 +210,15 @@ class Temperature {
         #endif
         return allow_cold_extrude ? false : degHotend(HOTEND_INDEX) < extrude_min_temp;
       }
+      static bool targetTooColdToExtrude(uint8_t e) {
+        #if HOTENDS == 1
+          UNUSED(e);
+        #endif
+        return allow_cold_extrude ? false : degTargetHotend(HOTEND_INDEX) < extrude_min_temp;
+      }
     #else
       static bool tooColdToExtrude(uint8_t e) { UNUSED(e); return false; }
+      static bool targetTooColdToExtrude(uint8_t e) { UNUSED(e); return false; }
     #endif
 
   private:
@@ -239,6 +257,16 @@ class Temperature {
                    pid_error_bed;
     #else
       static millis_t next_bed_check_ms;
+    #endif
+
+    #if ENABLED(PIDTEMP_CHAMBER)
+      static float temp_iState_chamber,
+                   temp_dState_chamber,
+                   pTerm_chamber,
+                   iTerm_chamber,
+                   dTerm_chamber,
+                   pid_error_chamber;
+      static bool pid_reset_chamber;
     #endif
 
     static uint16_t raw_temp_value[MAX_EXTRUDERS],
@@ -330,6 +358,12 @@ class Temperature {
      * Call periodically to manage heaters
      */
     static void manage_heater() _O2; // Added _O2 to work around a compiler error
+
+    static void ignoreCurrentTemp(){
+      CRITICAL_SECTION_START;
+      temp_meas_ready = false;
+      CRITICAL_SECTION_END;
+    }
 
     /**
      * Preheating hotends
@@ -502,6 +536,10 @@ class Temperature {
       static void PID_autotune(float temp, int hotend, int ncycles, bool set_result=false);
     #endif
 
+    #if ENABLED(PIDTEMP_CHAMBER)
+      static void PID_autotune_Chamber(float temp);
+    #endif
+
     /**
      * Update the temp manager when PID values change
      */
@@ -609,6 +647,10 @@ class Temperature {
 
     #if ENABLED(PIDTEMPBED)
       static float get_pid_output_bed();
+    #endif
+
+    #if ENABLED(PIDTEMP_CHAMBER)
+      static float get_pid_output_chamber();
     #endif
 
     static void _temp_error(const int8_t e, const char * const serial_msg, const char * const lcd_msg);

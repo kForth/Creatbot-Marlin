@@ -135,6 +135,9 @@ typedef struct {
 typedef struct {
   ServoPin_t Pin;
   unsigned int ticks;
+#ifdef SERVO_SPEED_SLOWLY
+  unsigned int curTicks;			//当前Tick
+#endif
 } ServoInfo_t;
 
 class Servo {

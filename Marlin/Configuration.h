@@ -171,11 +171,11 @@
 #endif
 
 // A dual-nozzle that uses a servomotor to raise/lower one of the nozzles
-//#define SWITCHING_NOZZLE
+//(By LYN, redef in _Config.h) #define SWITCHING_NOZZLE
 #if ENABLED(SWITCHING_NOZZLE)
-  #define SWITCHING_NOZZLE_SERVO_NR 0
-  #define SWITCHING_NOZZLE_SERVO_ANGLES { 0, 90 }   // Angles for E0, E1
-  //#define HOTEND_OFFSET_Z { 0.0, 0.0 }
+  //(By LYN, redef in _Config.h) #define SWITCHING_NOZZLE_SERVO_NR 0
+  //(By LYN, redef in _Config.h) #define SWITCHING_NOZZLE_SERVO_ANGLES { 0, 90 }   // Angles for E0, E1
+  //(By LYN, redef in _Config.h) #define HOTEND_OFFSET_Z { 0.0, 0.0 }
 #endif
 
 /**
@@ -387,7 +387,7 @@
 // If your configuration is significantly different than this and you don't understand the issues involved, you probably
 // shouldn't use bed PID until someone else verifies your hardware works.
 // If this is enabled, find your own PID constants below.
-#define PIDTEMPBED
+//(By LYN, redef in _Config.h) #define PIDTEMPBED
 
 //#define BED_LIMIT_SWITCHING
 
@@ -397,7 +397,7 @@
 // so you shouldn't use it unless you are OK with PWM on your bed.  (see the comment on enabling PIDTEMPBED)
 #define MAX_BED_POWER 255 // limits duty cycle to bed; 255=full current
 
-#if ENABLED(PIDTEMPBED)
+#if false && ENABLED(PIDTEMPBED) //(By LYN, redef in _Config.h)
 
   //#define PID_BED_DEBUG // Sends debug data to the serial port.
 
@@ -414,7 +414,7 @@
   //#define  DEFAULT_bedKd 1675.16
 
 	// CreatBot
-	// 24V ??W silicone heater into
+	// 24V ??W silicone heater
 	#define  DEFAULT_bedKp 345.78
 	#define  DEFAULT_bedKi 14.59
 	#define  DEFAULT_bedKd 2047.99
@@ -429,7 +429,7 @@
 // or to allow moving the extruder regardless of the hotend temperature.
 // *** IT IS HIGHLY RECOMMENDED TO LEAVE THIS OPTION ENABLED! ***
 #define PREVENT_COLD_EXTRUSION
-#define EXTRUDE_MINTEMP 160	//(By LYN, default is 170)
+#define EXTRUDE_MINTEMP 120	//(By LYN, default is 170)
 
 // This option prevents a single extrusion longer than EXTRUDE_MAXLENGTH.
 // Note that for Bowden Extruders a too-small value here may prevent loading.
@@ -545,7 +545,7 @@
  * Override with M203
  *                                      X, Y, Z, E0 [, E1[, E2[, E3[, E4]]]]
  */
-#define DEFAULT_MAX_FEEDRATE          { 300, 300, 10, 40 }		//(By LYN, default is {300, 300, 5, 25})
+//(By LYN, redef in _Config.h) #define DEFAULT_MAX_FEEDRATE          { 300, 300, 5, 25 }
 
 /**
  * Default Max Acceleration (change/s) change = mm/s
@@ -553,7 +553,7 @@
  * Override with M201
  *                                      X, Y, Z, E0 [, E1[, E2[, E3[, E4]]]]
  */
-#define DEFAULT_MAX_ACCELERATION      { 2000, 2000, 100, 3000 }		//(By LYN, default is {3000,3000,100,10000})
+//(By LYN, redef in _Config.h) #define DEFAULT_MAX_ACCELERATION      { 3000, 3000, 100, 10000 }
 
 /**
  * Default Acceleration (change/s) change = mm/s
@@ -563,9 +563,9 @@
  *   M204 R    Retract Acceleration
  *   M204 T    Travel Acceleration
  */
-#define DEFAULT_ACCELERATION          1500    //(By LYN, default is 3000) X, Y, Z and E acceleration for printing moves
+#define DEFAULT_ACCELERATION           600    //(By LYN, default is 3000) X, Y, Z and E acceleration for printing moves
 #define DEFAULT_RETRACT_ACCELERATION  1500    //(By LYN, default is 3000) E acceleration for retracts
-#define DEFAULT_TRAVEL_ACCELERATION   2000    //(By LYN, default is 3000) X, Y, Z acceleration for travel (non printing) moves
+#define DEFAULT_TRAVEL_ACCELERATION    800    //(By LYN, default is 3000) X, Y, Z acceleration for travel (non printing) moves
 
 /**
  * Default Jerk (mm/s)
@@ -575,8 +575,8 @@
  * When changing speed and direction, if the difference is less than the
  * value set here, it may happen instantaneously.
  */
-#define DEFAULT_XJERK                 15.0		//(By LYN, default is 20.0)
-#define DEFAULT_YJERK                 15.0		//(By LYN, default is 20.0)
+#define DEFAULT_XJERK                 10.0		//(By LYN, default is 20.0)
+#define DEFAULT_YJERK                 10.0		//(By LYN, default is 20.0)
 #define DEFAULT_ZJERK                  0.4
 #define DEFAULT_EJERK                  5.0
 
@@ -697,7 +697,7 @@
 //(By LYN, redef in _Config.h) #define Z_PROBE_OFFSET_FROM_EXTRUDER 0   // Z offset: -below +above  [the nozzle]
 
 // X and Y axis travel speed (mm/m) between probes
-#define XY_PROBE_SPEED 4000		//(By LYN, default is 8000)
+#define XY_PROBE_SPEED 6000		//(By LYN, default is 8000)
 
 // Speed for the first approach when double-probing (with PROBE_DOUBLE_TOUCH)
 #define Z_PROBE_SPEED_FAST HOMING_FEEDRATE_Z
@@ -1012,7 +1012,7 @@
 
 // Homing speeds (mm/m)
 #define HOMING_FEEDRATE_XY (50*60)
-#define HOMING_FEEDRATE_Z  (20*60)		//(By LYN, default is 4*60)
+#define HOMING_FEEDRATE_Z  (10*60)		//(By LYN, default is 4*60)
 
 //=============================================================================
 //============================= Additional Features ===========================
@@ -1667,7 +1667,7 @@
 // Delay (in milliseconds) before the next move will start, to give the servo time to reach its target angle.
 // 300ms is a good value but you can try less delay.
 // If the servo can't reach the requested position, increase it.
-#define SERVO_DELAY { 200 }		//(By LYN, our servo's speed at 90ms/60deg, so 135ms/90deg.)
+//(By LYN, redef in _Config.h) #define SERVO_DELAY { 300 }
 
 // Servo deactivation
 //

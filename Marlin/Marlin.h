@@ -63,8 +63,11 @@ void manage_inactivity(bool ignore_stepper_queue = false);
   #define  enable_X() do{ X_ENABLE_WRITE( X_ENABLE_ON); X2_ENABLE_WRITE( X_ENABLE_ON); }while(0)
   #define disable_X() do{ X_ENABLE_WRITE(!X_ENABLE_ON); X2_ENABLE_WRITE(!X_ENABLE_ON); axis_known_position[X_AXIS] = false; }while(0)
 #elif HAS_X_ENABLE
-//  #define  enable_X() X_ENABLE_WRITE( X_ENABLE_ON)
-  #define  enable_X() do{ bool hasEnable = X_ENABLE_READ == X_ENABLE_ON; X_ENABLE_WRITE( X_ENABLE_ON ); if(!hasEnable) safe_delay(500); }while(0)
+  #ifdef USE_SIFU_MOTOR
+    #define  enable_X() do{ bool hasEnable = X_ENABLE_READ == X_ENABLE_ON; X_ENABLE_WRITE( X_ENABLE_ON ); if(!hasEnable) safe_delay(500); }while(0)
+  #else
+    #define  enable_X() X_ENABLE_WRITE( X_ENABLE_ON)
+  #endif
   #define disable_X() do{ X_ENABLE_WRITE(!X_ENABLE_ON); axis_known_position[X_AXIS] = false; }while(0)
 #else
   #define  enable_X() NOOP
@@ -75,8 +78,11 @@ void manage_inactivity(bool ignore_stepper_queue = false);
   #define  enable_Y() do{ Y_ENABLE_WRITE( Y_ENABLE_ON); Y2_ENABLE_WRITE(Y_ENABLE_ON); }while(0)
   #define disable_Y() do{ Y_ENABLE_WRITE(!Y_ENABLE_ON); Y2_ENABLE_WRITE(!Y_ENABLE_ON); axis_known_position[Y_AXIS] = false; }while(0)
 #elif HAS_Y_ENABLE
-//  #define  enable_Y() Y_ENABLE_WRITE( Y_ENABLE_ON)
-  #define  enable_Y() do{ bool hasEnable = Y_ENABLE_READ == Y_ENABLE_ON; Y_ENABLE_WRITE( Y_ENABLE_ON ); if(!hasEnable) safe_delay(500); }while(0)
+  #ifdef USE_SIFU_MOTOR
+    #define  enable_Y() do{ bool hasEnable = Y_ENABLE_READ == Y_ENABLE_ON; Y_ENABLE_WRITE( Y_ENABLE_ON ); if(!hasEnable) safe_delay(500); }while(0)
+  #else
+    #define  enable_Y() Y_ENABLE_WRITE( Y_ENABLE_ON)
+  #endif
   #define disable_Y() do{ Y_ENABLE_WRITE(!Y_ENABLE_ON); axis_known_position[Y_AXIS] = false; }while(0)
 #else
   #define  enable_Y() NOOP
@@ -499,6 +505,8 @@ FORCE_INLINE bool position_is_reachable_xy(const float &lx, const float &ly) {
 #elif ENABLED(DWIN_LCD)
 	#define USER_OPERATE		(DWIN_TOUCH || dwin_getVar()->valid)		// touch a screen
 													//(DWIN_TOUCH && !DWIN_IS_PAGE(PAGE_SHUTDOWN_HOTEMP))
+#elif ENABLED(ULTRA_SERIAL)
+	#define USER_OPERATE		PENDING(millis(), previous_cmd_ms + 1000UL)
 #else
 	#define USER_OPERATE		false
 #endif
@@ -543,6 +551,24 @@ FORCE_INLINE bool position_is_reachable_xy(const float &lx, const float &ly) {
 	#define HAS_READER							false
 #endif
 
+#ifdef ULTRA_SERIAL
+	extern uint8_t serialState;
+	#if HAS_READER
+		//TODO Compatible with ULTRA_SERIAL and READER.
+	#else
+		#define BIT_SERIAL_STATE_PRINT	0
+		#define BIT_SERIAL_STATE_PAUSE	1
+		#define FILE_START_PRINT				serialState = 1
+		#define FILE_PAUSE_PRINT				serialState = 3
+		#define FILE_STOP_PRINT					serialState = 0
+		#define FILE_IS_PAUSE						(TEST(serialState, BIT_SERIAL_STATE_PAUSE))
+		#define FILE_IS_IDLE						(!TEST(serialState, BIT_SERIAL_STATE_PRINT))
+		#define FILE_IS_PRINT						(TEST(serialState, BIT_SERIAL_STATE_PRINT))
+	#endif
+#else
+	extern bool	isSerialPrinting;
+#endif
+
 #if HAS_AUTO_FAN
 	extern int extruder_auto_fan_speed;
 #endif
@@ -567,15 +593,11 @@ extern uint32_t	usedTime;
 	extern bool invalidLoop;
 	extern float pausePos[XYZE];
 	extern float pauseSpeed;
-	extern uint32_t pauseByte;
+	extern uint32_t pauseByteOrLineN;
 	extern float lastPos[XYZE];
 	#ifdef HAS_LEVELING
 		extern bool pauseLeveling;
 	#endif
-#endif
-
-#ifdef WIFI_SUPPORT
-	extern char hostName[24];
 #endif
 
 #define TOOLS_NUM						(MAX_EXTRUDERS + 3)
@@ -586,7 +608,9 @@ extern uint32_t	usedTime;
 	extern bool moduleIsReady;
 	extern bool isAccidentToPrinting;
 	extern bool isAccident;
+#if HAS_READER
 	extern char lastFilename[MAXPATHNAMELENGTH];
+#endif
 	extern int lastToolsState[TOOLS_NUM];
 #endif
 
@@ -599,7 +623,6 @@ extern bool isFilamentUnloaded;
 
 extern PowerState powerState;
 
-extern bool	isSerialPrinting;
 
 #define FW_STR_LEN	11				// Vx.x.xxxxxx
 extern char versionFW[FW_STR_LEN + 1];
@@ -634,11 +657,13 @@ void updateStateStrings();
 	void accidentToCancel();
 #endif
 
+#if ENABLED(SWITCHING_NOZZLE)
+	void switch_nozzle(const uint8_t e);
+	void align_nozzle();
+#endif
 
-#ifdef DEBUG_FREE
-extern "C" {
-	int freeMemory();
-}
+#ifdef ULTRA_SERIAL
+	void print_extrastates();
 #endif
 
 /******************************************/

@@ -282,7 +282,7 @@ class Stepper {
 
   private:
 
-    static FORCE_INLINE unsigned short calc_timer(unsigned short step_rate) {
+    static FORCE_INLINE unsigned short calc_timer(uint32_t step_rate) {
       unsigned short timer;
 
       NOMORE(step_rate, MAX_STEP_FREQUENCY);

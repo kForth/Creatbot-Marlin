@@ -178,6 +178,7 @@
  * M302 - Allow cold extrudes, or set the minimum extrude S<temperature>. (Requires PREVENT_COLD_EXTRUSION)
  * M303 - PID relay autotune S<temperature> sets the target temperature. Default 150C. (Requires PIDTEMP)
  * M304 - Set bed PID parameters P I and D. (Requires PIDTEMPBED)
+ * M305 - PID (Chamber) relay autotune S<temperature> sets the target temperature. Default 50C. (Requires PIDTEMP_CHAMBER)
  * M350 - Set microstepping mode. (Requires digital microstepping pins.)
  * M351 - Toggle MS1 MS2 pins directly. (Requires digital microstepping pins.)
  * M355 - Set Case Light on/off and set brightness. (Requires CASE_LIGHT_PIN)
@@ -263,6 +264,11 @@
  * M6030 - (like M30) Delete file from USB.						TODO M6030
  * M6032 - (like M32) Select file and start SD print
  * M6033 - (like M928) Start USB write (logging)			TODO M6033
+ * M6101 - UltraSerial start print task.										(Requires EMERGENCY_PARSER)
+ * M6102 - UltraSerial reuse print task.										(Requires EMERGENCY_PARSER and QUICK_PAUSE)
+ * M6103 - UltraSerial pause print task.										(Requires EMERGENCY_PARSER and QUICK_PAUSE)
+ * M6104 - UltraSerial stop print task.											(Requires EMERGENCY_PARSER and QUICK_PAUSE)
+ * M6105 - UltraSerial get temp info.		(like M105)					(Requires EMERGENCY_PARSER)
  * ****************************************************************************************
  *
  *
@@ -789,7 +795,7 @@ static millis_t auto_time_used_interval = AUTO_TIME_USED_INTERVAL * 1000UL;
 	bool invalidLoop;
 	float pausePos[XYZE];						// pause position when quick stop.
 	float pauseSpeed;								// pause speed when quick stop.
-	uint32_t pauseByte; 						// pause byte when quick stop.
+	uint32_t pauseByteOrLineN; 			// pause byte when quick stop.
 	float lastPos[XYZE];						// real position when quick stop. Followed by "X, Y, Z, E".
 	#ifdef HAS_LEVELING
 		bool pauseLeveling;						// leveing or not, when quick stop.
@@ -800,7 +806,9 @@ static millis_t auto_time_used_interval = AUTO_TIME_USED_INTERVAL * 1000UL;
 	bool moduleIsReady = false;						// If the module is ready.
 	bool isAccidentToPrinting = false;			// If the printer is preprinting from accident.
 	bool isAccident = false;								// Save data in case of accidents. Eg. Sudden power outage.
+#if HAS_READER
 	char lastFilename[MAXPATHNAMELENGTH];		// Last Filename from SD when unexpected shutdown
+#endif
 	int lastToolsState[TOOLS_NUM]; 	// pause extruders state when quick stop. Followed by "T0, T1, T2, T3, T4, Bed, Fan, active_T". Eg.{210,0,200,0,0,45,255,2}
 #endif
 
@@ -827,7 +835,11 @@ bool isFilamentUnloaded = false;
 
 PowerState powerState = POWER_NORMAL;
 
-bool isSerialPrinting = false;						// If the printer is printing from serial.
+#ifdef ULTRA_SERIAL
+	uint8_t serialState = 0;
+#else
+	bool isSerialPrinting = false;						// If the printer is printing from serial.
+#endif
 
 #ifdef POWER_MANAGEMENT
 	static millis_t shutBtnStartTime = 0;
@@ -1039,10 +1051,18 @@ inline void _commit_command(bool say_ok
  * Return true if the command was successfully added.
  * Return false for a full buffer, or if the 'command' is a comment.
  */
-inline bool _enqueuecommand(const char* cmd, bool say_ok=false) {
+inline bool _enqueuecommand(const char* cmd, bool say_ok=false
+#if ENABLED(ULTRA_SERIAL) && ENABLED(QUICK_PAUSE)
+		, bool withN = false
+#endif
+		) {
   if (*cmd == ';' || commands_in_queue >= BUFSIZE) return false;
   strcpy(command_queue[cmd_queue_index_w], cmd);
+#if ENABLED(ULTRA_SERIAL) && ENABLED(QUICK_PAUSE)
+  _commit_command(say_ok, withN ? gcode_N : 0);
+#else
   _commit_command(say_ok);
+#endif
   return true;
 }
 
@@ -1099,7 +1119,11 @@ void suicide() {
 
 void servo_init() {
   #if NUM_SERVOS >= 1 && HAS_SERVO_0
-    servo[0].attach(SERVO0_PIN);
+    #ifdef USE_CUSTOM_SERVO0
+      servo[0].attach(SERVO0_PIN, SERVO0_MIN_PULSE, SERVO0_MAX_PULSE);
+    #else
+      servo[0].attach(SERVO0_PIN);
+    #endif
     servo[0].detach(); // Just set up the pin. We don't have a position yet. Don't move to a random position.
   #endif
   #if NUM_SERVOS >= 2 && HAS_SERVO_1
@@ -1126,6 +1150,10 @@ void servo_init() {
      *
      */
     STOW_Z_SERVO();
+  #endif
+
+  #ifdef SWITCHING_NOZZLE   // By LYN
+    servo[SWITCHING_NOZZLE_SERVO_NR].attach(SWITCHING_NOZZLE_PIN, SWITCHING_NOZZLE_MIN_PULSE, SWITCHING_NOZZLE_MAX_PULSE);
   #endif
 }
 
@@ -1294,6 +1322,12 @@ inline void get_serial_commands() {
 
       char* command = serial_line_buffer;
 
+    #ifdef DEBUG_CMD
+      SERIAL_ECHO("serial cmd @ ");
+      SERIAL_ECHO((int)cmd_queue_index_w);
+      SERIAL_ECHO(":	");
+      SERIAL_ECHOLN(command);
+    #endif
       while (*command == ' ') command++; // skip any leading spaces
       char *npos = (*command == 'N') ? command : NULL, // Require the N parameter to start the line
            *apos = strchr(command, '*');
@@ -1359,7 +1393,7 @@ inline void get_serial_commands() {
         // If command was e-stop process now
         if (strcmp(command, "M108") == 0) {
           wait_for_heatup = false;
-          #if ENABLED(ULTIPANEL)
+          #if ENABLED(ULTIPANEL) || ENABLED(QUICK_PAUSE)
             wait_for_user = false;
           #endif
         }
@@ -1372,7 +1406,16 @@ inline void get_serial_commands() {
       #endif
 
       // Add the command to the queue
+
+    #if ENABLED(ULTRA_SERIAL) && ENABLED(QUICK_PAUSE)
+      bool sayok = true;
+      if (strcmp(command, "M6105") == 0) {
+        sayok = false;
+      }
+      _enqueuecommand(serial_line_buffer, sayok, npos);
+    #else
       _enqueuecommand(serial_line_buffer, true);
+    #endif
     }
     else if (serial_count >= MAX_CMD_SIZE - 1) {
       // Keep fetching, but ignore normal characters beyond the max length
@@ -1425,7 +1468,7 @@ inline void get_serial_commands() {
       const int16_t n = FILE_READER.get();
       char file_char = (char)n;
       file_eof = FILE_READER.eof();
-      if (file_eof || n == -1 || n == 0xFF
+      if (file_eof || n == -1 || n == 0xFF || n == 0x00
           || file_char == '\n' || file_char == '\r'
           || ((file_char == '#' || file_char == ':') && !file_comment_mode)
       ) {
@@ -1443,22 +1486,23 @@ inline void get_serial_commands() {
             set_led_color(0, 0, 0);   // OFF
           #endif
 
-					#if ENABLED(SDSUPPORT)
-						card.checkautostart(true);
-					#endif
+          #if ENABLED(SDSUPPORT)
+            card.checkautostart(true);
+          #endif
 
-  			  LCD_MESSAGEPGM(MSG_PRINTFINISHED);
-  			  DWIN_MSG_P(DWIN_MSG_PRINTFINISHED);
+          LCD_MESSAGEPGM(MSG_PRINTFINISHED);
+          DWIN_MSG_P(DWIN_MSG_PRINTFINISHED);
 
-					#ifdef DWIN_LCD
-						return_default_button_action();
-					#endif
+          #ifdef DWIN_LCD
+            returnDefaultButtonAction();
+          #endif
 
-	  			finishTaskBeeper();
+          finishTaskBeeper();
         }
-        else if (n == -1 || n == 0xFF) {
+        else if (n == -1 || n == 0xFF || n == 0x00) {
           SERIAL_ERROR_START();
           SERIAL_ECHOLNPGM(MSG_SD_ERR_READ);
+          break;
         }
         if (file_char == '#') stop_buffering = true;
 
@@ -1486,7 +1530,7 @@ inline void get_serial_commands() {
         if (file_char == ';') file_comment_mode = true;
         if (!file_comment_mode){
 				#ifdef QUICK_PAUSE
-        	if (!file_count) current_line_pos = FILE_READER.getSdPos();		// By LYN (save the position when start a new cmd)
+        	if (!file_count) current_line_pos = FILE_READER.getSdPos() - 1;		// By LYN (save the position when start a new cmd)
 				#endif
         	command_queue[cmd_queue_index_w][file_count++] = file_char;
         }
@@ -2313,7 +2357,12 @@ static void clean_up_after_endstop_or_probe_move() {
 
     void bltouch_command(int angle) {
       MOVE_SERVO(Z_ENDSTOP_SERVO_NR, angle);  // Give the BL-Touch the command and wait
-      safe_delay(BLTOUCH_DELAY);
+//      safe_delay(BLTOUCH_DELAY);
+      delay(BLTOUCH_DELAY);
+      thermalManager.ignoreCurrentTemp();
+      #if ENABLED(USE_WATCHDOG)
+        watchdog_reset();
+      #endif
     }
 
     bool set_bltouch_deployed(const bool deploy) {
@@ -3919,8 +3968,8 @@ inline void gcode_G4() {
       SERIAL_ECHOLNPGM("SCARA");
     #elif IS_CORE
       SERIAL_ECHOLNPGM("Core");
-		#elif IS_H
-			SERIAL_ECHOLNPGM("ShapeH");
+    #elif IS_H
+      SERIAL_ECHOLNPGM("ShapeH");
     #else
       SERIAL_ECHOLNPGM("Cartesian");
     #endif
@@ -4198,7 +4247,11 @@ inline void gcode_G28(const bool always_home_all) {
 			const uint8_t old_filamentDetectMask = filamentDetectMask;
 			CBI(filamentDetectMask, 0);
 		#endif
-    tool_change(0, 0, true);
+    #ifdef SWITCHING_NOZZLE
+      switch_nozzle(0);   //By LYN
+    #else
+      tool_change(0, 0, true);
+    #endif
   #endif
 
   #if ENABLED(DUAL_X_CARRIAGE) || ENABLED(DUAL_NOZZLE_DUPLICATION_MODE)
@@ -5543,7 +5596,7 @@ void home_all_axes() { gcode_G28(true); }
     lcd_refresh();
     STORE_SETTING(bilinear_grid_spacing);
     STORE_SETTING(bilinear_start);
-    EEPROM_STORE(z_values, setting_mesh_bilinear_z_values);
+    EEPROM_STORE(z_values, mesh_bilinear_z_values);
     /*******************************************/
   }
 
@@ -6219,9 +6272,8 @@ inline void gcode_G92() {
 
         current_position[i] = v;
 
-        axis_known_position[i] = true;
-
         if (i != E_AXIS) {
+        	axis_known_position[i] = true;
           didXYZ = true;
           #if HAS_POSITION_SHIFT
             position_shift[i] += v - p; // Offset the coordinate space
@@ -6300,6 +6352,10 @@ inline void gcode_G92() {
           while (wait_for_user) idle();
           IS_SD_PRINTING ? LCD_MESSAGEPGM(MSG_RESUMING) : LCD_MESSAGEPGM(WELCOME_MSG);
         }
+      #elif ENABLED(DWIN_LCD)
+        DWIN_MSG_P(DWIN_MSG_USERWAIT);
+        returnDefaultButtonAction();
+        while (wait_for_user) idle();
       #else
         while (wait_for_user) idle();
       #endif
@@ -6779,9 +6835,9 @@ inline void gcode_M17() {
     card.startFileprint();
     print_job_timer.start();
 
-		#ifdef DWIN_LCD
-    	return_default_button_action();
-		#endif
+    #ifdef DWIN_LCD
+      returnDefaultButtonAction();
+    #endif
   }
 
   /**
@@ -6870,9 +6926,9 @@ inline void gcode_M31() {
       // Procedure calls count as normal print time.
       if (!call_procedure) print_job_timer.start();
     }
-	#ifdef DWIN_LCD
-    return_default_button_action();
-	#endif
+  #ifdef DWIN_LCD
+    returnDefaultButtonAction();
+  #endif
   }
 
   #if ENABLED(LONG_FILENAME_HOST_SUPPORT)
@@ -7687,6 +7743,62 @@ inline void gcode_M104() {
   }
 #endif
 
+#ifdef ULTRA_SERIAL
+void print_extrastates(){
+  SERIAL_ECHOPGM("extraInfo:");
+  SERIAL_ECHO(feedrate_percentage);
+  SERIAL_ECHOPGM(":");
+  SERIAL_ECHO(flow_percentage[active_extruder]);
+  SERIAL_ECHOPGM(":");
+#if FAN_COUNT > 0
+  #if FAN_COUNT > 1
+    SERIAL_ECHO(fanSpeeds[active_extruder < FAN_COUNT ? active_extruder : 0]);
+  #else
+    SERIAL_ECHO(fanSpeeds[0]);
+#endif
+#endif
+  SERIAL_ECHOPGM(":");
+#ifdef HAS_AUTO_FAN
+  SERIAL_ECHO(extruder_auto_fan_speed);
+#endif
+  SERIAL_ECHOPGM(":");
+#ifdef HAS_AIR_FAN
+  SERIAL_ECHO(air_fan_speed);
+#endif
+  SERIAL_ECHOPGM(":");
+#if HAS_BED_PROBE
+  SERIAL_ECHO(-zprobe_zoffset);
+#endif
+#if HAS_LEVELING
+  #if ENABLED(AUTO_BED_LEVELING_BILINEAR)
+    SERIAL_ECHOPGM(":");
+    if(FILE_IS_IDLE && !planner.blocks_queued()){
+      SERIAL_ECHOPGM("1");
+    } else {
+      SERIAL_ECHOPGM("0");
+    }
+    SERIAL_ECHOPGM(":");
+    if(leveling_is_valid()){
+      if(leveling_is_active()){
+        SERIAL_ECHOPGM("1");
+      } else {
+        SERIAL_ECHOPGM("0");
+      }
+    } else {
+      SERIAL_ECHOPGM("-1");
+    }
+  #else
+    SERIAL_ECHOPGM(":");
+    SERIAL_ECHOPGM(":");
+#endif
+#else
+  SERIAL_ECHOPGM(":");
+  SERIAL_ECHOPGM(":");
+#endif
+  SERIAL_EOL();
+}
+#endif
+
 /**
  * M105: Read hot end and bed temperature
  */
@@ -7702,6 +7814,10 @@ inline void gcode_M105() {
   #endif
 
   SERIAL_EOL();
+
+  #ifdef ULTRA_SERIAL
+    print_extrastates();
+  #endif
 }
 
 #if ENABLED(AUTO_REPORT_TEMPERATURES) && (HAS_TEMP_HOTEND || HAS_TEMP_BED)
@@ -7825,8 +7941,11 @@ inline void gcode_M109() {
     #endif
 
     if (thermalManager.isHeatingHotend(target_extruder)){
-    	lcd_status_printf_P(0, PSTR("E%i %s"), target_extruder + 1, MSG_HEATING);
-    	DWIN_MSG_P(DWIN_MSG_HEATING);
+      lcd_status_printf_P(0, PSTR("E%i %s"), target_extruder + 1, MSG_HEATING);
+      char temp[20] = {0};
+      sprintf_P(temp, PSTR("E%i %s"), target_extruder + 1, MSG_HEATING);
+      SERIAL_ECHOLN(temp);
+      DWIN_MSG_P(DWIN_MSG_HEATING);
     }
   }
   else return;
@@ -7936,6 +8055,7 @@ inline void gcode_M109() {
 
   if (wait_for_heatup) {
     LCD_MESSAGEPGM(MSG_HEATING_COMPLETE);
+    SERIAL_ECHOLNPGM(MSG_HEATING_COMPLETE);
     DWIN_MSG_P(DWIN_MSG_HEATING_COMPLETE);
     #if ENABLED(PRINTER_EVENT_LEDS)
       #if ENABLED(RGB_LED) || ENABLED(BLINKM) || ENABLED(PCA9632) || ENABLED(RGBW_LED)
@@ -7969,6 +8089,7 @@ inline void gcode_M109() {
     if (DEBUGGING(DRYRUN)) return;
 
     LCD_MESSAGEPGM(MSG_BED_HEATING);
+    SERIAL_ECHOLNPGM(MSG_BED_HEATING);
     DWIN_MSG_P(DWIN_MSG_BED_HEATING);
     const bool no_wait_for_cooling = parser.seenval('S');
     if (no_wait_for_cooling || parser.seenval('R')) {
@@ -8081,7 +8202,8 @@ inline void gcode_M109() {
     } while (wait_for_heatup && TEMP_BED_CONDITIONS);
 
     if (wait_for_heatup){
-    	LCD_MESSAGEPGM(MSG_BED_DONE);
+      LCD_MESSAGEPGM(MSG_BED_DONE);
+      SERIAL_ECHOLNPGM(MSG_BED_DONE);
       DWIN_MSG_P(DWIN_MSG_BED_DONE);
     }
     #if DISABLED(BUSY_WHILE_HEATING)
@@ -8593,16 +8715,19 @@ inline void gcode_M115() {
  * M117: Set LCD Status Message
  */
 inline void gcode_M117() {
-	if (!strcmp_P(parser.string_arg, PSTR("Printing..."))){
-	  LCD_MESSAGEPGM(MSG_PRINTING);
-	  DWIN_MSG_P(DWIN_MSG_PRINTING);
-	} else if (!strcmp_P(parser.string_arg, PSTR("Print finished."))){
-	  LCD_MESSAGEPGM(MSG_PRINTFINISHED);
-	  DWIN_MSG_P(DWIN_MSG_PRINTFINISHED);
-	} else {
-		lcd_setstatus(parser.string_arg);
-		DWIN_MSG(parser.string_arg);
-	}
+  if (!strcmp_P(parser.string_arg, PSTR("Printing..."))){
+    LCD_MESSAGEPGM(MSG_PRINTING);
+    SERIAL_ECHOLNPGM(MSG_PRINTING);
+    DWIN_MSG_P(DWIN_MSG_PRINTING);
+  } else if (!strcmp_P(parser.string_arg, PSTR("Print finished."))){
+    LCD_MESSAGEPGM(MSG_PRINTFINISHED);
+    SERIAL_ECHOLNPGM(MSG_PRINTFINISHED);
+    DWIN_MSG_P(DWIN_MSG_PRINTFINISHED);
+  } else {
+    lcd_setstatus(parser.string_arg);
+    SERIAL_ECHOLN(parser.string_arg);
+    DWIN_MSG(parser.string_arg);
+  }
 }
 
 /**
@@ -9253,8 +9378,39 @@ inline void gcode_M226() {
    *
    *   C[float] Kc term
    *   L[float] LPQ length
+   *
+   * PID_PARAMS_USE_TEMP_RANGE
+   *   S[uint8_t] Temperature range index
    */
   inline void gcode_M301() {
+  
+  #if PID_PARAMS_USE_TEMP_RANGE
+    const uint8_t s = parser.byteval('S'); // Temperature range index (By LYN)
+    if (s < PID_PARAMS_TEMP_RANGE_NUM) { // catch bad input value
+      if (parser.seen('P')) PID_PARAM(Kp, s) = parser.value_float();
+      if (parser.seen('I')) PID_PARAM(Ki, s) = scalePID_i(parser.value_float());
+      if (parser.seen('D')) PID_PARAM(Kd, s) = scalePID_d(parser.value_float());
+      #if ENABLED(PID_EXTRUSION_SCALING)
+        if (parser.seen('C')) PID_PARAM(Kc, s) = parser.value_float();
+        if (parser.seen('L')) lpq_len = parser.value_float();
+        NOMORE(lpq_len, LPQ_MAX_LEN);
+      #endif
+      thermalManager.updatePID();
+      SERIAL_ECHO_START();
+      SERIAL_ECHOPAIR(" s:", s);
+      SERIAL_ECHOPAIR(" p:", PID_PARAM(Kp, s));
+      SERIAL_ECHOPAIR(" i:", unscalePID_i(PID_PARAM(Ki, s)));
+      SERIAL_ECHOPAIR(" d:", unscalePID_d(PID_PARAM(Kd, s)));
+      #if ENABLED(PID_EXTRUSION_SCALING)
+        //Kc does not have scaling applied above, or in resetting defaults
+        SERIAL_ECHOPAIR(" c:", PID_PARAM(Kc, s));
+      #endif
+      SERIAL_EOL();
+    } else {
+      SERIAL_ERROR_START();
+      SERIAL_ERRORLNPGM("Invalid temperature range");
+    }
+  #else
 
     // multi-extruder PID patch: M301 updates or prints a single extruder's PID values
     // default behaviour (omitting E parameter) is to update for extruder 0 only
@@ -9288,6 +9444,7 @@ inline void gcode_M226() {
       SERIAL_ERROR_START();
       SERIAL_ERRORLN(MSG_INVALID_EXTRUDER);
     }
+  #endif
   }
 
 #endif // PIDTEMP
@@ -9428,6 +9585,13 @@ inline void gcode_M303() {
     SERIAL_ERRORLNPGM(MSG_ERR_M303_DISABLED);
   #endif
 }
+
+#if ENABLED(PIDTEMP_CHAMBER)
+  inline void gcode_M305(){
+    int16_t temp = parser.celsiusval('S', 50);
+    thermalManager.PID_autotune_Chamber(temp);
+  }
+#endif // PIDTEMP_CHAMBER
 
 #if ENABLED(MORGAN_SCARA)
 
@@ -9969,19 +10133,19 @@ inline void gcode_M502() {
 
     last_zoffset = zprobe_zoffset;
   }
-#else			// By LYN
+#else   // By LYN
   void refresh_zprobe_zoffset(const bool no_babystep/*=false*/) {
-  	static float last_zoffset = NAN;
+    static float last_zoffset = NAN;
 
-  	if(!isnan(last_zoffset)){
-  		zprobe_zoffset_diff = zprobe_zoffset - last_zoffset;
-  		if(zprobe_zoffset_diff){
-				enqueue_and_echo_commands_P(PSTR("M6010"));
-  		}
-  	}
+    if(!isnan(last_zoffset)){
+      zprobe_zoffset_diff = zprobe_zoffset - last_zoffset;
+      if(zprobe_zoffset_diff){
+        enqueue_and_echo_commands_P(PSTR("M6010"));
+      }
+    }
 
-  	last_zoffset = zprobe_zoffset;
-  	UNUSED(no_babystep);
+    last_zoffset = zprobe_zoffset;
+    UNUSED(no_babystep);
   }
 #endif
 
@@ -9994,6 +10158,7 @@ inline void gcode_M502() {
       if (WITHIN(value, Z_PROBE_OFFSET_RANGE_MIN, Z_PROBE_OFFSET_RANGE_MAX)) {
         zprobe_zoffset = value;
         refresh_zprobe_zoffset();
+        STORE_SETTING(zprobe_zoffset);  // By LYN
         SERIAL_ECHO(zprobe_zoffset);
       }
       else
@@ -10647,6 +10812,11 @@ inline void gcode_M6001() {
 	RUNPLAN(PAUSE_REUSE_SPEED_MOVE);
 
 	set_current_to_destination();
+
+#ifdef DWIN_LCD
+  POP_WINDOW(POP_ICO_PARKING, POPUP_DELAY_ALWAY_DELAY);
+  stepper.synchronize();
+#endif
 }
 
 /*
@@ -10660,7 +10830,7 @@ inline void gcode_M6002() {
 #if defined(FILAMENT_CHANGE) || defined(FILAMENT_DETECT)
 	if (isPauseForFilament) {
 		#ifdef DWIN_LCD
-			POP_WINDOW(WAIT_KEY);
+			POP_WINDOW(POP_ICO_RESUMING, POPUP_DELAY_ALWAY_DELAY);
 		#endif
 		set_destination_to_current();
 		if(destination[Z_AXIS] < PAUSE_LIFT_HEIGH){
@@ -10718,12 +10888,26 @@ inline void gcode_M6002() {
 bool quickPausePrintJob(){
 	STORE_SETTING(usedTime);
 
+#if HAS_RESUME_CONTINUE
+  if(wait_for_user){
+    return false;
+  }
+#endif
+
 	if(FILE_IS_PRINT
 	#if ENABLED(ACCIDENT_DETECT)
 		&& !isAccidentToPrinting
 	#endif
 	){
 		quickstop_stepper();							// quick stop
+	#if ENABLED(ULTRA_SERIAL)
+		SERIAL_ECHO_START();
+		SERIAL_ECHOPGM("PAUSE, Last Line Number is ");
+		SERIAL_ECHOLN(pauseByteOrLineN);
+		gcode_LastN = pauseByteOrLineN - 1;
+		NOLESS(gcode_LastN, 0);
+		FlushSerialRequestResend();
+	#endif
 		FILE_PAUSE_PRINT;									// pause file reader
 		print_job_timer.pause();					// pause timer
 		enqueue_and_echo_commands_P(PSTR("M6001"));
@@ -10735,13 +10919,26 @@ bool quickPausePrintJob(){
 bool quickReusePrintJob(){
 	STORE_SETTING(usedTime);
 
-	if(READER_VALID && FILE_IS_PAUSE && !planner.blocks_queued()
+  #if HAS_RESUME_CONTINUE
+    if(wait_for_user){
+      wait_for_user = false;
+      return true;
+    }
+  #endif
+
+	if(
+	#if HAS_READER
+		READER_VALID &&
+	#endif
+		FILE_IS_PAUSE && !planner.blocks_queued()
 	#if ENABLED(FILAMENT_DETECT)
 		&& isFilamentReady
 	#endif
 	){
 		gcode_M6002();										// move and sink the nozzle
-		FILE_READER.setIndex(pauseByte);	// set the reader index
+	#if HAS_READER
+		FILE_READER.setIndex(pauseByteOrLineN);	// set the reader index
+	#endif
 		FILE_START_PRINT;									// start file reader
 		print_job_timer.start();					// start timer
 		return true;
@@ -10759,6 +10956,9 @@ void quickStopPrintJob(){
     for (uint8_t i = 0; i < FAN_COUNT; i++) fanSpeeds[i] = 0;
   #endif
   wait_for_heatup = false;
+#if HAS_RESUME_CONTINUE
+  wait_for_user = false;
+#endif
 
 #if HAS_LEVELING
 	set_bed_leveling_enabled(pauseLeveling);
@@ -10777,6 +10977,11 @@ inline void gcode_M6003() {
 	destination[E_AXIS] -= FILAMENT_UNLOAD_LENGTH;
 	RUNPLAN(FILAMENT_UNLOAD_SPEED);
 
+#ifdef DWIN_LCD
+	HIDE_POPUP;
+	POP_WINDOW(POP_ICO_UNLOAD_FILAMENT, POPUP_DELAY_ALWAY_DELAY);
+#endif
+
 	stepper.synchronize();
 	set_current_to_destination();
 
@@ -10788,12 +10993,16 @@ inline void gcode_M6003() {
 
 	isFilamentUnloaded = true;
 
+#ifdef DWIN_LCD
+	HIDE_POPUP;
+#endif
+
 #if defined(FILAMENT_CHANGE) || defined(FILAMENT_DETECT)
 	if(isPauseForFilament){
 		LCD_ALERTMESSAGEPGM(MSG_FILAMENTCHANGE);
-		#ifdef DWIN_LCD
-			POP_WINDOW(CHANGE_FILAMENT_KEY);
-		#endif
+	#ifdef DWIN_LCD
+		POP_WINDOW(POP_KEY_CHANGE_FILAMENT, POPUP_DELAY_ALWAY_DELAY);
+	#endif
 	}
 #endif
 }
@@ -10810,10 +11019,8 @@ bool pauseToUnloadFilament(){
   #endif
     isPauseForFilament = true;
     enqueue_and_echo_commands_P(PSTR("M6003"));
-    LCD_MESSAGEPGM(MSG_FILAMENT_NOT_READY);
-    DWIN_MSG_P(DWIN_MSG_FILAMENT_NOT_READY);
   #ifdef DWIN_LCD
-    return_default_button_action();
+    returnDefaultButtonAction();
   #endif //DWIN_LCD
     return true;
   } else {								// pause failure
@@ -10830,6 +11037,9 @@ inline void gcode_M6004() {}
 * Home & Resume print from accident. (By LYN)
 */
 inline void gcode_M6005() {
+#ifdef DWIN_LCD
+  POP_WINDOW(POP_ICO_RESUMING, POPUP_DELAY_ALWAY_DELAY);
+#endif
 	set_destination_to_current();
 	axis_known_position[Z_AXIS] = true;
 
@@ -10881,6 +11091,10 @@ inline void gcode_M6005() {
 #if HAS_LEVELING
 	set_bed_leveling_enabled(pauseLeveling);
 #endif
+
+#ifdef DWIN_LCD
+  HIDE_POPUP;
+#endif
 }
 
 void preheaToolsState(){
@@ -10923,6 +11137,7 @@ void preheaToolsState(){
 
 }
 
+#if HAS_READER
 void openFileFromAccident(){
 	#ifdef SDSUPPORT
 		#define PARA_INDEX_1		4
@@ -10944,7 +11159,7 @@ void openFileFromAccident(){
 	enqueue_and_echo_command(cmd1);
 
 	char cmd2[PARA_INDEX_2 + 10 + 1];
-	sprintf_P(cmd2, PSTR(CMD_STRING_2), pauseByte);
+	sprintf_P(cmd2, PSTR(CMD_STRING_2), pauseByteOrLineN);
 	enqueue_and_echo_command(cmd2);
 
 	enqueue_and_echo_commands_P(PSTR(CMD_STRING_3));
@@ -10966,13 +11181,17 @@ void resumePrintFromAccident(){
 	#endif
 
 	char cmd[PARA_INDEX + 12 + strlen(lastFilename) + 1];
-	sprintf_P(cmd, PSTR(CMD_STRING), pauseByte, lastFilename);
+	sprintf_P(cmd, PSTR(CMD_STRING), pauseByteOrLineN, lastFilename);
 	for (char *c = &cmd[PARA_INDEX]; *c; c++)	*c = tolower(*c);
 	enqueue_and_echo_command(cmd);
 
 	#undef PARA_INDEX
 	#undef CMD_STRING
 }
+#else
+void openFileFromAccident(){}
+void resumePrintFromAccident(){}
+#endif
 
 void accidentToResume(){
 	if(isAccident){
@@ -11018,6 +11237,7 @@ void accidentToCancel(){
 
 #endif // ACCIDENT_DETECT
 
+#ifndef ULTRA_SERIAL
 /*
  * Start Serial print.
  */
@@ -11026,7 +11246,7 @@ inline void gcode_M6006(){
 		isSerialPrinting = true;
 		SERIAL_ECHOLNPGM(MSG_START_SERIAL_PRINT);
 	#ifdef DWIN_LCD
-		return_state_button_action();
+		returnDefaultButtonAction();
 	#endif
 	}
 }
@@ -11042,6 +11262,7 @@ inline void gcode_M6007(){
 		DWIN_MSG_P(DWIN_MSG_PRINTFINISHED);
 	}
 }
+#endif
 
 /*
  * Set used Time
@@ -11139,8 +11360,7 @@ inline void gcode_M6014() {
 	probeDone = false;
 	enqueue_and_echo_commands_P(PSTR("G28\nG29"));
 #ifdef DWIN_LCD
-	jump_leveling_page();
-	POP_WINDOW(WAIT_KEY);
+	POP_WINDOW(POP_ICO_PROBING, POPUP_DELAY_ALWAY_DELAY);
 #endif
 }
 #endif
@@ -11184,7 +11404,7 @@ inline void gcode_M6024() {
 	UDisk.startPrint();
 	print_job_timer.start();
   #ifdef DWIN_LCD
-	return_default_button_action();
+	returnDefaultButtonAction();
   #endif //DWIN_LCD
 }
 
@@ -11194,7 +11414,7 @@ inline void gcode_M6024() {
 inline void gcode_M6025() {
 	UDisk.pausePrint();
   #ifdef DWIN_LCD
-	return_default_button_action();
+	returnDefaultButtonAction();
   #endif //DWIN_LCD
 }
 
@@ -11256,7 +11476,7 @@ inline void gcode_M6032() {
 		if (!call_procedure) print_job_timer.start();
 	}
 #ifdef DWIN_LCD
-	return_default_button_action();
+	returnDefaultButtonAction();
 #endif
 }
 
@@ -11300,7 +11520,21 @@ inline void gcode_M6033() {
     const int16_t angles[2] = SWITCHING_NOZZLE_SERVO_ANGLES;
     stepper.synchronize();
     MOVE_SERVO(SWITCHING_NOZZLE_SERVO_NR, angles[e]);
-    safe_delay(500);
+    servo[SWITCHING_NOZZLE_SERVO_NR].detach();    //By LYN 不持续发PWM信号，避免干扰抖动
+  }
+
+  inline void align_nozzle(){
+    stepper.synchronize();
+    MOVE_SERVO(SWITCHING_NOZZLE_SERVO_NR, ALIGN_NOZZLE_AGNLE);
+    servo[SWITCHING_NOZZLE_SERVO_NR].detach();    //By LYN 不持续发PWM信号，避免干扰抖动
+  }
+
+  inline void switch_nozzle(const uint8_t e) {
+    int current_angles = servo[SWITCHING_NOZZLE_SERVO_NR].read();
+    if(NEAR(current_angles, ALIGN_NOZZLE_AGNLE)){
+      move_nozzle_servo(e);
+    }
+		tool_change(e, 0, true);
   }
 #endif
 
@@ -11621,6 +11855,12 @@ void tool_change(const uint8_t tmp_extruder, const float fr_mm_s/*=0.0*/, bool n
             // Always raise by some amount (destination copied from current_position earlier)
             current_position[Z_AXIS] += z_raise;
             planner.buffer_line_kinematic(current_position, planner.max_feedrate_mm_s[Z_AXIS], active_extruder);
+
+						/********* Add by LYN *********/
+            current_position[E_AXIS] -= SWITCHING_NOZZLE_E_CHANGE;
+            planner.buffer_line_kinematic(current_position, SWITCHING_NOZZLE_E_SPEED, active_extruder);
+						/******************************/
+
             move_nozzle_servo(tmp_extruder);
           #endif
 
@@ -11744,6 +11984,13 @@ void tool_change(const uint8_t tmp_extruder, const float fr_mm_s/*=0.0*/, bool n
 
         // Tell the planner the new "current position"
         SYNC_PLAN_POSITION_KINEMATIC();
+
+        /********* Add by LYN *********/
+        #if ENABLED(SWITCHING_NOZZLE)
+          current_position[E_AXIS] += SWITCHING_NOZZLE_E_CHANGE;
+          planner.buffer_line_kinematic(current_position, SWITCHING_NOZZLE_E_SPEED, active_extruder);
+        #endif
+        /******************************/
 
         // Move to the "old position" (move the extruder into place)
         if (!no_move && IsRunning()) {
@@ -12462,6 +12709,12 @@ void process_next_command() {
         gcode_M303();
         break;
 
+      #if ENABLED(PIDTEMP_CHAMBER)
+        case 305:
+          gcode_M305();
+          break;
+      #endif
+
       #if ENABLED(MORGAN_SCARA)
         case 360:  // M360: SCARA Theta pos1
           if (gcode_M360()) return;
@@ -12725,13 +12978,15 @@ void process_next_command() {
 					break;
 			#endif //ACCIDENT_DETECT
 
-			case 6006:
-				gcode_M6006();
-				break;
+			#ifndef ULTRA_SERIAL
+				case 6006:
+					gcode_M6006();
+					break;
 
-			case 6007:
-				gcode_M6007();
-				break;
+				case 6007:
+					gcode_M6007();
+					break;
+			#endif
 
 			case 6008:
 				gcode_M6008();
@@ -12862,8 +13117,8 @@ void FlushSerialRequestResend() {
  *   B<int>  Block queue space remaining
  */
 void ok_to_send() {
+	if (!send_ok[cmd_queue_index_r]) return;
   refresh_cmd_timeout();
-  if (!send_ok[cmd_queue_index_r]) return;
   SERIAL_PROTOCOLPGM(MSG_OK);
   #if ENABLED(ADVANCED_OK)
     char* p = command_queue[cmd_queue_index_r];
@@ -14261,7 +14516,7 @@ void updateStateStrings(){
 		return;
 	}
 #endif
-#if HAS_READER
+#if HAS_READER || ENABLED(ULTRA_SERIAL)
 	if(!FILE_IS_IDLE){
 		if(FILE_IS_PAUSE){
 		#if defined(FILAMENT_CHANGE) || defined(FILAMENT_DETECT)
@@ -14365,14 +14620,14 @@ void saveLastState(){
 		if(lastBlock && lastBlock->filePos){	// For normal print pause.
 			COPY(pausePos, lastPos);
 			pauseSpeed = lastBlock->block_speed;
-			pauseByte = lastBlock->filePos;
+			pauseByteOrLineN = lastBlock->filePos;
 		}
 	}
 
 	if (!(axis_known_position[X_AXIS] || axis_known_position[Y_AXIS] || axis_known_position[Z_AXIS])) {
 		ZERO(pausePos);
 		ZERO(lastPos);
-		pauseSpeed = pauseByte = 0;
+		pauseSpeed = pauseByteOrLineN = 0;
 	}
 
 #ifdef ACCIDENT_DETECT
@@ -14402,6 +14657,9 @@ void saveLastState(){
 #endif
 
 void coolAndShutdown(){
+#ifdef ULTRA_SERIAL
+	SERIAL_ECHOLNPGM("SHUTDOWN");
+#endif
 #ifdef POWER_MANAGEMENT
 	millis_t t = millis();
 	if (ELAPSED(t, lastShutBtnTime + 600)) shutBtnStartTime = t;
@@ -14419,23 +14677,33 @@ void coolAndShutdown(){
 		powerState = POWER_COOLING;
 
 	#ifdef DWIN_LCD
-		if (!DWIN_IS_PAGE(PAGE_SHUTDOWN_HOTEND)) {
-			GO_PAGE(PAGE_SHUTDOWN_HOTEND);
+		if (!DWIN_IS_PAGE(PAGE_SHUTDOWN_HOTTEMP)) {
+			GO_PAGE(PAGE_SHUTDOWN_HOTTEMP);
 		}
 	#endif
-	} else {
+	}
+#ifdef ULTRA_SERIAL
+	else if ((bool)READ(COMPUTER_SHUTDOWN_PIN)){
+		MyBeeper(2);
+		powerState = POWER_COMPUTER_SHUTTING;
+	}
+#endif
+	else {
 		powerState = POWER_SHUTTING;
 	}
 }
 
 #ifdef ACCIDENT_DETECT
 void accidentAction() {
-	if(!FILE_IS_IDLE && moduleIsReady){
+	if(!FILE_IS_IDLE){
 		quickstop_stepper();
+    thermalManager.disable_all_heaters();     //shut off all heaters at once.
+    disable_all_steppers();
+	#if HAS_READER
 		FILE_READER.getAbsFilename(lastFilename);
 		FILE_STOP_PRINT;
+	#endif
 		wait_for_heatup = false;
-
 
 		invalidLoop = false;
 		COPY(current_position, lastPos);
@@ -14447,23 +14715,22 @@ void accidentAction() {
 		COPY(lastPos, current_position);
 		invalidLoop = true;
 
-
-		thermalManager.disable_all_heaters();
 		isAccident = true;
-
 
 		// save accident info
 
-		#ifdef HAS_LEVELING
-			STORE_SETTING(pauseLeveling);
-		#endif
+	#ifdef HAS_LEVELING
+		STORE_SETTING(pauseLeveling);
+	#endif
 		STORE_SETTING(pausePos);
 		STORE_SETTING(pauseSpeed);
-		STORE_SETTING(pauseByte);
+		STORE_SETTING(pauseByteOrLineN);
 		STORE_SETTING(lastPos);
 		STORE_SETTING(lastToolsState);
+
+	#if HAS_READER
 		STORE_SETTING(lastFilename);
-		STORE_SETTING(isAccident);
+	#endif
 
 		STORE_SETTING(usedTime);
 		LCD_MESSAGEPGM(WELCOME_MSG);
@@ -14471,13 +14738,15 @@ void accidentAction() {
 
 		while (planner.blocks_queued());
 
+		STORE_SETTING(isAccident);            //save the accident flag after axis move finished.
+
 		coolAndShutdown();
 	} else {
 		coolAndShutdown();
 	}
 }
 void detectAccident() {
-	if ((!isAccident && (powerState > POWER_COOLING)) && !READ(ACCIDENT_PIN)) {
+	if (moduleIsReady && (!isAccident && (powerState > POWER_COOLING)) && !READ(ACCIDENT_PIN)) {
 		//TIMSK0 &= ~_BV(OCIE0B); //By LYN
 		accidentAction();
 	}
@@ -14486,7 +14755,9 @@ void detectAccident() {
 
 #ifdef POWER_MANAGEMENT
 void shutdownAction(){
+#ifndef ULTRA_SERIAL
 	isSerialPrinting = false;
+#endif
 #ifdef ACCIDENT_DETECT
 	//TIMSK0 &= ~_BV(OCIE0B); //By LYN
 	accidentAction();
@@ -14498,8 +14769,18 @@ void shutdownAction(){
 void detectPower() {
 	// cooling while shutdown is finished.
 	if (powerState == POWER_COOLING && (thermalManager.maxDegHotend() < EXTRUDER_AUTO_FAN_TEMPERATURE)){
+	#if ENABLED(ULTRA_SERIAL)
+		powerState = POWER_COMPUTER_SHUTTING;
+	#else
+		powerState = POWER_SHUTTING;
+	#endif
+	}
+
+#if ENABLED(ULTRA_SERIAL)
+	if (powerState == POWER_COMPUTER_SHUTTING && !READ(COMPUTER_SHUTDOWN_PIN)){
 		powerState = POWER_SHUTTING;
 	}
+#endif
 
 	// Shutdown
 	if (powerState == POWER_SHUTTING){
@@ -14516,14 +14797,19 @@ void detectPower() {
 #if ENABLED(AUTO_SHUTDOWN)
 	// update the power state
 	if(	planner.blocks_queued()			// move axis
+		#ifndef ULTRA_SERIAL
 			|| isSerialPrinting					// printing from Serial
+		#endif
 			|| USER_OPERATE							// user operate
-		#if HAS_READER
+		#if HAS_READER || ENABLED(ULTRA_SERIAL)
 			|| !FILE_IS_IDLE						// file operate
 		#endif
+    #ifdef WIFI_SUPPORT
+			|| myWifi.hasConnect()      // exist wifi connect
+    #endif
 	){
 	#if ENABLED(FILAMENT_DETECT)
-		if(isPauseForFilament && !isFilamentReady && !USER_OPERATE){				// filament error
+		if(isPauseForFilament && !USER_OPERATE){				// filament error
 			powerState = POWER_TIMING_OFF_FILAMENT_ERROR;
 		} else
 	#endif
@@ -14579,6 +14865,7 @@ void detectPower() {
 		} else if(powerState == POWER_TIMING_OFF_IDLE) {
 			AutoShutdownStartTime = curTime + AUTO_SHUTDOWN_TIME_IDLE * 1000UL;
 		}
+		AutoShutdownTimeRemaining = AutoShutdownStartTime - curTime;
 	}
 #endif // AUTO_SHUTDOWN
 }
@@ -14587,7 +14874,7 @@ void detectPower() {
 #ifdef FILAMENT_DETECT
 void detectFilament() {
 	isFilamentReady = true;
-#if HAS_READER
+#if HAS_READER || ENABLED(ULTRA_SERIAL)
 	if(FILE_IS_IDLE){
 		filamentDetectMask = 0x00;
 	}
@@ -14676,7 +14963,11 @@ void detectFilament() {
 
 #if HAS_READER
 	if(!isFilamentReady){
-		(void)pauseToUnloadFilament();
+		if(pauseToUnloadFilament()){
+			LCD_MESSAGEPGM(MSG_FILAMENT_NOT_READY);
+			SERIAL_ECHOLNPGM(MSG_FILAMENT_NOT_READY);
+			DWIN_MSG_P(DWIN_MSG_FILAMENT_NOT_READY);
+		}
 	}
 #else  // Not from file
 #endif
@@ -14713,7 +15004,7 @@ void detectAirFan() {
 
 #ifdef COLOR_LED
 void controlLED(){
-	#if HAS_READER
+	#if HAS_READER || ENABLED(ULTRA_SERIAL)
 		if (!FILE_IS_IDLE) {
 			if (FILE_IS_PRINT) {
 				// print state show bule light.
@@ -14757,7 +15048,7 @@ void controlTime() {
 	#ifdef REG_SN
 		// elapsedTime over trialTime && RegSN is wrong
 		if (LIMITED_USE) {
-		#if HAS_READER
+		#if HAS_READER || ENABLED(ULTRA_SERIAL)
 			if (!FILE_IS_IDLE){
 			#if ENABLED(QUICK_PAUSE)
 				quickStopPrintJob();
@@ -14781,7 +15072,7 @@ void controlTime() {
 			if(!FILE_IS_IDLE)
 				lcd_return_to_status();
 		#elif ENABLED(DWIN_LCD)
-			if (!DWIN_IS_PAGE(PAGE_REG) && !DWIN_IS_PAGE(PAGE_SHUTDOWN_HOTEND)) {
+			if (!DWIN_IS_PAGE(PAGE_REG) && !DWIN_IS_PAGE(PAGE_SHUTDOWN_HOTTEMP)) {
 				// TODO hidden the pop window
 				GO_PAGE(PAGE_REG);
 				updateStateStrings();
@@ -14792,7 +15083,7 @@ void controlTime() {
 
 	millis_t ms = millis();
 	bool operating = (planner.blocks_queued() || thermalManager.maxDegHotend() > EXTRUDER_AUTO_FAN_TEMPERATURE);
-	#if HAS_READER
+	#if HAS_READER || ENABLED(ULTRA_SERIAL)
 		operating |= (!FILE_IS_IDLE);
 	#endif
 	// increase elapsedTime per "auto_time_used_interval"
@@ -14848,7 +15139,7 @@ void customDetect() {
 	detectAirFan();
 #endif
 #if defined(FILAMENT_CHANGE) || defined(FILAMENT_DETECT)
-	#if HAS_READER
+	#if HAS_READER || ENABLED(ULTRA_SERIAL)
 		if(!FILE_IS_PAUSE){
 			isPauseForFilament = false;
 		}
@@ -14894,7 +15185,7 @@ void manage_inactivity(bool ignore_stepper_queue/*=false*/) {
   #endif
 
   // By LYN
-	#if HAS_READER
+	#if HAS_READER || ENABLED(ULTRA_SERIAL)
   	if(!FILE_IS_IDLE)	ignore_stepper_queue = true;
 	#endif
 
@@ -15099,11 +15390,7 @@ void kill(const char* lcd_msg) {
     kill_screen(lcd_msg);
 	#elif ENABLED(DWIN_LCD)
     dwin_update_msg_P(lcd_msg);
-    if(HAS_READER && !FILE_IS_IDLE){
-      return_default_button_action();
-    }else{
-      return_state_button_action();
-    }
+    returnDefaultButtonAction();
     disableTouch();
   #else
     UNUSED(lcd_msg);
@@ -15249,8 +15536,8 @@ void setup() {
 
 //  SERIAL_ECHO_START();
   SERIAL_ECHOPAIR(MSG_FREE_MEMORY, freeMemory());
-  SERIAL_ECHOPAIR(MSG_PLANNER_BUFFER_BYTES, (int)sizeof(block_t)*BLOCK_BUFFER_SIZE);
-  SERIAL_ECHOLNPAIR("  ConfigBufferBytes: ", (int)sizeof(EEPROM_DATA));
+  SERIAL_ECHOLNPAIR(MSG_PLANNER_BUFFER_BYTES, (int)sizeof(block_t)*BLOCK_BUFFER_SIZE);
+  SERIAL_EOL();
 
   // Send "ok" after commands by default
   for (int8_t i = 0; i < BUFSIZE; i++) send_ok[i] = true;
@@ -15364,15 +15651,15 @@ void setup() {
     fanmux_init();
   #endif
 
-	#if ENABLED(REG_USE_HARDWARE)		// By LYN
-		initSequence();
-	#endif
-
   lcd_init();
-#if ENABLED(DWIN_LCD)				// By LYN
-	dwin_setup();
+#if ENABLED(DWIN_LCD)       // By LYN
+  dwin_setup();
 #endif
-	startupBeeper();		// By LYN
+  startupBeeper();          // By LYN
+
+#if ENABLED(REG_USE_HARDWARE)   // By LYN
+  initSequence();
+#endif
 
   #ifndef CUSTOM_BOOTSCREEN_TIMEOUT
     #define CUSTOM_BOOTSCREEN_TIMEOUT 2500
@@ -15401,21 +15688,21 @@ void setup() {
 //      for (uint8_t i = 0; i < MIXING_STEPPERS; i++)
 //        mixing_virtual_tool_mix[t][i] = mixing_factor[i];
 
-		// Virtual Tools 0, 1, 2, 3 = Filament 1, 2, 3, 4, etc.
-		for (uint8_t t = 0; t < MIXING_VIRTUAL_TOOLS && t < MIXING_STEPPERS; t++)
-			for (uint8_t i = 0; i < MIXING_STEPPERS; i++)
-				mixing_virtual_tool_mix[t][i] = (t == i) ? 1.0 : 0.0;
+    // Virtual Tools 0, 1, 2, 3 = Filament 1, 2, 3, 4, etc.
+    for (uint8_t t = 0; t < MIXING_VIRTUAL_TOOLS && t < MIXING_STEPPERS; t++)
+      for (uint8_t i = 0; i < MIXING_STEPPERS; i++)
+        mixing_virtual_tool_mix[t][i] = (t == i) ? 1.0 : 0.0;
 
-		// Remaining virtual tools are 100% filament 1
-		#if MIXING_STEPPERS < MIXING_VIRTUAL_TOOLS
-			for (uint8_t t = MIXING_STEPPERS; t < MIXING_VIRTUAL_TOOLS; t++)
-				for (uint8_t i = 0; i < MIXING_STEPPERS; i++)
-					mixing_virtual_tool_mix[t][i] = (i == 0) ? 1.0 : 0.0;
-		#endif
+    // Remaining virtual tools are 100% filament 1
+    #if MIXING_STEPPERS < MIXING_VIRTUAL_TOOLS
+      for (uint8_t t = MIXING_STEPPERS; t < MIXING_VIRTUAL_TOOLS; t++)
+        for (uint8_t i = 0; i < MIXING_STEPPERS; i++)
+          mixing_virtual_tool_mix[t][i] = (i == 0) ? 1.0 : 0.0;
+    #endif
 
-		// Initialize mixing to tool 0 color
-		for (uint8_t i = 0; i < MIXING_STEPPERS; i++)
-			mixing_factor[i] = mixing_virtual_tool_mix[0][i];
+    // Initialize mixing to tool 0 color
+    for (uint8_t i = 0; i < MIXING_STEPPERS; i++)
+      mixing_factor[i] = mixing_virtual_tool_mix[0][i];
   #endif
 
   #if ENABLED(BLTOUCH)
@@ -15443,7 +15730,7 @@ void setup() {
   #endif
 
   #if ENABLED(SWITCHING_NOZZLE)
-    move_nozzle_servo(0);  // Initialize nozzle servo
+    align_nozzle(); // By LYN
   #endif
 
   #if ENABLED(PARKING_EXTRUDER)
@@ -15465,6 +15752,9 @@ void setup() {
 	/**************** By LYN ************/
 	#if ENABLED(POWER_MANAGEMENT)
 		SET_INPUT_PULLUP(PS_OFF_PIN);
+		#ifdef ULTRA_SERIAL
+			SET_INPUT_PULLUP(COMPUTER_SHUTDOWN_PIN);
+		#endif
 	#endif
 
 	#if ENABLED(FILAMENT_DETECT)

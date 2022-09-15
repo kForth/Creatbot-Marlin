@@ -70,13 +70,17 @@
 #define SPI_BUSY_PIN			5
 #define SPI_INT_PIN				49
 
+#define SPI_USE_RST_PIN   false
+#define SPI_USE_BUSY_PIN  false
+#define SPI_USE_INT_PIN   true
+
 
 class MCU_CH376 {
 public:
 	MCU_CH376() { _state = DEF_DISK_UNKNOWN; _spiRate = SPI_SPEED_DISABLE;}
 	void spi_init(uint8_t rate = SPI_SPEED_DIV8);
 	void spi_end();
-	void setState(uint8_t state) { _state = state; /* SERIAL_PROTOCOL_F(_state, HEX); SERIAL_EOL; */ }
+	void setState(uint8_t state) { _state = state; /* SERIAL_ECHO_F(_state, HEX); SERIAL_EOL; */ }
 	uint8_t getState() { return _state; }
 	void setSpiRate(uint8_t spiRateId) { _spiRate = spiRateId; spiRateInit(_spiRate); }
 

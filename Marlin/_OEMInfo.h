@@ -1,63 +1,59 @@
 #ifndef OEM_INFO_H
 #define OEM_INFO_H
 
-#define Other_MODEL   -1
-#define DM_Mini       1
+#define DMMini        1
 #define DM            2
-#define DM_Plus       3
+#define DMPlus        3
 #define DX            4
-#define DX_Plus       5
+#define DXPlus        5
 #define DE            6
-#define DE_Plus       7
+#define DEPlus        7
 #define D600          8
-#define D600_Mini     9
-#define D600_SE       10
-#define D600_Pro      11
+#define D600Mini      9
+#define D600SE        10
+#define D600Pro       11
 #define F160          12
-#define F200          13
-#define F220          14
-#define F260          15
-#define F300          16
-#define F430          17
-#define F1000         18
-#define PEEK300       19
+#define F160PEEK      13
+#define F200          14
+#define F220          15
+#define F260          16
+#define F300          17
+#define F430          18
+#define F430Plus      19
+#define F1000         20
+#define PEEK300       21
 
 #define en    0
 #define cn    1
-#define fr    2
-#define es    3
-#define it    4
-#define pl    5
-
-#define VER_POS_1    {2, 63}    // left-bottom
-#define VER_POS_2    {104, 7}   // right-top
 
 #define OEM_NAME "CreatBot"
 
-#if MODEL == DM_Mini
-  #define MODEL_NAME "DM-"
+#if MODEL == DMMini
+  #define MODEL_NAME "DM Mini"
 #elif MODEL == DM
   #define MODEL_NAME "DM"
-#elif MODEL == DM_Plus
-  #define MODEL_NAME "DM+"
+#elif MODEL == DMPlus
+  #define MODEL_NAME "DM Plus"
 #elif MODEL == DX
   #define MODEL_NAME "DX"
-#elif MODEL == DX_Plus
-  #define MODEL_NAME "DX+"
+#elif MODEL == DXPlus
+  #define MODEL_NAME "DX Plus"
 #elif MODEL == DE
   #define MODEL_NAME "DE"
-#elif MODEL == DE_Plus
-  #define MODEL_NAME "DE+"
+#elif MODEL == DEPlus
+  #define MODEL_NAME "DE Plus"
 #elif MODEL == D600
   #define MODEL_NAME "D600"
-#elif MODEL == D600_Mini
+#elif MODEL == D600Mini
   #define MODEL_NAME "D600 Mini"
-#elif MODEL == D600_SE
+#elif MODEL == D600SE
   #define MODEL_NAME "D600 SE"
-#elif MODEL == D600_Pro
+#elif MODEL == D600Pro
   #define MODEL_NAME "D600 Pro"
 #elif MODEL == F160
   #define MODEL_NAME "F160"
+#elif MODEL == F160PEEK
+  #define MODEL_NAME "F160-PEEK"
 #elif MODEL == F200
   #define MODEL_NAME "F200"
 #elif MODEL == F220
@@ -68,12 +64,12 @@
   #define MODEL_NAME "F300"
 #elif MODEL == F430
   #define MODEL_NAME "F430"
+#elif MODEL == F430Plus
+  #define MODEL_NAME "F430Plus"
 #elif MODEL == F1000
   #define MODEL_NAME "F1000"
 #elif MODEL == PEEK300
   #define MODEL_NAME "PEEK-300"
-#elif MODEL == Other_MODEL
-  #define MODEL_NAME ""
 #else
   #error "We don't have this MODEL."
 #endif
@@ -97,19 +93,11 @@
 // LANGUAGE will be used as string, so we should undef them
 #undef en
 #undef cn
-#undef fr
-#undef es
-#undef it
-#undef pl
 
-#if MODEL == D600 || MODEL == D600_SE || MODEL == D600_Pro || MODEL == F300 || MODEL == F160 || MODEL == F200 || MODEL == F220 || MODEL == F260 || MODEL == F430 || MODEL == F1000|| MODEL == PEEK300
+#if MODEL >= D600
   #define MachineName OEM_NAME " " MODEL_NAME
 #else
   #define MachineName OEM_NAME " " MODEL_NAME "0" STRINGIFY(EXTRUDERS)
 #endif
 
-#define MachineURL "CREATBOT.COM"
-
-#define VER_POS VER_POS_1
-
-#endif	// OEM_INFO_H
+#endif  // OEM_INFO_H

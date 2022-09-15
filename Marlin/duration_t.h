@@ -185,11 +185,14 @@ struct duration_t {
   /**
    * @Autor CreatBot LYN
    * @param buffer The array pointed to must be able to accommodate 9 bytes
+   *        Also, 11 bytes is necessary when h_len is 3.
    *
    * Output examples:
-   *  12345678 (strlen)
-   *  99995959
-   *  010101
+   *  1234567890 (strlen)
+   *  9990995959      ->    999:59:59
+   *  8120125959      ->    812:59:59
+   *  99995959        ->    9999:59:59
+   *  010101          ->    01:01:01
    */
 	void toTimeDWIN(char *buffer, uint8_t h_len) const {
 		uint16_t	h = this->hour() % 10000,
@@ -199,6 +202,8 @@ struct duration_t {
 			sprintf_P(buffer, PSTR("%04u%02u%02u"), h, m, s);
 		else if(h_len == 2)
 			sprintf_P(buffer, PSTR("%02u%02u%02u"), h % 100, m, s);
+		else if(h_len == 3)
+			sprintf_P(buffer, PSTR("%03u0%02u%02u%02u"), h % 1000, h % 100, m, s);
 		else
 			sprintf_P(buffer, PSTR("%u%02u%02u"), h, m, s);
 	}

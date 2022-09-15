@@ -122,7 +122,7 @@ typedef struct {
   uint32_t segment_time;
 
 	#if ENABLED(QUICK_PAUSE)
-		uint32_t filePos;		// By LYN (the position of this block in the print file. The beginning of the gcode.)
+		uint32_t filePos;		// By LYN (the position of this block in the print file. The beginning of the gcode Or The gcode_LastN from serial.)
 		float block_speed;	// By LYN (the speed of this block. Come from the feedrate_mm_s.)
 		float block_flow;		// By LYN (the flow of this block. Come from the flow_percentage.)
 		long block_realE;		// By LYN (the real E position of this block. Not change by flow.)

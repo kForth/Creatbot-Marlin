@@ -1418,12 +1418,20 @@ static_assert(COUNT(sanity_arr_3) <= XYZE_N, "DEFAULT_MAX_ACCELERATION has too m
 	#error "You should defined NTC or KTC."
 #endif
 
+#if ENABLED(PID_PARAMS_PER_HOTEND) && PID_PARAMS_USE_TEMP_RANGE
+  #error "PID_PARAMS_USE_TEMP_RANGE is incompatible with PID_PARAMS_PER_HOTEND"
+#endif
+
+#if MAX_EXTRUDERS < PID_PARAMS_TEMP_RANGE_NUM
+  #error "PID_PARAMS_TEMP_RANGE_NUM should less than MAX_EXTRUDERS"
+#endif
+
 #if ENABLED(SDSUPPORT) && ENABLED(UDISKSUPPORT)
 	#error "You cannot have SD and USB both."
 #endif //SDSUPPORT && UDISKSUPPORT
 
-#if ENABLED(QUICK_PAUSE) && DISABLED(SDSUPPORT) && DISABLED(UDISKSUPPORT)
-	#error "QUICK_PAUSE need SD/UDisk support."
+#if ENABLED(QUICK_PAUSE) && DISABLED(SDSUPPORT) && DISABLED(UDISKSUPPORT) && DISABLED(ULTRA_SERIAL)
+	#error "QUICK_PAUSE need SD/UDisk/UltraSerial support."
 #endif
 
 #if ENABLED(QUICK_PAUSE) && ENABLED(ADVANCED_PAUSE_FEATURE)
@@ -1450,20 +1458,35 @@ static_assert(COUNT(sanity_arr_3) <= XYZE_N, "DEFAULT_MAX_ACCELERATION has too m
 	#if ENABLED(MY_KEYPAD)
 		#error "MY_KEYPAD need a LCD12864"
 	#endif
+	#if ENABLED(WIFI_SUPPORT) && ENABLED(ULTRA_SERIAL)
+		#error "WIFI_SUPPORT and ULTRA_SERIAL is incompatible."
+	#endif
+#else
+	#if ENABLED(WIFI_SUPPORT)
+		#error "WIFI_SUPPORT and LCD12864 is incompatible."
+	#elif ENABLED(ULTRA_SERIAL)
+		#error "ULTRA_SERIAL and LCD12864 is incompatible."
+	#endif
 #endif
 
-#if DISABLED(LCD480272)
+#if DISABLED(DWIN_LCD)
 	#if ENABLED(UDISKSUPPORT)
-		#error "UDISKSUPPORT need a LCD480272"
-	#endif
-	#if ENABLED(HAS_AIR_FAN)
-		#error "AIR_FILTER_FAN need a LCD480272"
-	#endif
-	#if ENABLED(HOTWIND_SYSTEM)
-		#error "HOTWIND_SYSTEM need a LCD480272"
+		#error "UDISKSUPPORT need a DWIN_LCD"
 	#endif
 	#if ENABLED(WIFI_SUPPORT)
-		#error "WIFI_SUPPORT need a LCD480272"
+		#error "WIFI_SUPPORT need a DWIN_LCD"
 	#endif
 #endif
 
+#if DISABLED(DWIN_LCD) && DISABLED(ULTRA_SERIAL)
+	#if ENABLED(HOTWIND_SYSTEM)
+		#error "HOTWIND_SYSTEM need a DWIN_LCD/UltraSerial"
+	#endif
+	#if ENABLED(HAS_AIR_FAN)
+		#error "AIR_FILTER_FAN need a DWIN_LCD/UltraSerial"
+	#endif
+#endif
+
+#if ENABLED(ULTRA_SERIAL) && DISABLED(EMERGENCY_PARSER)
+	#error "ULTRA_SERIAL need EMERGENCY_PARSER".
+#endif

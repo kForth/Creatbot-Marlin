@@ -110,6 +110,14 @@ enum EndstopEnum {
     state_M4,
     state_M41,
     state_M410,
+    state_M6,
+    state_M61,
+    state_M610,
+    state_M6101,
+    state_M6102,
+    state_M6103,
+    state_M6104,
+    state_M6105,
     state_IGNORE // to '\n'
   };
 #endif
@@ -191,6 +199,7 @@ enum LCDViewAction {
  */
 enum PowerState{
 	POWER_SHUTTING,
+	POWER_COMPUTER_SHUTTING,
 	POWER_COOLING,
 	POWER_TIMING_OFF_IDLE,
 	POWER_TIMING_OFF_HEATING,

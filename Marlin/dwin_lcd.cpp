@@ -1,9 +1,9 @@
 /*
-dwin_lcd.cpp - Hardware serial library for DWIN UART LCM.
-Copyright (c) 2015 CreatBot. All Right Reserved.
+ dwin_lcd.cpp - Hardware serial library for DWIN UART LCM.
+ Copyright (c) 2015 CreatBot. All Right Reserved.
 
-Developer Lyn Lee, 3 June 2015.
-*/
+ Developer Lyn Lee, 3 June 2015.
+ */
 
 
 #include "dwin_lcd.h"
@@ -26,7 +26,7 @@ int lcd_preheat_bed_temp;
 #endif
 int lcd_preheat_fan_speed;
 
-enum DATA_STATE {DATA_UNINIT, DATA_INIT, DATA_READY};
+enum DATA_STATE {DATA_UNINIT, DATA_INIT, DATA_GIF_START, DATA_GIF_END, DATA_READY};
 static uint8_t dwin_data_state = DATA_UNINIT;
 #define IS_DWIN_DATA_READY		(dwin_data_state == DATA_READY)
 
@@ -34,26 +34,28 @@ static float dwin_manual_feedrate[] = MANUAL_FEEDRATE;
 static uint8_t manual_move_axis = 0x00;
 static millis_t manual_move_start_time = 0;
 static millis_t return_default_page_time = 0;
+static millis_t lock_page_time = 0;
 static millis_t dwin_next_update_millis = 0;
 
 static uint8_t move_distance_index = 0;
 static uint8_t extrude_index = 0;
 static int extrude_distance = 0;
 
-static const char* dwin_next_page_P = nullptr;		// next dwin page from PSTR.
-
-
 #if HAS_READER
 static uint8_t dwinReaderState;
 #endif
 
 #ifdef WIFI_SUPPORT
+#ifdef WIFI_MODULE_ESP8266_01
 static uint8_t dwinWifiConnIndex;
-static char dwinWifiConnKey[LCD_MSG_CHAR_LEN + 1];
+#elif defined(WIFI_MODULE_ESP8266_12)
+static char dwinWifiConnSSID[LCD_WIFI_SSID_LEN + 1];
+#endif
+static char dwinWifiConnKey[LCD_WIFI_KEY_LEN + 1];
 #endif
 
 #ifdef POWER_MANAGEMENT
-	char dwin_shutting_info[LCD_MSG_CHAR_LEN + 1] = {0};
+	char dwin_shutting_info[LCD_MSG_CHAR_LEN + 1] = { 0 };
 #endif
 
 enum DATA_MODE{ INT_LCD, LONG_LCD };
@@ -69,23 +71,20 @@ enum TIME_MODE { TIME_USED, TIME_PRINT, TIME_TRIAL };
 #define GET_LONG(addr)								getValueForLong_P(addr)
 #define SET_LONG(addr, value)					setValueAsLong_P(addr, value)
 #define GET_STR(addr)									getValueForString_P(addr)
+#define GET_STR_BY_LEN(addr, len)			getValueForString_P(addr, len)
 #define SET_STR(addr, len, value)			setValueAsString_P(addr, len, value);
+#define SET_USTR(addr, len, value)		setValueAsUnicodeString_P(addr, len, value);
+#define GET_ANY(addr, len)						getValueForAttr_P(addr, 0, len)
 
-#define GET_INT_P(addr)								getValueForInt_P(PSTR(addr))
-#define SET_INT_P(addr, value)				setValueAsInt_P(PSTR(addr), PSTR(value))
-#define GET_LONG_P(addr)							getValueForLong_P(PSTR(addr))
-#define SET_LONG_P(addr, value)				setValueAsLong_P(PSTR(addr), PSTR(value))
-#define GET_STR_P(addr)								getValueForString_P(PSTR(addr))
-#define SET_STR_P(addr, len, value)		setValueAsString_P(PSTR(addr), len, value)
-
-#define DRAW_REC(addr, x0, y0, x1, y1, color)		drawRectangle_P(PSTR(addr), x0, y0, x1, y1, PSTR(color))
-#define FILL_REC(addr, x0, y0, x1, y1, color)		fillRectangle_P(PSTR(addr), x0, y0, x1, y1, PSTR(color))
+#define DRAW_REC(addr, x0, y0, x1, y1, color)		drawRectangle_P(addr, x0, y0, x1, y1, color)
+#define FILL_REC(addr, x0, y0, x1, y1, color)		fillRectangle_P(addr, x0, y0, x1, y1, color)
+#define CLEAR_CANVAS(addr)                      clearCanvas_P(addr)
 
 
 void updateValue(float value, const char* valueAddr, uint8_t mode, uint8_t int_num, uint8_t dec_num){
-	if (mode == INT_LCD)
+	if(mode == INT_LCD)
 		SET_INT(valueAddr, convToLCD(value, int_num, dec_num));
-	else if (mode == LONG_LCD)
+	else if(mode == LONG_LCD)
 		SET_LONG(valueAddr, convToLCD(value, int_num, dec_num));
 }
 
@@ -93,16 +92,17 @@ void updateValue(long value, const char* valueAddr){
 	SET_LONG(valueAddr, value);
 }
 
-void updateValue(int value, const char* valueAddr) {
+void updateValue(int value, const char* valueAddr){
 	SET_INT(valueAddr, value);
 }
 
-#define UPDATE_LCD(value, addr)				updateValue(value, PSTR(addr))
-#define UPDATE_LCD_22(value, addr)		updateValue(value, PSTR(addr), INT_LCD, 2, 2)
-#define UPDATE_LCD_31(value, addr)		updateValue(value, PSTR(addr), INT_LCD, 3, 1)
-#define UPDATE_LCD_32(value, addr)		updateValue(value, PSTR(addr), INT_LCD, 3, 2)
-#define UPDATE_LCD_34(value, addr)		updateValue(value, PSTR(addr), LONG_LCD, 3, 4)
-#define UPDATE_LCD_42(value, addr)		updateValue(value, PSTR(addr), LONG_LCD, 4, 2)
+#define UPDATE_LCD(value, addr)				updateValue(value, addr)
+#define UPDATE_LCD_22(value, addr)		updateValue(value, addr, INT_LCD, 2, 2)
+#define UPDATE_LCD_31(value, addr)		updateValue(value, addr, INT_LCD, 3, 1)
+#define UPDATE_LCD_32(value, addr)		updateValue(value, addr, INT_LCD, 3, 2)
+#define UPDATE_LCD_34(value, addr)		updateValue(value, addr, LONG_LCD, 3, 4)
+#define UPDATE_LCD_42(value, addr)		updateValue(value, addr, LONG_LCD, 4, 2)
+#define UPDATE_LCD_43(value, addr)		updateValue(value, addr, LONG_LCD, 4, 3)
 
 /*
 uint8_t tempColorMode;
@@ -155,14 +155,14 @@ void resetColor(){
 }
 */
 
-/******************************************** Funciton Part ********************************************/
+/******************************************** Function Part ********************************************/
 
 void dwin_cooldwon(){
 	thermalManager.disable_all_heaters();
 #if FAN_COUNT > 0
 	for (uint8_t i = 0; i < FAN_COUNT; i++) fanSpeeds[i] = 0;
 #endif
-	return_state_button_action();
+	returnDefaultButtonAction();
 }
 
 void dwin_preheat(uint8_t target){
@@ -227,17 +227,17 @@ void dwin_preheat(uint8_t target){
 			lcd_preheat_fan_speed
 		);
 	}
-	return_state_button_action();
+	returnDefaultButtonAction();
 }
 
 void dwin_move_home(uint8_t mode){
-	if (mode == HOME_ALL){
+	if(mode == HOME_ALL){
 		enqueue_and_echo_commands_P(PSTR("G28"));
-	} else if (mode == HOME_X){
+	}else if(mode == HOME_X){
 		enqueue_and_echo_commands_P(PSTR("G28 X"));
-	} else if (mode == HOME_Y){
+	}else if(mode == HOME_Y){
 		enqueue_and_echo_commands_P(PSTR("G28 Y"));
-	} else if (mode == HOME_Z){
+	}else if(mode == HOME_Z){
 	#if ENABLED(Z_SAFE_HOMING)
 		enqueue_and_echo_commands_P(PSTR("G28"));
 	#else
@@ -245,7 +245,7 @@ void dwin_move_home(uint8_t mode){
 	#endif
 	}
 
-	POP_WINDOW(MOVE_INFO_KEY);
+	POP_WINDOW(POP_ICO_HOMING, POPUP_DELAY_ALWAY_DELAY);
 }
 
 void dwin_update_axis_info();
@@ -256,7 +256,7 @@ void dwin_move(int axis, float scale, bool dir){
 				max = current_position[axis] + 1000;
 
 	#if HAS_SOFTWARE_ENDSTOPS
-		if (soft_endstops_enabled) {
+		if(soft_endstops_enabled){
 			#if ENABLED(MIN_SOFTWARE_ENDSTOPS)
 				min = soft_endstop_min[axis];
 			#endif
@@ -266,7 +266,7 @@ void dwin_move(int axis, float scale, bool dir){
 		}
 	#endif
 
-	if (dir)
+	if(dir)
 		current_position[axis] += scale;
 	else
 		current_position[axis] -= scale;
@@ -280,13 +280,13 @@ void dwin_move(int axis, float scale, bool dir){
 		planner.buffer_line_kinematic(current_position, MMM_TO_MMS(dwin_manual_feedrate[axis]), active_extruder);
 		refresh_cmd_timeout();
 	} else {
-		manual_move_start_time = millis() + 300UL;
+		manual_move_start_time = millis() + 500UL;
 		SBI(manual_move_axis, axis);
 	}
 }
 
 void dwin_move(int axis, bool dir){
-	switch (move_distance_index){
+	switch(move_distance_index){
 	case 1:
 		dwin_move(axis, 0.1, dir);
 		break;
@@ -315,43 +315,53 @@ void manual_move_delay(){
 
 		if(manual_feedrate < 60000){
 			planner.buffer_line_kinematic(current_position, MMM_TO_MMS(manual_feedrate), active_extruder);
-	    refresh_cmd_timeout();
+			if(IS_MOVE_PAGE){
+        POP_WINDOW(POP_ICO_MOVING, POPUP_DELAY_ALWAY_DELAY);
+			}
+			refresh_cmd_timeout();
 		}
 		manual_move_axis = 0;
 	}
 }
 
-void dwin_filament_test(int hotend, bool dir){
-	if (hotend == 0){
+bool dwin_filament_active_is_valid(int hotend){
+	if(hotend == 0){
 		active_extruder = 0;
-	} else if (hotend == 1){
-	#if EXTRUDERS > 1
+	}else if(hotend == 1){
+#if EXTRUDERS > 1
 		active_extruder = 1;
-	#endif
-	} else if (hotend == 2){
-	#if EXTRUDERS > 2
+#endif
+	}else if(hotend == 2){
+#if EXTRUDERS > 2
 		active_extruder = 2;
-	#endif
+#endif
 	}
 
-	if (min(thermalManager.degTargetHotend(active_extruder), thermalManager.degHotend(active_extruder)) < EXTRUDE_MINTEMP) {
-		POP_WINDOW(COLD_INFO_KEY);
-		delay(500);
-		HIDE_POPUP;
-		return;
+	if (thermalManager.targetTooColdToExtrude(active_extruder)) {
+		POP_WINDOW(POP_ICO_TAR_TEMP_LOW, POPUP_DELAY_500MS);
+		return false;
+	} else if (thermalManager.tooColdToExtrude(active_extruder)){
+		POP_WINDOW(POP_ICO_CUR_TEMP_LOW, POPUP_DELAY_500MS);
+		return false;
+	} else {
+		return true;
 	}
+}
 
-	float testLength = float(extrude_distance) * (dir ? 1 : -1);
-	current_position[E_AXIS] += testLength;
+void dwin_filament_test(int hotend, bool dir){
+	if(dwin_filament_active_is_valid(hotend)){
+		float testLength = float(extrude_distance) * (dir ? 1 : -1);
+		current_position[E_AXIS] += testLength;
 
-	planner.buffer_line_kinematic(current_position, MMM_TO_MMS(dwin_manual_feedrate[E_AXIS]), active_extruder);
+		planner.buffer_line_kinematic(current_position, MMM_TO_MMS(dwin_manual_feedrate[E_AXIS]), active_extruder);
 
-	if (dir) POP_WINDOW(EXT_INFO_KEY);
-	else POP_WINDOW(REC_INFO_KEY);
+		if (dir) POP_WINDOW(POP_ICO_EXTRUDE_FILAMENT, POPUP_DELAY_ALWAY_DELAY);
+		else POP_WINDOW(POP_ICO_RECRACT_FILAMENT, POPUP_DELAY_ALWAY_DELAY);
+	}
 }
 
 void dwin_filament_test(bool dir){
-	switch (extrude_index){
+	switch(extrude_index){
 	case 1:
 	case 2:
 	case 4:
@@ -371,33 +381,16 @@ void dwin_filament_test(bool dir){
 }
 
 void dwin_filament_unload(int hotend){
-	if (hotend == 0){
-		active_extruder = 0;
-	} else if (hotend == 1){
-	#if EXTRUDERS > 1
-		active_extruder = 1;
-	#endif
-	} else if (hotend == 2){
-	#if EXTRUDERS > 2
-		active_extruder = 2;
-	#endif
+	if(dwin_filament_active_is_valid(hotend)){
+		current_position[E_AXIS] += FILAMENT_UNLOAD_EXTRUDER_LENGTH;
+		planner.buffer_line_kinematic(current_position, MMM_TO_MMS(dwin_manual_feedrate[E_AXIS]), active_extruder);
+		POP_WINDOW(POP_ICO_PREPARE_UNLOAD, POPUP_DELAY_ALWAY_DELAY);
+		enqueue_and_echo_commands_P(PSTR("M400\nM6003"));
 	}
-
-	if (min(thermalManager.degTargetHotend(active_extruder), thermalManager.degHotend(active_extruder)) < EXTRUDE_MINTEMP) {
-		POP_WINDOW(COLD_INFO_KEY);
-		delay(500);		// TODO
-		HIDE_POPUP;
-		return;
-	}
-
-	current_position[E_AXIS] += FILAMENT_UNLOAD_EXTRUDER_LENGTH;
-	planner.buffer_line_kinematic(current_position, MMM_TO_MMS(dwin_manual_feedrate[E_AXIS]), active_extruder);
-	enqueue_and_echo_commands_P(PSTR("M6003"));
-	POP_WINDOW(UNLOAD_INFO_KEY);
 }
 
 void dwin_filament_unload(){
-	switch (extrude_index){
+	switch(extrude_index){
 	case 1:
 	case 2:
 	case 4:
@@ -416,17 +409,52 @@ void dwin_filament_unload(){
 	}
 }
 
+void dwin_update_hotend(uint8_t varValue){
+  extrude_index = varValue;
+#if ENABLED(SWITCHING_NOZZLE)
+  switch(extrude_index){
+  case 1:
+  case 2:
+    switch_nozzle(0);
+    break;
+  case 3:
+    switch_nozzle(1);
+    break;
+  default:
+    switch_nozzle(0);
+    break;
+  }
+#endif
+}
 
-void centerString(char* str, uint8_t len) {
+
+void centerString(char* str, uint8_t len){
 	uint8_t i = strlen(str);
-	if (i >= len) return;
+	if(i >= len) return;
 
-	uint8_t j, space; char raw[LCD_FILE_CHAR_LEN];
+	uint8_t j, space;
+	char raw[LCD_MAX_STR_LEN + 1];
 	strcpy(raw, str);
 	space = (len - i) / 2;
 	for (i = 0; space--;)	str[i++] = ' ';
 	for (j = 0; raw[j];)	str[i++] = raw[j++];
 	str[i] = 0;
+}
+
+void centerUString(char* ustr, uint8_t len){
+	uint8_t l = unicodeStrlen(ustr);
+	if(l >= len) return;
+
+	char raw[LCD_MAX_STR_LEN + 2] = {0};
+	memcpy(raw, ustr, l);
+	uint8_t i, space = (len - l) / 4;
+	for(i = 0; space--;){
+		ustr[i++] = 0x30;
+		ustr[i++] = 0x00;			//double space
+	}
+	char *p = &ustr[i];
+	memcpy(p, raw, l);
+	ustr[i+l] = ustr[i+l+1] = 0;
 }
 
 #if HAS_READER
@@ -437,169 +465,191 @@ uint16_t file_item_num = 0;
 uint8_t file_item_selected = -1;
 
 void dwinGetFileName(uint8_t fileItem){
-	char name[FILE_NAME_LEN + 1]; char *c, *cc; uint8_t i, end_index; int16_t file_item_index;
+	char *cc;
+	uint8_t i;
+	int16_t file_item_index;
+
+	char name[LCD_FILE_CHAR_LEN + NULL_CHAR_LENGTH], *c;
+	uint8_t end_index;
 #ifdef WIFI_SUPPORT
-	char wifi_name[FILE_NAME_LEN + 3]; char *wifi_c; uint8_t wifi_end_index;
+	char wifi_name[LCD_FILE_CHAR_LEN_WIFI + 3], *wifi_c;
+	uint8_t wifi_end_index;
+#endif
+
+#define GET_FILE_ITEM_INDEX(index) 				file_item_index = (file_item_num - 1) - (file_page - 1) * LCD_FILE_ITEM_PER_PAGE - index;
+
+#ifdef DWIN_FILENAME_USE_ICO
+	#define OFFSET_AS_DIR										false
+	#define SET_OFFSET											1
+	#define CLEAR_ICO(index)								UPDATE_LCD(0, FILE_ITEM_ICO_ ## index)
+	#define SET_ICO(index)									UPDATE_LCD(CUR_FILE_IS_DIR ? 2 : 1, FILE_ITEM_ICO_ ## index)
+#else
+	#define OFFSET_AS_DIR										(CUR_FILE_IS_DIR)
+	#define SET_OFFSET											(CUR_FILE_IS_DIR ? 0 : 1)
+	#define CLEAR_ICO(index)								;
+	#define SET_ICO(index)									;
+#endif
+
+#ifdef FILE_UNICODE_SUPPORT
+	#define INIT_NAME_GET_END_INDEX 				end_index = (sizeof(name) - NULL_CHAR_LENGTH - (OFFSET_AS_DIR ? 4 : 0));
+	#define INIT_NAME_PREFIX_NAME						if(OFFSET_AS_DIR){ name[0] = 0x00; name[1] = '['; c = &name[2]; } else { c = name; }
+	#define SET_NAME_WHILE									while(cc[i*2] || cc[i*2+1])
+	#define SET_NAME_IF_ABOVE								if(i*2+1 >= end_index)
+	#define SET_NAME_IF_EQUAL								if((i*2+1 == end_index) || (i*2 == end_index))
+	#define SET_NAME_POINTER_MOVE						*(c++) = cc[i*2]; *(c++) = cc[i*2+1];
+//	#define SET_NAME_END_INDEX							name[(i-SET_OFFSET)*2] = name[(i-SET_OFFSET-1)*2] = name[(i-SET_OFFSET-2)*2] = 0x18; name[(i-SET_OFFSET)*2+1] = name[(i-SET_OFFSET-1)*2+1] = name[(i-SET_OFFSET-2)*2+1] = 0x01;
+	#define SET_NAME_END_INDEX							name[(i-SET_OFFSET)*2] = 0x18; name[(i-SET_OFFSET)*2+1] = 0x01; name[(i-SET_OFFSET-1)*2] = 0x00; name[(i-SET_OFFSET-1)*2+1] = 0x20;
+	#define END_NAME_SUFFIX_NAME						if(OFFSET_AS_DIR){ name[(min(i, end_index/2)+1)*2] = 0x00; name[(min(i, end_index/2)+1)*2 + 1] = ']'; }
+	#define SHOW_NAME(index)								SET_USTR(FILE_ITEM_STR_ ## index, LCD_FILE_CHAR_LEN, name)
+#else
+	#define INIT_NAME_GET_END_INDEX 				end_index = (sizeof(name) - NULL_CHAR_LENGTH - (OFFSET_AS_DIR ? 2 : 0));
+	#define INIT_NAME_PREFIX_NAME						if(OFFSET_AS_DIR){ name[0] = '['; c = &name[1]; } else { c = name; }
+	#define SET_NAME_WHILE 									while(cc[i])
+	#define SET_NAME_IF_ABOVE								if(i >= end_index)
+	#define SET_NAME_IF_EQUAL								if(i == end_index)
+	#define SET_NAME_POINTER_MOVE						*(c++) = cc[i];
+	#define SET_NAME_END_INDEX							name[i-SET_OFFSET] = name[i-SET_OFFSET-1] = name[i-SET_OFFSET-2] = '.';
+	#define END_NAME_SUFFIX_NAME						if(OFFSET_AS_DIR){ name[min(i, end_index) + 1] = ']'; }
+	#define SHOW_NAME(index) 								SET_STR(FILE_ITEM_STR_ ## index, LCD_FILE_CHAR_LEN, name)
+#endif
+
+#ifdef WIFI_SUPPORT
+	#define CLEAR_NAME											memset(name, 0, sizeof(name)); memset(wifi_name, 0, sizeof(wifi_name));
+	#define INIT_NAME_GET_WIFI_END_INDEX		wifi_end_index = (sizeof(wifi_name) - 3);
+	#define INIT_NAME_PREFIX_WIFI_NAME			wifi_name[0] = (CUR_FILE_IS_DIR ? '<' : ':'); wifi_c = &wifi_name[1];
+	#define SET_NAME_WIFI_IF_ABOVE					if(i >= wifi_end_index)
+	#define SET_NAME_WIFI_IF_EQUAL					if(i == wifi_end_index)
+	#define SET_NAME_WIFI_END_INDEX					wifi_name[i] = wifi_name[i-1] = wifi_name[i-2] = '.';
+	#ifdef FILE_UNICODE_SUPPORT
+    #define SET_NAME_WIFI_POINTER_MOVE   *(wifi_c++) = (cc[i*2] == 0x00) ? cc[i*2+1] : '*';
+		#define SET_NAME_BREAK_IF							if(i == max(end_index/2, wifi_end_index))
+	#else
+		#define SET_NAME_WIFI_POINTER_MOVE 		*(wifi_c++) = cc[i];
+		#define SET_NAME_BREAK_IF							if(i == max(end_index, wifi_end_index))
+	#endif
+	#define END_NAME_SUFFIX_WIFI_NAME 			wifi_name[min(i, wifi_end_index) + 1] = (CUR_FILE_IS_DIR ? '>' : ':')
+#else
+	#define CLEAR_NAME											memset(name, 0, sizeof(name));
+	#define INIT_NAME_GET_WIFI_END_INDEX		;
+	#define INIT_NAME_PREFIX_WIFI_NAME			;
+	#define SET_NAME_WIFI_IF_ABOVE					if(false)
+	#define SET_NAME_WIFI_IF_EQUAL					if(false)
+	#define SET_NAME_WIFI_POINTER_MOVE			;
+	#define SET_NAME_WIFI_END_INDEX					;
+	#define SET_NAME_BREAK_IF								SET_NAME_IF_EQUAL
+	#define	END_NAME_SUFFIX_WIFI_NAME				;
 #endif
 
 
-#ifdef WIFI_SUPPORT
-	#define MEMSET_NAME do{\
-			memset(name, 0, sizeof(name));\
-			memset(wifi_name, 0, sizeof(wifi_name));\
-		}while(0)
-	#define INIT_NAME do{\
-			end_index = (sizeof(name) - (CUR_FILE_IS_DIR ? 2 : 1));\
-			wifi_end_index = (sizeof(wifi_name) - 3);\
-			if(CUR_FILE_IS_DIR){\
-				name[0] = '['; c = &name[1];\
-				wifi_name[0] = '<'; wifi_c = &wifi_name[1];\
-			} else {\
-				c = name;\
-				wifi_name[0] = ':'; wifi_c = &wifi_name[1];\
-			}\
-		}while(0)
-	#define SET_NAME do{\
-			while(cc[i]){\
-				if (i > 5){\
-					if(i >= end_index){\
-						if(i == end_index){\
-							name[i - 1] = name[i - 2] = name[i - 3] = '.';\
-						}\
-					} else {\
-						*(c++) = cc[i];\
-					}\
-					if(i >= wifi_end_index){\
-						if(i == wifi_end_index){\
-							wifi_name[i] = wifi_name[i - 1] = wifi_name[i - 2] = '.';\
-						}\
-					} else {\
-						*(wifi_c++) = cc[i];\
-					}\
-					if(i == (end_index > wifi_end_index ? end_index : wifi_end_index)){\
-						break;\
-					} else {\
-						i++;\
+#define INIT_NAME do{\
+		INIT_NAME_GET_END_INDEX;\
+		INIT_NAME_GET_WIFI_END_INDEX;\
+		INIT_NAME_PREFIX_NAME;\
+		INIT_NAME_PREFIX_WIFI_NAME;\
+	}while(0)
+
+#define SET_NAME do{\
+		i = 0; cc = FILE_READER.longFilename;\
+		SET_NAME_WHILE{\
+			if(i > 5){\
+				SET_NAME_IF_ABOVE{\
+					SET_NAME_IF_EQUAL{\
+						SET_NAME_END_INDEX;\
 					}\
 				} else {\
-					*(c++) = cc[i];\
-					*(wifi_c++) = cc[i];\
+					SET_NAME_POINTER_MOVE;\
+				}\
+				SET_NAME_WIFI_IF_ABOVE{\
+					SET_NAME_WIFI_IF_EQUAL{\
+						SET_NAME_WIFI_END_INDEX;\
+					}\
+				} else {\
+				  SET_NAME_WIFI_POINTER_MOVE;\
+				}\
+				SET_NAME_BREAK_IF{\
+					break;\
+				} else {\
 					i++;\
 				}\
-			}\
-		}while(0)
-	#define END_NAME do{\
-			if (CUR_FILE_IS_DIR){\
-				if(i < end_index){\
-					name[i + 1] = ']';\
-				} else {\
-					name[end_index] = ']';\
-				}\
-			}\
-			if(i < wifi_end_index){\
-				wifi_name[i + 1] = (CUR_FILE_IS_DIR ? '>' : ':');\
 			} else {\
-				wifi_name[wifi_end_index + 1] = (CUR_FILE_IS_DIR ? '>' : ':');\
+				SET_NAME_POINTER_MOVE;\
+				SET_NAME_WIFI_POINTER_MOVE;\
+				i++;\
 			}\
-		}while(0)
-#else
-	#define MEMSET_NAME		memset(name, 0, sizeof(name))
-	#define INIT_NAME do{\
-			end_index = (sizeof(name) - (CUR_FILE_IS_DIR ? 2 : 1));\
-			if(CUR_FILE_IS_DIR){\
-				name[0] = '['; c = &name[1];\
-			} else {\
-				c = name;\
-			}\
-		}while(0)
-	#define SET_NAME do{\
-			while(cc[i]){\
-				if (i > 5){\
-					if(i == end_index){\
-						name[i - 1] = name[i - 2] = name[i - 3] = '.';\
-						break;\
-					}\
-				}\
-				*(c++) = cc[i++];\
-			}\
-		}while(0)
-	#define END_NAME do{\
-			if (CUR_FILE_IS_DIR){\
-				if(i < end_index){\
-					name[i + 1] = ']';\
-				} else {\
-					name[end_index] = ']';\
-				}\
-			}\
-		}while(0)
-#endif
+		}\
+	}while(0)
 
-#define GET_ITEM(index) do {\
-		file_item_index = (file_item_num - 1) - (file_page - 1) * LCD_FILE_ITEM_PER_PAGE - index;\
-		MEMSET_NAME;\
+#define END_NAME do{\
+		END_NAME_SUFFIX_NAME;\
+		END_NAME_SUFFIX_WIFI_NAME;\
+	}while(0)
+
+#define SET_FILE_ITEM(index) do {\
+		GET_FILE_ITEM_INDEX(index);\
+		CLEAR_NAME;\
+		CLEAR_ICO(index);\
 		\
 		if(file_item_index >= 0){\
 			TOUCH_FILE(file_item_index);\
 			INIT_NAME;\
-			i = 0;\
-			if(FILE_READER.longFilename[0])\
-				cc = FILE_READER.longFilename;\
-			else\
-				cc = FILE_READER.filename;\
-			\
 			SET_NAME;\
 			END_NAME;\
+			SET_ICO(index);\
 		}\
+		SHOW_NAME(index);\
 	}while(0)
 
-#define _SET_FILE_ITEM(item, index) do {\
-		GET_ITEM(index);\
-		SET_STR(item, LCD_FILE_CHAR_LEN, name);\
-	}while (0)
-
-#define SET_FILE_ITEM(item, index)	_SET_FILE_ITEM(PSTR(item), index)
+#define SET_FILE_NAME(index)  do {\
+    GET_FILE_ITEM_INDEX(index);\
+    CLEAR_NAME;\
+    \
+    if(file_item_index >= 0){\
+      TOUCH_FILE(file_item_index);\
+      INIT_NAME;\
+      SET_NAME;\
+      END_NAME;\
+    }\
+  }while(0)
 
 	if(fileItem == 0xFF){
-		SET_FILE_ITEM(FILE_ITEM_0, 0);
+		SET_FILE_ITEM(0);
 	#if LCD_FILE_ITEM_PER_PAGE > 1
-		SET_FILE_ITEM(FILE_ITEM_1, 1);
+		SET_FILE_ITEM(1);
 	#endif
 	#if LCD_FILE_ITEM_PER_PAGE > 2
-		SET_FILE_ITEM(FILE_ITEM_2, 2);
+		SET_FILE_ITEM(2);
 	#endif
 	#if LCD_FILE_ITEM_PER_PAGE > 3
-		SET_FILE_ITEM(FILE_ITEM_3, 3);
+		SET_FILE_ITEM(3);
 	#endif
 	#if LCD_FILE_ITEM_PER_PAGE > 4
-		SET_FILE_ITEM(FILE_ITEM_4, 4);
+		SET_FILE_ITEM(4);
 	#endif
 	#if LCD_FILE_ITEM_PER_PAGE > 5
-		SET_FILE_ITEM(FILE_ITEM_5, 5);
+		SET_FILE_ITEM(5);
 	#endif
 	#if LCD_FILE_ITEM_PER_PAGE > 6
-		SET_FILE_ITEM(FILE_ITEM_6, 6);
+		SET_FILE_ITEM(6);
 	#endif
 	#if LCD_FILE_ITEM_PER_PAGE > 7
-		SET_FILE_ITEM(FILE_ITEM_7, 7);
+		SET_FILE_ITEM(7);
 	#endif
 	#if LCD_FILE_ITEM_PER_PAGE > 8
-		SET_FILE_ITEM(FILE_ITEM_8, 8);
+		SET_FILE_ITEM(8);
 	#endif
 	}else{
-		GET_ITEM(fileItem);
+	  SET_FILE_NAME(fileItem);
 	#ifdef WIFI_SUPPORT
 		if(file_item_index < 0){
 			if(file_item_index == -1){
 				myWifi.synFilesInfo(fileItem, "", true);
-			} else if (file_item_index == -2){
 				TOUCH_WORKDIR;
 				myWifi.endSysFile((FILE_READER.filename[0] == '/'), page_num, file_page);
 			}
-		} else {
+		}else{
 			if(fileItem < LCD_FILE_ITEM_PER_PAGE){
 				myWifi.synFilesInfo(fileItem, wifi_name, (fileItem == (LCD_FILE_ITEM_PER_PAGE - 1)));
-			}
-			else if(fileItem == LCD_FILE_ITEM_PER_PAGE){
+			}else if(fileItem == LCD_FILE_ITEM_PER_PAGE){
 				TOUCH_WORKDIR;
 				myWifi.endSysFile((FILE_READER.filename[0] == '/'), page_num, file_page);
 			}
@@ -608,12 +658,8 @@ void dwinGetFileName(uint8_t fileItem){
 	}
 }
 
-void lcdUpdateFiles(uint8_t mode
-#ifdef WIFI_SUPPORT
-		, bool fromWifi
-#endif
-		){
-	if (mode == UP_LEVEL) {
+void lcdUpdateFiles(uint8_t mode){
+	if(mode == UP_LEVEL){
 		file_page = up_file_page;
 		up_file_page = 1;
 		file_item_num = 0;
@@ -621,133 +667,143 @@ void lcdUpdateFiles(uint8_t mode
 		FILE_READER.updir();
 	}
 
-	file_item_num =	GET_FILE_NR;
+	file_item_num = GET_FILE_NR;
 
 	page_num = (file_item_num + LCD_FILE_ITEM_PER_PAGE - 1) / LCD_FILE_ITEM_PER_PAGE;
 
-	if (mode == LAST_PAGE && file_page > 1)	file_page--;
-	if (mode == NEXT_PAGE && file_page < page_num) file_page++;
+	if(mode == LAST_PAGE && file_page > 1) file_page--;
+	if(mode == NEXT_PAGE && file_page < page_num) file_page++;
 #ifdef WIFI_SUPPORT
-	if(!fromWifi || IS_FILE_PAGE){
+	if(!myWifi.isRequest() || IS_FILE_PAGE){
 #endif
 		dwinGetFileName();
-		if (!page_num) {
-			char name[LCD_FILE_CHAR_LEN];
+		if(!page_num){
+			char name[LCD_FILE_CHAR_LEN + NULL_CHAR_LENGTH];
+		#ifdef FILE_UNICODE_SUPPORT
+			memcpy_P(name, PSTR(DWIN_MSG_NO_FILE), DWIN_MSG_NO_FILE_LENGTH);
+			#ifndef LCD_FILE_CHAR_MAXIMIZE
+				centerUString(name, LCD_FILE_CHAR_LEN);
+			#endif
+			SET_USTR(FILE_ITEM_CENTER, LCD_FILE_CHAR_LEN, name);
+		#else
 			strcpy_P(name, PSTR(DWIN_MSG_NO_FILE));
 			centerString(name, LCD_FILE_CHAR_LEN);
-			SET_STR_P(FILE_ITEM_CENTER, LCD_FILE_CHAR_LEN, name);
+			SET_STR(FILE_ITEM_CENTER, LCD_FILE_CHAR_LEN, name);
+		#endif
 		}
 
 		TOUCH_WORKDIR;
-		if (FILE_READER.filename[0] == '/') {
-			if (page_num <= 1) { GO_PAGE(PAGE_FILE_ONE); }
-			else {
-				if (file_page == 1) GO_PAGE(PAGE_FILE_NEXT);
-				if (file_page == page_num) GO_PAGE(PAGE_FILE_LAST);
-				if (file_page > 1 && file_page < page_num) GO_PAGE(PAGE_FILE_BOTH);
+		if(FILE_READER.filename[0] == '/'){
+			if(page_num <= 1) GO_PAGE(PAGE_FILE_ONE);
+			else{
+				if(file_page == 1) GO_PAGE(PAGE_FILE_NEXT);
+				if(file_page == page_num) GO_PAGE(PAGE_FILE_LAST);
+				if(file_page > 1 && file_page < page_num) GO_PAGE(PAGE_FILE_BOTH);
 			}
-		}
-		else {
-			if (page_num <= 1) { GO_PAGE(PAGE_FILE_UP_ONE); }
-			else {
-				if (file_page == 1) GO_PAGE(PAGE_FILE_UP_NEXT);
-				if (file_page == page_num) GO_PAGE(PAGE_FILE_UP_LAST);
-				if (file_page > 1 && file_page < page_num) GO_PAGE(PAGE_FILE_UP_BOTH);
+		}else{
+			if(page_num <= 1) GO_PAGE(PAGE_FILE_UP_ONE);
+			else{
+				if(file_page == 1) GO_PAGE(PAGE_FILE_UP_NEXT);
+				if(file_page == page_num) GO_PAGE(PAGE_FILE_UP_LAST);
+				if(file_page > 1 && file_page < page_num) GO_PAGE(PAGE_FILE_UP_BOTH);
 			}
 		}
 #ifdef WIFI_SUPPORT
 	}
-	myWifi.actionSynFilesInfo(true);
-#endif
+  #ifdef WIFI_MODULE_ESP8266_01
+    myWifi.actionSynFilesInfo(true);
+  #elif defined(WIFI_MODULE_ESP8266_12)
+    myWifi.actionSynFilesInfo();
+  #endif  //WIFI_MODULE_ESP8266_01|12
+#endif  //WIFI_SUPPORT
 }
 
-void afterFileItemAction(uint8_t mode
-#ifdef WIFI_SUPPORT
-		, bool fromWifi = false
-#endif
-		){
-	if (mode) {
+void afterFileItemAction(uint8_t mode){
+	if(mode){
 		int16_t file_item_index = (file_item_num - 1) - (file_page - 1) * LCD_FILE_ITEM_PER_PAGE - file_item_selected;
 		TOUCH_FILE(file_item_index);
 
-		if (mode == PRINT) {
+		if(mode == PRINT){
 			FILE_READER.openAndPrintFile(FILE_READER.filename);
-			return_default_button_action();
-		}
-		else if (mode == OPEN_DIR) {
+			returnDefaultButtonAction();
+		}else if(mode == OPEN_DIR){
 			FILE_READER.chdir(FILE_READER.filename);
 			up_file_page = file_page;
 			file_page = 1;
 			file_item_num = 0;
 			file_item_selected = -1;
-			lcdUpdateFiles(OPEN
-			#ifdef WIFI_SUPPORT
-				, fromWifi
-			#endif
-			);
+			lcdUpdateFiles(OPEN);
 		}
-	} else {
+	}else{
 		file_item_selected = -1;
-		lcdUpdateFiles(OPEN
-		#ifdef WIFI_SUPPORT
-			, fromWifi
-		#endif
-		);
+		lcdUpdateFiles(OPEN);
 	}
 }
 
-void fileItemAciton(uint8_t index
-#ifdef WIFI_SUPPORT
-		, bool fromWifi
-#endif
-		){
+void fileItemAction(uint8_t index){
 	file_item_selected = index;
 	int16_t file_item_index = (file_item_num - 1) - (file_page - 1) * LCD_FILE_ITEM_PER_PAGE - index;
 	TOUCH_FILE(file_item_index);
 
-	if (file_item_index >= 0){
-		if (CUR_FILE_IS_DIR) {
-			afterFileItemAction(OPEN_DIR
-			#ifdef WIFI_SUPPORT
-					, fromWifi
-			#endif
-					);
-		} else {
+	if(file_item_index >= 0){
+		if(CUR_FILE_IS_DIR){
+			afterFileItemAction(OPEN_DIR);
+		}else{
 		#ifdef WIFI_SUPPORT
-			if(fromWifi)
-				afterFileItemAction(PRINT);
+			if(myWifi.isRequest()) afterFileItemAction(PRINT);
 			else
 		#endif
 			{
 				// get the string value that chosen.
-				switch (file_item_selected) {
+			#if LCD_FILE_CHAR_LEN == DEFAULT_STR_LEN * 2
+				#define GET_FILE_NAME(addr) GET_STR(addr)
+			#else
+				#define GET_FILE_NAME(addr) GET_STR_BY_LEN(addr, LCD_FILE_CHAR_LEN/2)
+			#endif
+				switch(file_item_selected){
 				case 0:
-					GET_STR_P(FILE_ITEM_0);
+					GET_FILE_NAME(FILE_ITEM_STR_0);
 					break;
+			#if LCD_FILE_ITEM_PER_PAGE > 1
 				case 1:
-					GET_STR_P(FILE_ITEM_1);
+					GET_FILE_NAME(FILE_ITEM_STR_1);
 					break;
+			#endif
+			#if LCD_FILE_ITEM_PER_PAGE > 2
 				case 2:
-					GET_STR_P(FILE_ITEM_2);
+					GET_FILE_NAME(FILE_ITEM_STR_2);
 					break;
+			#endif
+			#if LCD_FILE_ITEM_PER_PAGE > 3
 				case 3:
-					GET_STR_P(FILE_ITEM_3);
+					GET_FILE_NAME(FILE_ITEM_STR_3);
 					break;
+			#endif
+			#if LCD_FILE_ITEM_PER_PAGE > 4
 				case 4:
-					GET_STR_P(FILE_ITEM_4);
+					GET_FILE_NAME(FILE_ITEM_STR_4);
 					break;
+			#endif
+			#if LCD_FILE_ITEM_PER_PAGE > 5
 				case 5:
-					GET_STR_P(FILE_ITEM_5);
+					GET_FILE_NAME(FILE_ITEM_STR_5);
 					break;
+			#endif
+			#if LCD_FILE_ITEM_PER_PAGE > 6
 				case 6:
-					GET_STR_P(FILE_ITEM_6);
+					GET_FILE_NAME(FILE_ITEM_STR_6);
 					break;
-				case 7:
-					GET_STR_P(FILE_ITEM_7);
+			#endif
+			#if LCD_FILE_ITEM_PER_PAGE > 7
+					case 7:
+					GET_FILE_NAME(FILE_ITEM_STR_7);
 					break;
-				case 8:
-					GET_STR_P(FILE_ITEM_8);
+			#endif
+			#if LCD_FILE_ITEM_PER_PAGE > 8
+					case 8:
+					GET_FILE_NAME(FILE_ITEM_STR_8);
 					break;
+			#endif
 				}
 				GO_PAGE(PAGE_PRINT_CONFIRM);
 			}
@@ -755,390 +811,617 @@ void fileItemAciton(uint8_t index
 	}
 }
 #else		// !HAS_READER
-void lcdUpdateFiles(uint8_t mode) { UNUSED(mode); };
-void afterFileItemAction(uint8_t mode) { UNUSED(mode); };
-void fileItemAciton(uint8_t index) { UNUSED(index); };
+void dwinGetFileName(uint8_t fileItem){ UNUSED(fileItem); };
+void lcdUpdateFiles(uint8_t mode){ UNUSED(mode); };
+void afterFileItemAction(uint8_t mode){ UNUSED(mode); };
+void fileItemAciton(uint8_t index){ UNUSED(index); };
 #endif	//HAS_READER
 
-#ifdef WIFI_SUPPORT
-void wifiItemAction(uint8_t index){
-	char name[WIFI_SSID_SIZE + 1] = {0};
-	strcpy(name, myWifi.getWifiInfo(index).ssid);
+/********************************************* Action Part *********************************************/
 
-	if(name[0]){
-		dwinWifiConnIndex = index;
-
-		// show the string in the center of LCD.
-		centerString(name, LCD_MSG_CHAR_LEN);
-		SET_STR_P(WIFI_SELECT, LCD_MSG_CHAR_LEN, name);
-
-		GO_PAGE(PAGE_WIFI_CONNECT);
+inline void returnUpLevelButtonAction(){
+	if(false){}
+	#ifdef REG_SN
+	else if(IS_REG_PAGE){
+		if(!LIMITED_USE){
+			GO_PAGE(PAGE_INFO_PRINTER);
+		}
 	}
+	#endif
 }
 
-void wifiFuncAction(uint8_t mode){
-	switch (mode){
-	case WIFI_ACTION_SWITCH_TOGGLE:
-		myWifi.ON_OFF(!myWifi.enable);
-		break;
-	case WIFI_ACTION_CONNECT:
-		GET_STR_P(WIFI_KEY_ADDR);
-		GO_PAGE(PAGE_WIFI_INFO);
-		break;
-	case WIFI_ACTION_CANCEL:
-		GO_PAGE(PAGE_WIFI_INFO);
-		break;
-	case WIFI_ACTION_SWITCH_MODE:
-		myWifi.actionSwitchWifiMode();
-		break;
-	case WIFI_ACTION_RESET:
-		myWifi.actionWifiReset();
-		break;
-	case WIFI_ACTION_SCAN:
-		myWifi.actionScanAP(SCAN_0);
-		break;
-	case WIFI_ACTION_NEXT:
-		myWifi.actionScanAP(SCAN_NEXT);
-		break;
-	case WIFI_ACTION_LAST:
-		myWifi.actionScanAP(SCAN_LAST);
-		break;
-	case WIFI_ACTION_JOIN:
-		myWifi.actionJoinAP(dwinWifiConnIndex, dwinWifiConnKey);
-		break;
-	default:
-		break;
-	}
-}
-#endif	// WIFI_SUPPORT
-
-#ifdef STATE_PAGE_AS_DEFAULT
-void return_default_button_action(bool clickButton){
-#else
-void return_default_button_action(){
-#endif
+inline void returnDefaultButtonAction(){
 #if HAS_READER
 	if(isSerialPrinting)
-		GO_PAGE(PAGE_NORAML_SERIAL);
+		GO_PAGE(PAGE_PARSE(PAGE_DEFAULT_ONLINE));
 	else
-		if (!FILE_IS_IDLE)
-			if (FILE_IS_PRINT)
-				GO_PAGE(PAGE_PRINT_PAUSE);
+		if(!FILE_IS_IDLE)
+			if(FILE_IS_PRINT)
+				if(wait_for_user)
+					GO_PAGE(PAGE_PARSE(PAGE_DEFAULT_PRINT_RESUME));
+				else
+					GO_PAGE(PAGE_PARSE(PAGE_DEFAULT_PRINT_PAUSE));
 			else
-				GO_PAGE(PAGE_PRINT_RESUME);
+				GO_PAGE(PAGE_PARSE(PAGE_DEFAULT_PRINT_RESUME));
 		else
-	#ifdef STATE_PAGE_AS_DEFAULT
-			if(!clickButton){
-				GO_PAGE(PAGE_STATE_NORMAL);
-			} else
-	#endif
-			{
-			if (thermalManager.hasHeat())
-				if (READER_VALID)
-					GO_PAGE(PAGE_NORMAL_COOLDOWN_READER);
+			if(thermalManager.hasHeat())
+				if(READER_VALID)
+					GO_PAGE(PAGE_PARSE(PAGE_DEFAULT_IDLE_COOLDOWN_DEVICE_INSERT));
 				else
-					GO_PAGE(PAGE_NORMAL_COOLDOWN_NO_READER);
+					GO_PAGE(PAGE_PARSE(PAGE_DEFAULT_IDLE_COOLDOWN_DEVICE_REMOVE));
 			else
-				if (READER_VALID)
-					GO_PAGE(PAGE_NORMAL_PREHEAT_READER);
+				if(READER_VALID)
+					GO_PAGE(PAGE_PARSE(PAGE_DEFAULT_IDLE_PREHEAT_DEVICE_INSERT));
 				else
-					GO_PAGE(PAGE_NORMAL_PREHEAT_NO_READER);
-			}
+					GO_PAGE(PAGE_PARSE(PAGE_DEFAULT_IDLE_PREHEAT_DEVICE_REMOVE));
 #else		// !HAS_READER
 	if(isSerialPrinting)
-		GO_PAGE(PAGE_NORAML_SERIAL);
+		GO_PAGE(PAGE_PARSE(PAGE_DEFAULT_ONLINE));
 	else
 		if(thermalManager.hasHeat())
-			GO_PAGE(PAGE_NORMAL_COOLDOWN_NO_READER);
+			GO_PAGE(PAGE_PARSE(PAGE_DEFAULT_IDLE_COOLDOWN_DEVICE_REMOVE));
 		else
-			GO_PAGE(PAGE_NORMAL_PREHEAT_NO_READER);
+			GO_PAGE(PAGE_PARSE(PAGE_DEFAULT_IDLE_PREHEAT_DEVICE_REMOVE));
 #endif		// HAS_READER
 }
 
-void return_state_button_action(){
+inline void printPauseButtonAction(){
 #if HAS_READER
-	if (FILE_IS_IDLE)
-		GO_PAGE(PAGE_STATE_NORMAL);
-	else
-		GO_PAGE(PAGE_STATE_PRINT);
-#else
-	GO_PAGE(PAGE_STATE_NORMAL);
-#endif
-}
-
-
-void jump_settting(){
-#if defined(WIFI_SUPPORT) || HAS_LEVELING
-	#ifdef WIFI_SUPPORT
-		GO_PAGE(PAGE_SETTINGS);
-	#else
-		GO_PAGE(PAGE_SETTINGS_V2);
-	#endif
-#else
-	GO_PAGE(PAGE_SETTINGS);
-#endif
-}
-
-void jump_setting_2(){
-#if defined(WIFI_SUPPORT) || HAS_LEVELING
-	#ifdef WIFI_SUPPORT
-		if(myWifi.enable)
-			GO_PAGE(PAGE_SETTINGS_2_WIFI_ON);
-		else
-			GO_PAGE(PAGE_SETTINGS_2_WIFI_OFF);
-	#else
-		GO_PAGE(PAGE_SETTINGS_V2_MORE);
-	#endif
-#else
-	GO_PAGE(PAGE_SETTINGS_2);
-#endif
-}
-
-#if HAS_LEVELING
-void jump_leveling_page(){
-#if ENABLED(AUTO_BED_LEVELING_BILINEAR)
-	if(FILE_IS_IDLE && !planner.blocks_queued() && !isSerialPrinting){
-		if(leveling_is_valid()){
-			if(leveling_is_active()){
-				GO_PAGE(PAGE_LEVELING_VALID_ON);
-			} else{
-				GO_PAGE(PAGE_LEVELING_VALID_OFF);
-			}
-		} else{
-			GO_PAGE(PAGE_LEVELING_INVALID);
+	#if ENABLED(QUICK_PAUSE)
+		if(quickPausePrintJob()){
+			DWIN_MSG_P(DWIN_MSG_PRINT_PAUSED);
+			returnDefaultButtonAction();
 		}
-	} else{
-		if(leveling_is_valid()){
-			if(leveling_is_active()){
-				GO_PAGE(PAGE_LEVELING_DISABLE_ON);
-			} else{
-				GO_PAGE(PAGE_LEVELING_DISABLE_OFF);
-			}
-		} else{
-			GO_PAGE(PAGE_LEVELING_DISABLE_INVALID);
+	#else
+		FILE_PAUSE_PRINT;
+		print_job_timer.pause();
+		#if ENABLED(PARK_HEAD_ON_PAUSE)
+			enqueue_and_echo_commands_P(PSTR("M125"));
+		#endif
+		DWIN_MSG_P(DWIN_MSG_PRINT_PAUSED);
+	#endif //QUICK_PAUSE
+#endif
+}
+
+inline void printReuseButtonAction(){
+#if HAS_READER
+	#if ENABLED(QUICK_PAUSE)
+		if(quickReusePrintJob()){
+			DWIN_MSG_P(DWIN_MSG_PRINTING);
+			returnDefaultButtonAction();
 		}
-	}
-#else
-	// TODO Other leveling
+	#else
+		#if ENABLED(PARK_HEAD_ON_PAUSE)
+			enqueue_and_echo_commands_P(PSTR("M24"));
+		#else
+			FILE_START_PRINT;
+			print_job_timer.start();
+		#endif
+		returnDefaultButtonAction();
+	#endif //QUICK_PAUSE
 #endif
 }
 
-#if HAS_BED_PROBE
-void leveling_probe(){
-	if(FILE_IS_IDLE && !planner.blocks_queued() && !isSerialPrinting){
-  	probeDone = false;
-  	enqueue_and_echo_commands_P(PSTR("G28\nG29"));
-		jump_leveling_page();
-		POP_WINDOW(WAIT_KEY);
-	}
-}
-#else
-void leveling_probe(){};
+inline void printCancelButtonAction(){
+#if HAS_READER
+	#if ENABLED(QUICK_PAUSE)
+		quickStopPrintJob();
+		DWIN_MSG_P(DWIN_MSG_WELCOME);
+		returnDefaultButtonAction();
+	#else
+		FILE_STOP_PRINT;
+		clear_command_queue();
+		quickstop_stepper();
+		print_job_timer.stop();
+		thermalManager.disable_all_heaters();
+		#if FAN_COUNT > 0
+			for (uint8_t i = 0; i < FAN_COUNT; i++) fanSpeeds[i] = 0;
+		#endif
+		wait_for_heatup = false;
+		returnDefaultButtonAction();
+	#endif //QUICK_PAUSE
 #endif
-
-void leveling_toggle(){
-	if(leveling_is_valid()){
-		bool allowLeveling = leveling_is_active();
-		set_bed_leveling_enabled(!allowLeveling);
-		EEPROM_STORE(planner.abl_enabled, setting_mesh_bilinear_ubl_status);
-		jump_leveling_page();
-	}
 }
-#else
-void jump_leveling_page(){};
-void leveling_probe(){};
-void leveling_toggle(){};
-#endif
 
-
-void preheat_button_action(){
+inline void preheatButtonAction(){
 	dwin_preheat(0);
 }
 
-#if HAS_READER
-void print_pause_button_action() {
-#if ENABLED(QUICK_PAUSE)
-	if(quickPausePrintJob()){
-		DWIN_MSG_P(DWIN_MSG_PRINT_PAUSED);
-		return_default_button_action();
-	}
-#else
-	FILE_PAUSE_PRINT;
-  print_job_timer.pause();
-  #if ENABLED(PARK_HEAD_ON_PAUSE)
-    enqueue_and_echo_commands_P(PSTR("M125"));
-  #endif
-	DWIN_MSG_P(DWIN_MSG_PRINT_PAUSED);
-#endif //QUICK_PAUSE
+inline void cooldownButtonAction(){
+	dwin_cooldwon();
 }
 
-void print_reuse_button_action() {
-#if ENABLED(QUICK_PAUSE)
-	if(quickReusePrintJob()){
-		DWIN_MSG_P(DWIN_MSG_PRINTING);
-		return_default_button_action();
-	}
-#else
-  #if ENABLED(PARK_HEAD_ON_PAUSE)
-    enqueue_and_echo_commands_P(PSTR("M24"));
-  #else
-    FILE_START_PRINT;
-    print_job_timer.start();
-  #endif
-    return_default_button_action();
-#endif //QUICK_PAUSE
+inline void openFileButtonAction(){
+	lcdUpdateFiles(OPEN);
 }
 
-void print_cancel_button_action() {
-#if ENABLED(QUICK_PAUSE)
-	quickStopPrintJob();
-	DWIN_MSG_P(DWIN_MSG_WELCOME);
-	return_default_button_action();
-#else
-	FILE_STOP_PRINT;
-  clear_command_queue();
-  quickstop_stepper();
-  print_job_timer.stop();
-  thermalManager.disable_all_heaters();
-  #if FAN_COUNT > 0
-    for (uint8_t i = 0; i < FAN_COUNT; i++) fanSpeeds[i] = 0;
-  #endif
-  wait_for_heatup = false;
-	DWIN_MSG_P(DWIN_MSG_WELCOME);
-	return_default_button_action();
-#endif //QUICK_PAUSE
+inline void openFilamentPageAction(){
+	GO_PAGE(PAGE_PARSE(PAGE_FILAMENT));
 }
-#else		//!HAS_READER
-void print_pause_button_action() {}
-void print_reuse_button_action() {}
-void print_cancel_button_action() {}
-#endif	//HAS_READER
 
+inline void printChangeButtonAction(){
 #ifdef FILAMENT_CHANGE
-void print_change_button_action() {
-	if (!HAS_POPUP
-#ifdef ACCIDENT_DETECT
-	&& !isAccidentToPrinting
-#endif
-	) {
+	if(!HAS_POPUP
+	#ifdef ACCIDENT_DETECT
+			&& !isAccidentToPrinting
+	#endif
+			){
 		if(pauseToUnloadFilament()){
-			POP_WINDOW(WAIT_KEY);
+			SERIAL_ECHOLNPGM(MSG_FILAMENT_NOT_READY);
+			DWIN_MSG_P(DWIN_MSG_FILAMENT_NOT_READY);
 		}
 	}
+#endif
 }
+
+inline void zUpButtonAction(){
+//	dwin_move(Z_AXIS, DWIN_Z_MOVE_SCALE, false);
+	dwin_move(Z_AXIS, 1, false);
+}
+
+inline void zDownButtonAction(){
+//	dwin_move(Z_AXIS, DWIN_Z_MOVE_SCALE, true);
+	dwin_move(Z_AXIS, 1, true);
+}
+
+inline void settingButtonAction(){
+#if HAS_LEVELING
+	#if ENABLED(WIFI_SUPPORT)
+		GO_PAGE(PAGE_SETTING_WIFI_LEVELING);
+	#else
+		GO_PAGE(PAGE_SETTING_LEVELING);
+	#endif
 #else
-void print_change_button_action() {}
+	#if ENABLED(WIFI_SUPPORT)
+		GO_PAGE(PAGE_SETTING_WIFI);
+	#else
+		GO_PAGE(PAGE_SETTING);
+	#endif
 #endif
-
-void open_filament_page_action(){
-	GO_PAGE(PAGE_FILAMENT);
 }
 
-
-void store_setting_action(){
-	POP_WINDOW(STORE_INFO_KEY);
-#ifdef DEBUG_FREE
-	SERIAL_ECHOLNPAIR("before save: ", freeMemory());
-#endif
-	settings.save();
-#ifdef DEBUG_FREE
-	SERIAL_ECHOLNPAIR("after save: ", freeMemory());
-#endif
-	HIDE_POPUP;
+inline void adjustButtonAction(){
+	GO_PAGE(PAGE_ADJUST);
 }
 
-void reset_setting_action(){
-	POP_WINDOW(RESET_INFO_KEY);
-	settings.reset();
-	HIDE_POPUP;
-}
-
-void jump_reg_action(){
+inline void regButtonAction(){
 #ifdef REG_SN
-	GO_PAGE(PAGE_REG_INFO);
+	GO_PAGE(PAGE_REG);
 #endif
 }
 
-void shuttingCancelAction(){
+inline void HomeAllAction(){
+	dwin_move_home(HOME_ALL);
+}
+
+inline void moveHomeXAction(){
+	dwin_move_home(HOME_X);
+}
+
+inline void moveHomeYAction(){
+	dwin_move_home(HOME_Y);
+}
+
+inline void moveHomeZAction(){
+	dwin_move_home(HOME_Z);
+}
+
+inline void moveXPlusAction(){
+	dwin_move(X_AXIS, true);
+}
+
+inline void moveYPlusAction(){
+	dwin_move(Y_AXIS, true);
+}
+
+inline void moveZPlusAction(){
+	dwin_move(Z_AXIS, true);
+}
+
+inline void moveXMinusAction(){
+	dwin_move(X_AXIS, false);
+}
+
+inline void moveYMinusAction(){
+	dwin_move(Y_AXIS, false);
+}
+
+inline void moveZMinusAction(){
+	dwin_move(Z_AXIS, false);
+}
+
+inline void filamentExtrudeAction(){
+	dwin_filament_test(true);
+}
+
+inline void filamentRetractAction(){
+	dwin_filament_test(false);
+}
+
+inline void filamentUnloadAction(){
+	dwin_filament_unload();
+}
+
+inline void storeSettingsAction(){
+  POP_WINDOW(POP_ICO_SETTING_SAVING, POPUP_DELAY_500MS);
+  settings.save();
+}
+
+inline void resetSettingsAction(){
+	POP_WINDOW(POP_ICO_SETTING_RESTORING, POPUP_DELAY_500MS);
+	settings.reset();
+#ifdef WIFI_MODULE_ESP8266_12
+	myWifi.resetWifiInfo();
+#endif
+}
+
+inline void jumpSettingMotionAction(){
+  GO_PAGE(PAGE_MOTION_SETTING);
+}
+
+inline void jumpSettingFanAction(){
+#ifdef HAS_AIR_FAN
+	GO_PAGE(PAGE_FANSPEED_SETTING_FILTER);
+#else
+	GO_PAGE(PAGE_FANSPEED_SETTING);
+#endif
+}
+
+inline void jumpSettingPreheatAction(){
+#ifdef HOTWIND_SYSTEM
+	GO_PAGE(PAGE_PREHEAT_SETTING_CHAMBER);
+#else
+	GO_PAGE(PAGE_PREHEAT_SETTING);
+#endif
+}
+
+inline void jumpSettingWifiAction(){
+#ifdef WIFI_SUPPORT
+#ifdef WIFI_MODULE_ESP8266_01
+	if(myWifi.isOpen()){
+		GO_PAGE(PAGE_WIFI_SETTING_ON);
+	}else{
+		GO_PAGE(PAGE_WIFI_SETTING_OFF);
+	}
+	if(myWifi.isAction(ACTION_INIT) && !HAS_POPUP){
+    POP_WINDOW(POP_ICO_WAITING, POPUP_DELAY_ALWAY_DELAY);
+	}
+#elif defined(WIFI_MODULE_ESP8266_12)
+  GO_PAGE(PAGE_CONNECT_WIFI_12);
+#endif
+#endif
+}
+
+inline void jumpSettingLevelingAction(){
+#if HAS_LEVELING
+	#if ENABLED(AUTO_BED_LEVELING_BILINEAR)
+		if(leveling_is_active()){
+			if(leveling_is_valid()){
+				if(FILE_IS_IDLE && !planner.blocks_queued() && !isSerialPrinting){		// no move.
+					GO_PAGE(PAGE_LEVELING_SETTING_ON);
+				}else{
+					GO_PAGE(PAGE_LEVELING_SETTING_DISABLE);
+				}
+			}
+		}else{
+			GO_PAGE(PAGE_LEVELING_SETTING_OFF);
+		}
+	#else
+		// Other leveling
+	#endif
+#endif
+}
+
+inline void fileNextPageAction(){
+	lcdUpdateFiles(NEXT_PAGE);
+}
+
+inline void fileLastPageAction(){
+	lcdUpdateFiles(LAST_PAGE);
+}
+
+inline void fileUpLevelAction(){
+	lcdUpdateFiles(UP_LEVEL);
+}
+
+void dwin_update_wifi_icon();
+
+inline void wifiSwitchToggleAction(){
+#ifdef WIFI_SUPPORT
+#ifdef WIFI_MODULE_ESP8266_01
+  if(myWifi.isOpen()){
+    POP_WINDOW(POP_ICO_WAITING, POPUP_DELAY_200MS);
+    myWifi.ON_OFF(false);
+  } else{
+    POP_WINDOW(POP_ICO_WAITING, POPUP_DELAY_ALWAY_DELAY);
+    myWifi.ON_OFF(true);
+  }
+#endif
+#endif
+}
+
+inline void wifiModeStaAction(){
+#ifdef WIFI_SUPPORT
+#ifdef WIFI_MODULE_ESP8266_01
+  if(myWifi.getWifiMode() != MODE_STA){
+    myWifi.actionSetWifiMode(MODE_STA);
+    POP_WINDOW(POP_ICO_WAITING, POPUP_DELAY_ALWAY_DELAY);
+  }
+#endif
+#endif
+}
+
+inline void wifiModeApAction(){
+#ifdef WIFI_SUPPORT
+#ifdef WIFI_MODULE_ESP8266_01
+  if(myWifi.getWifiMode() != MODE_AP){
+    myWifi.actionSetWifiMode(MODE_AP);
+    POP_WINDOW(POP_ICO_WAITING, POPUP_DELAY_200MS);
+  }
+#endif
+#endif
+}
+
+inline void wifiSwitchModeAction(){
+#ifdef WIFI_SUPPORT
+#ifdef WIFI_MODULE_ESP8266_01
+	myWifi.actionSwitchWifiMode();
+  POP_WINDOW(POP_ICO_WAITING, POPUP_DELAY_200MS);
+#endif
+#endif
+}
+
+inline void wifiResetAction(){
+#ifdef WIFI_SUPPORT
+#ifdef WIFI_MODULE_ESP8266_01
+	myWifi.actionWifiReset();
+  POP_WINDOW(POP_ICO_WAITING, POPUP_DELAY_ALWAY_DELAY);
+#endif
+#endif
+}
+
+inline void wifiScanAction(){
+#ifdef WIFI_SUPPORT
+#ifdef WIFI_MODULE_ESP8266_01
+	myWifi.actionScanAP(SCAN_0);
+  POP_WINDOW(POP_ICO_WAITING, POPUP_DELAY_ALWAY_DELAY);
+#endif
+#endif
+}
+
+inline void wifiNextPageAction(){
+#ifdef WIFI_SUPPORT
+#ifdef WIFI_MODULE_ESP8266_01
+	myWifi.actionScanAP(SCAN_NEXT);
+  POP_WINDOW(POP_ICO_WAITING, POPUP_DELAY_ALWAY_DELAY);
+#endif
+#endif
+}
+
+inline void wifiLastPageAction(){
+#ifdef WIFI_SUPPORT
+#ifdef WIFI_MODULE_ESP8266_01
+	myWifi.actionScanAP(SCAN_LAST);
+  POP_WINDOW(POP_ICO_WAITING, POPUP_DELAY_ALWAY_DELAY);
+#endif
+#endif
+}
+
+inline void wifiSettingEntryAction(){
+#ifdef WIFI_SUPPORT
+#ifdef WIFI_MODULE_ESP8266_01
+	if(myWifi.getWifiMode() == MODE_AP){
+		GO_PAGE(PAGE_WIFI_INFO_AP);
+	}else if(myWifi.getWifiMode() == MODE_STA){
+		GO_PAGE(PAGE_WIFI_INFO_STATION);
+//	}else if(myWifi.getWifiMode() == MODE_BOTH){
+//		//TODO WIFI
+//		SERIAL_ECHOLN("TO DO");
+	}else{
+		//TODO WIFI
+		SERIAL_ECHOLN("TODO");
+	}
+#endif
+#endif
+}
+
+inline void levelingEnableAction(){
+#if HAS_LEVELING
+	set_bed_leveling_enabled(true);
+	jumpSettingLevelingAction();
+#endif
+}
+
+inline void levelingSwitchToggleAction(){
+#if HAS_LEVELING
+#ifdef DWIN_USE_OS
+	if(leveling_is_active()){
+		set_bed_leveling_enabled(false);
+	} else {
+		if(leveling_is_valid()){
+			if(FILE_IS_IDLE && !planner.blocks_queued() && !isSerialPrinting){		// no move.
+				POP_WINDOW(POP_KEY_PROBE_CONFIRM, POPUP_DELAY_ALWAY_DELAY);
+			} else {
+				levelingEnableAction();
+			}
+		} else {
+			POP_WINDOW(POP_ICO_INVALID_LEVLEL_DATA, POPUP_DELAY_1S);
+			if(FILE_IS_IDLE && !planner.blocks_queued() && !isSerialPrinting){		// no move.
+				enqueue_and_echo_commands_P(PSTR("M6014"));
+			} else {
+				POP_WINDOW(POP_ICO_PROBER_UNAVAILABLE, POPUP_DELAY_500MS);
+			}
+		}
+	}
+	jumpSettingLevelingAction();
+#else //!DWIN_USE_OS
+	if(leveling_is_valid()){
+		bool allowLeveling = leveling_is_active();
+		set_bed_leveling_enabled(!allowLeveling);
+		EEPROM_STORE(planner.abl_enabled, mesh_bilinear_ubl_status);
+		jumpSettingLevelingAction();
+	}
+#endif //DWIN_USE_OS
+#endif //HAS_LEVELING
+}
+
+inline void levelingProbeAction(){
+#if HAS_BED_PROBE
+	if(FILE_IS_IDLE && !planner.blocks_queued() && !isSerialPrinting){
+		enqueue_and_echo_commands_P(PSTR("M6014"));
+	}
+#endif
+}
+
+inline void wifiItemAction(uint8_t index){
+#ifdef WIFI_SUPPORT
+#ifdef WIFI_MODULE_ESP8266_01
+  //#define CENTER_WIFI_SELECT
+  #ifdef CENTER_WIFI_SELECT
+    char name[WIFI_SSID_SIZE] = { 0 };
+    strcpy(name, myWifi.getWifiInfo(index)->ssid);
+
+    if(name[0]){
+      dwinWifiConnIndex = index;
+
+      // show the string in the center of LCD.
+      centerString(name, LCD_WIFI_CHAR_LEN);
+      SET_STR(WIFI_SELECT, LCD_WIFI_CHAR_LEN, name);
+
+      GO_PAGE(PAGE_CONNECT_WIFI_01);
+    }
+  #else //!CENTER_WIFI_SELECT
+    char *name = myWifi.getWifiInfo(index)->ssid;
+    if(name[0]){
+      dwinWifiConnIndex = index;
+      SET_STR(WIFI_SELECT, LCD_WIFI_CHAR_LEN, name);
+      GO_PAGE(PAGE_CONNECT_WIFI_01);
+    }
+  #endif //CENTER_WIFI_SELECT
+#else
+  UNUSED(index);
+#endif
+#else
+	UNUSED(index);
+#endif
+}
+
+inline void fileOpenAction(){
+	afterFileItemAction(OPEN);
+}
+
+inline void filePrintAction(){
+	afterFileItemAction(PRINT);
+}
+
+inline void fileCancelAction(){
+	afterFileItemAction(CANCEL);
+}
+
+inline void shuttingCancelAction(){
 #if FAN_COUNT > 0
-	for (uint8_t i = 0; i < FAN_COUNT; i++) fanSpeeds[i] = 0;
+	for(uint8_t i = 0; i < FAN_COUNT; i++)
+		fanSpeeds[i] = 0;
 #endif
-	return_default_button_action();
+	returnDefaultButtonAction();
 }
 
+inline void accidentReuseAction(){
 #ifdef ACCIDENT_DETECT
-
-void accidentReuseAction(){
-	//return_default_button_action();
+//	returnDefaultButtonAction();
 	accidentToResume_Home();
+#endif
 }
 
-void accidentCancelAction(){
-	return_default_button_action();
-	if (isAccident) {
+inline void accidentCancelAction(){
+#ifdef ACCIDENT_DETECT
+	returnDefaultButtonAction();
+	if(isAccident){
 		isAccident = false;
 		STORE_SETTING(isAccident);
 	}
-}	
-#else
-void accidentReuseAction() {};
-void accidentCancelAction() {};
 #endif
+}
 
+inline void changeDoneAction(){
 #ifdef FILAMENT_CHANGE
-void changeDoneAction() {
-	HIDE_POPUP;		// dummy hide popup, as the popup is disappear by touch the "resume" button in dwin lcd.
-	print_reuse_button_action();
-};
-#else
-void changeDoneAction() {};
+	HIDE_POPUP;	// dummy hide popup, as the popup is disappear by touch the "resume" button in dwin lcd.
+	printReuseButtonAction();
 #endif
+}
+
+inline void onlineReturnAction(){
+
+}
+
+inline void wifiConnectAction(){
+#ifdef WIFI_SUPPORT
+#ifdef WIFI_MODULE_ESP8266_01
+  myWifi.actionJoinAP(dwinWifiConnIndex, dwinWifiConnKey);
+  POP_WINDOW(POP_ICO_WAITING, POPUP_DELAY_ALWAY_DELAY);
+	wifiSettingEntryAction();
+#elif defined(WIFI_MODULE_ESP8266_12)
+	if(strlen(dwinWifiConnSSID)){
+	  myWifi.actionJoinAP(dwinWifiConnSSID, dwinWifiConnKey);
+	}
+#endif
+#endif
+}
+
+inline void wifiCancelAction(){
+#ifdef WIFI_SUPPORT
+#ifdef WIFI_MODULE_ESP8266_01
+	wifiSettingEntryAction();
+#elif defined(WIFI_MODULE_ESP8266_12)
+	settingButtonAction();
+#endif
+#endif
+}
 
 /*******************************************************************************************************/
 
 /*
 void setupDEMO(){
-	SET_INT_P(COLOR_BLACK,	"0000");
-	SET_INT_P(COLOR_WHITE,	"FFFF");
-	SET_INT_P(COLOR_RED,		"F800");
-	SET_INT_P(COLOR_ORANGE,	"FC00");
-	SET_INT_P(COLOR_YELLOW,	"FFE0");
-	SET_INT_P(COLOR_GREEN,	"07E0");
-	SET_INT_P(COLOR_CYAN,		"07FF");
-	SET_INT_P(COLOR_BLUE,		"001F");
-	SET_INT_P(COLOR_PURPLE,	"F81F");
+	SET_INT(COLOR_BLACK,	"0000");
+	SET_INT(COLOR_WHITE,	"FFFF");
+	SET_INT(COLOR_RED,		"F800");
+	SET_INT(COLOR_ORANGE,	"FC00");
+	SET_INT(COLOR_YELLOW,	"FFE0");
+	SET_INT(COLOR_GREEN,	"07E0");
+	SET_INT(COLOR_CYAN,		"07FF");
+	SET_INT(COLOR_BLUE,		"001F");
+	SET_INT(COLOR_PURPLE,	"F81F");
 }
 */
 
 /********************************************* View Part ***********************************************/
 
-void dwin_update_msg(const char* msg) {
+void dwin_update_msg(const char* msg){
   if(powerState <= POWER_COOLING) return;
-	// center the str.
-	//char msg_ram[30] = { 0 };
-	//strcpy(msg_ram, msg);
-	//centerString(msg_ram, 30);
-	//SET_STR_P(MSG_ADDR, LCD_MSG_CHAR_LEN, msg_ram);
-	SET_STR_P(MSG_ADDR, LCD_MSG_CHAR_LEN, msg);
-
+#ifdef DWIN_CENTER_MSG
+	char msg_center[LCD_MSG_CHAR_LEN + 1];
+	strcpy(msg_center, msg);
+	centerString(msg_center, LCD_MSG_CHAR_LEN);
+	SET_STR(MSG_ADDR, LCD_MSG_CHAR_LEN, msg_center);
+#else
+	SET_STR(MSG_ADDR, LCD_MSG_CHAR_LEN, msg);
+#endif
+	SET_STR(MSG_ADDR_SHORT, LCD_MSG_CHAR_LEN, msg);
 }
 
 void dwin_update_msg_P(const char* msg){
 	char real_msg[LCD_MSG_CHAR_LEN + 1] = { 0 };
 	strncpy_P(real_msg, msg, LCD_MSG_CHAR_LEN);
 	dwin_update_msg(real_msg);
-//	SERIAL_ECHO("dwin:	");
-//	SERIAL_ECHOLN(real_msg);
 }
 
-void updateFanSpeed(uint8_t mode) {
-#define _FAN_SPEED_UPDATE(fan, addr) do{\
+void updateFanSpeed(uint8_t mode){
+	#define _FAN_SPEED_UPDATE(fan, addr) do{\
 			SET_INT(addr, (fan + 1) * 100 / 255);\
 		} while(0);
-#define FAN_SPEED_UPDATE(speed, addr)	_FAN_SPEED_UPDATE(speed, PSTR(addr))
+	#define FAN_SPEED_UPDATE(speed, addr)	_FAN_SPEED_UPDATE(speed, addr)
 
-
-	if (mode == GLOBAL_FAN) {
+	if(mode == GLOBAL_FAN){
 		int fanSpeed =
 		#if FAN_COUNT > 0
 			#if FAN_COUNT > 1
@@ -1151,54 +1434,82 @@ void updateFanSpeed(uint8_t mode) {
 		#endif
 		FAN_SPEED_UPDATE(fanSpeed, FAN_SPEED_ADDR);
 	}
-	else if (mode == PREHEAT_FAN) {
-		FAN_SPEED_UPDATE(lcd_preheat_fan_speed, PREHEAT_FAN_SPEED_ADDR);
-	}
-	else if (mode == TEMP_FAN) {
+//	else if (mode == PREHEAT_FAN) {
+//		FAN_SPEED_UPDATE(lcd_preheat_fan_speed[PLA], PREHEAT_FAN_SPEED_ADDR);
+//	}
+	else if(mode == TEMP_FAN){
 		FAN_SPEED_UPDATE(extruder_auto_fan_speed, TEMP_FAN_SPEED_ADDR);
 	}
-	else if (mode == AIR_FAN) {
 #ifdef HAS_AIR_FAN
+	else if(mode == AIR_FAN){
 		FAN_SPEED_UPDATE(air_fan_speed, AIR_FAN_SPEED_ADDR);
-#endif
 	}
+#endif
 }
 
 void dwin_update_version(){
 	char *ver = &versionFW[1];
-	SET_STR_P(VER_ADDR, LCD_VER_CHAR_LEN, ver);
+	SET_STR(VER_ADDR, LCD_VER_CHAR_LEN, ver);
+	SET_STR(UI_ADDR, LCD_UI_CHAR_LEN, DWIN_VER);
 }
 
-void dwin_update_icon() {
+void dwin_update_reg_icon(){
 #ifdef REG_SN
-	uint8_t regState;
-	regState = REG_PASS ? 1 : 0;
-	UPDATE_LCD(regState, REG_STATE_INDEX_ADDR);
-#else
-	UPDATE_LCD(1, REG_STATE_INDEX_ADDR);
+  uint8_t regState;
+  regState = REG_PASS ? 1 : 0;
+  UPDATE_LCD(regState, REG_STATE_INDEX_ADDR);
 #endif
+}
+
+void dwin_update_wifi_home_icon(){
 #ifdef WIFI_SUPPORT
-	uint8_t wifi_mode, wifi_state;
-	if (myWifi.getWifiMode() == MODE_BOTH) {
-		wifi_mode = 0;
-	} else wifi_mode = 1;
+#ifdef WIFI_MODULE_ESP8266_01
+  UPDATE_LCD(myWifi.getWifiMode(), WIFI_HOME_ICO);
+#elif defined(WIFI_MODULE_ESP8266_12)
+  UPDATE_LCD(myWifi.getWifiCode(), WIFI_HOME_ICO);
+#endif
+#endif
+}
 
-	if (myWifi.getIP()) {
-		wifi_state = 0;
-	} else {
-		if (myWifi.isAction(ACTION_JOIN_AP))
-			wifi_state = 1;
-		else
-			wifi_state = 2;
+void dwin_update_wifi_icon(){
+#ifdef WIFI_SUPPORT
+#ifdef WIFI_MODULE_ESP8266_01
+	UPDATE_LCD(myWifi.getWifiMode(), WIFI_MODE_INDEX_ADDR);
+#elif defined(WIFI_MODULE_ESP8266_12)
+	uint8_t wifiState = 0;
+	switch(myWifi.getWifiCode()){
+	  case WifiNoConnect:
+	    wifiState = 0;
+	    break;
+	  case WifiConnecting:
+      wifiState = 1;
+	    break;
+	  case WifiRssi1:
+	  case WifiRssi2:
+	  case WifiRssi3:
+	  case WifiRssi4:
+      wifiState = 2;
+	    break;
+	  case WifiSsidNoFind:
+      wifiState = 4;
+	    break;
+	  case WifiKeyErr:
+      wifiState = 3;
+	    break;
+	  default:
+	    wifiState = 0;
 	}
-
-	UPDATE_LCD(wifi_mode, WIFI_MODE_INDEX_ADDR);
-	UPDATE_LCD(wifi_state, WIFI_STATE_INDEX_ADDR);
+  UPDATE_LCD(wifiState, WIFI_STATE_INDEX_ADDR);
+#endif
 #endif 
 }
 
-void dwin_update_index() {
-	move_distance_index = 3;
+void dwin_update_wifi_uuid(const char* uuid){
+  SET_STR(WIFI_UUID_ADDR, LCD_WIFI_UUID_LEN, uuid);
+}
+
+void dwin_update_index(){
+	move_distance_index = 4;	// 100mm
 #if EXTRUDERS > 2
 	extrude_index = 4;
 #elif EXTRUDERS > 1
@@ -1206,16 +1517,26 @@ void dwin_update_index() {
 #elif EXTRUDERS > 0
 	extrude_index = 1;
 #endif
-	extrude_distance = 10;
+	extrude_distance = 30;		// 30mm
 
 	UPDATE_LCD(move_distance_index, MOVE_DISTANCE_INDEX_ADDR);
 	UPDATE_LCD(extrude_index, FILAMENT_EXT_INDEX_ADDR);
 	UPDATE_LCD(extrude_distance, FILAMENT_EXT_DISTANCE_ADDR);
 
-	dwin_update_icon();
+	dwin_update_reg_icon();
+	dwin_update_wifi_icon();
+	dwin_update_wifi_home_icon();
 }
 
-void dwin_update_state_info() {
+void dwin_update_strings(){
+	SET_STR(X_STR_ADDR, 2, "X:");
+	SET_STR(Y_STR_ADDR, 2, "Y:");
+	SET_STR(Z_STR_ADDR, 2, "Z:");
+  SET_STR(WIFI_KEY_MASK_ADDR, 16, "****************");
+	updateStateStrings();
+}
+
+void dwin_update_temp_info(){
 	//target_temperature
 	UPDATE_LCD(thermalManager.degTargetHotend(0), EX0_TAR_ADDR);
 #if EXTRUDERS > 1
@@ -1230,38 +1551,54 @@ void dwin_update_state_info() {
 #endif
 
 	//current_temperature
-	UPDATE_LCD_31(thermalManager.degHotend(0), EX0_CUR_ADDR);
+	UPDATE_LCD((int16_t )thermalManager.degHotend(0), EX0_CUR_ADDR);
 #if EXTRUDERS > 1
-	UPDATE_LCD_31(thermalManager.degHotend(1), EX1_CUR_ADDR);
+	UPDATE_LCD((int16_t)thermalManager.degHotend(1), EX1_CUR_ADDR);
 #endif
 #if EXTRUDERS > 2
-	UPDATE_LCD_31(thermalManager.degHotend(2), EX2_CUR_ADDR);
+	UPDATE_LCD((int16_t)thermalManager.degHotend(2), EX2_CUR_ADDR);
 #endif
-	UPDATE_LCD_31(thermalManager.degBed(), BED_CUR_ADDR);
+	UPDATE_LCD((int16_t )thermalManager.degBed(), BED_CUR_ADDR);
 #ifdef HOTWIND_SYSTEM
-	UPDATE_LCD_31(thermalManager.degChamber(), CHAMBER_CUR_ADDR);
+	UPDATE_LCD((int16_t)thermalManager.degChamber(), CHAMBER_CUR_ADDR);
 #endif
+}
 
+void dwin_update_adjust_info(){
 	//global_speed  & fan_speed & extrude_multiply
 	UPDATE_LCD(feedrate_percentage, SPEED_GLOBAL_ADDR);
 	UPDATE_LCD(flow_percentage[active_extruder], EXT_MULTIPLY_ADDR);
 	updateFanSpeed(GLOBAL_FAN);
 }
 
-void dwin_update_axis_info() {
+void dwin_update_axis_info(){
 	//current_position
 	UPDATE_LCD_42(current_position[X_AXIS], X_AXIS_ADDR);
 	UPDATE_LCD_42(current_position[Y_AXIS], Y_AXIS_ADDR);
 	UPDATE_LCD_42(current_position[Z_AXIS], Z_AXIS_ADDR);
 }
 
-void dwin_update_max_temp_info() {
+void dwin_update_max_temp_info(){
 	//current_max_temperature
-	UPDATE_LCD_31(thermalManager.maxDegHotend(), CUR_MAX_TEMP_ADDR);
+	UPDATE_LCD(thermalManager.maxDegHotend(), CUR_MAX_TEMP_ADDR);
 }
 
-void dwin_update_setting_info() {
-	//machine_setting
+void dwin_update_setting_motion_info(){
+	UPDATE_LCD_34(planner.axis_steps_per_mm[X_AXIS], X_STEP_ADDR);
+	UPDATE_LCD_34(planner.axis_steps_per_mm[Y_AXIS], Y_STEP_ADDR);
+	UPDATE_LCD_43(planner.axis_steps_per_mm[Z_AXIS], Z_STEP_ADDR);
+	UPDATE_LCD_34(planner.axis_steps_per_mm[E_AXIS], E_STEP_ADDR);
+}
+
+void dwin_update_setting_fan_info(){
+	updateFanSpeed(GLOBAL_FAN);
+	updateFanSpeed(TEMP_FAN);
+#ifdef HAS_AIR_FAN
+	updateFanSpeed(AIR_FAN);
+#endif
+}
+
+void dwin_update_setting_preheat_info(){
 	updateFanSpeed(PREHEAT_FAN);
 	UPDATE_LCD(lcd_preheat_hotend_temp[0], PREHEAT_EXT_TEMP_ADDR_0);
 #if EXTRUDERS > 1
@@ -1274,123 +1611,122 @@ void dwin_update_setting_info() {
 #ifdef HOTWIND_SYSTEM
 	UPDATE_LCD(lcd_preheat_chamber_temp, PREHEAT_CHAMBER_TEMP_ADDR);
 #endif
-
-	UPDATE_LCD_34(planner.axis_steps_per_mm[X_AXIS], X_STEP_ADDR);
-	UPDATE_LCD_34(planner.axis_steps_per_mm[Y_AXIS], Y_STEP_ADDR);
-	UPDATE_LCD_34(planner.axis_steps_per_mm[Z_AXIS], Z_STEP_ADDR);
-	UPDATE_LCD_34(planner.axis_steps_per_mm[E_AXIS], E_STEP_ADDR);
-
-	updateFanSpeed(TEMP_FAN);
-	updateFanSpeed(AIR_FAN);
 }
 
 #ifdef WIFI_SUPPORT
-void dwin_update_wifi_info() {
-	// wifi settings
-	dwin_update_icon();
+#ifdef WIFI_MODULE_ESP8266_01
+void dwin_update_wifi_list_info(){
+  if(myWifi.getWifiMode() == MODE_STA){
+    #define WIFI_INFO(index) do{\
+      SET_STR(WIFI_ITEM_STR_ ## index, LCD_WIFI_CHAR_LEN, myWifi.getWifiInfo(index)->ssid);\
+      UPDATE_LCD(myWifi.getWifiInfo(index)->level, WIFI_ITEM_ICO_ ## index);\
+    }while(0);
 
-	char ip_str[16] = {0};
-	uint32_t ip_num = myWifi.getIP();
+    WIFI_INFO(0);
+    WIFI_INFO(1);
+    WIFI_INFO(2);
+    WIFI_INFO(3);
+    WIFI_INFO(4);
+  }
+}
+#endif
 
-	if(ip_num){
-		sprintf_P(ip_str, PSTR("%d.%d.%d.%d"), (int(ip_num>>24)) & 0x00FF, (int(ip_num>>16)) & 0x00FF, (int(ip_num>>8)) & 0x00FF, (int(ip_num)) & 0x00FF);
-	} else {
-		strcpy_P(ip_str, PSTR("000.000.000.000"));
-	}
+void dwin_update_station_info(const char* ssid, const char* key){
+#ifdef WIFI_MODULE_ESP8266_12
+  strcpy(dwinWifiConnSSID, ssid);
+  strcpy(dwinWifiConnKey, key);
+  SET_STR(WIFI_SSID_SET_ADDR, LCD_HOST_CHAR_LEN, ssid);
+  SET_STR(WIFI_KEY_ADDR, LCD_HOST_CHAR_LEN, key);
+#endif
+}
 
-	SET_STR_P(WIFI_IP_ADDR, 32, ip_str);
-	SET_STR_P(WIFI_SSID_ADDR, LCD_HOST_CHAR_LEN, hostName);
-	
-	#define WIFI_INFO(index) do{\
-		SET_STR_P(WIFI_ITEM_STR_ ## index, LCD_WIFI_CHAR_LEN, myWifi.getWifiInfo(index).ssid);\
-		UPDATE_LCD(myWifi.getWifiInfo(index).level, WIFI_ITEM_ICO_ ## index);\
-	}while(0);
-
-	WIFI_INFO(0);
-	WIFI_INFO(1);
-	WIFI_INFO(2);
-	WIFI_INFO(3);
-	WIFI_INFO(4);
-
+void dwin_update_setting_wifi_info(){
+  char ip_str[16] = { 0 };
+  uint32_t ip_num = myWifi.getIP();
+  if(ip_num){
+    sprintf_P(ip_str, PSTR("%d.%d.%d.%d"), (int(ip_num >> 24)) & 0x00FF, (int(ip_num >> 16)) & 0x00FF,
+               (int(ip_num >> 8)) & 0x00FF, (int(ip_num)) & 0x00FF);
+  }else{
+    strcpy_P(ip_str, PSTR("000.000.000.000"));
+  }
+  SET_STR(WIFI_IP_ADDR, 32, ip_str);
+#ifdef WIFI_MODULE_ESP8266_01
+  SET_STR(WIFI_SSID_ADDR, LCD_HOST_CHAR_LEN, myWifi.getSSID());
+#endif
 }
 #endif
 
 #if HAS_LEVELING
-void dwin_update_leveling_info(){
+void dwin_update_setting_leveling_info(){
 	#if HAS_BED_PROBE
-//		float offset = zprobe_zoffset;
-//		UPDATE_LCD_22(-offset, SERVO_Z_OFFSET_ADDR);
 		UPDATE_LCD_22(-zprobe_zoffset, SERVO_Z_OFFSET_ADDR);
 	#endif
 
 	#if	ENABLED(ENABLE_LEVELING_FADE_HEIGHT)
-//		float fade_height = 0.0;
-//		if(leveling_is_active()){
-//			fade_height = planner.z_fade_height;
-//		}
-//		UPDATE_LCD_31(fade_height, FADE_HEIGHT_ADDR);
-			UPDATE_LCD_31(planner.z_fade_height, FADE_HEIGHT_ADDR);
+		UPDATE_LCD_31(planner.z_fade_height, FADE_HEIGHT_ADDR);
 	#endif
 }
 #endif
 
+void dwin_update_time_info(uint8_t mode){
+	char time_str[11] = { 0 };
 
-void dwin_update_time_info(uint8_t mode) {
-	char time_str[9] = { 0 };
-
-	if (mode == TIME_USED) {
+	if(mode == TIME_USED){
 		(duration_t(usedTime)).toTimeDWIN(time_str, 4);
-		setValueAsAttr_P(PSTR(USED_TIME_ADDR), 0, time_str);
-	}
-	else if (mode == TIME_PRINT) {
-		(duration_t(print_job_timer.duration()).toTimeDWIN(time_str, 2));
-		setValueAsAttr_P(PSTR(PRINT_TIME_ADDR), 0, time_str);
+		setValueAsAttr_P(USED_TIME_ADDR, 0, time_str);
+	}else if(mode == TIME_PRINT){
+		(duration_t(print_job_timer.duration())).toTimeDWIN(time_str, 3);
+		setValueAsAttr_P(PRINT_TIME_ADDR, 0, time_str);
 	}
 #ifdef REG_SN
-	else if (mode == TIME_TRIAL) {
+	else if(mode == TIME_TRIAL) {
 		float trialTime = TOTAL_TIME_LIMIT - usedTime;
 		trialTime = (trialTime <= 0) ? 0 : trialTime;
 		(duration_t(trialTime)).toTimeDWIN(time_str, 4);
-		setValueAsAttr_P(PSTR(TRIAL_PERIOD_ADDR), 0, time_str);
+		setValueAsAttr_P(TRIAL_PERIOD_ADDR, 0, time_str);
 	}
 #endif
-}
-
-void dwin_update_progress_info() {
-#if HAS_READER
-	float percent = FILE_READER.percentDoneF();
-	UPDATE_LCD_32(percent, PERCENT_ADDR);
-
-	FILL_REC(PAINT_TOOL1_ADDR, PROGRESS_BAR_0_X0, PROGRESS_BAR_0_Y0, PROGRESS_BAR_0_X1, PROGRESS_BAR_0_Y1, COLOR_ASSIST);
-	FILL_REC(PAINT_TOOL3_ADDR, PROGRESS_BAR_1_X0, PROGRESS_BAR_1_Y0, PROGRESS_BAR_1_X1, PROGRESS_BAR_1_Y1, COLOR_ASSIST);
-	uint16_t p0 = PROGRESS_BAR_0_X0 + uint16_t((PROGRESS_BAR_0_X1 - PROGRESS_BAR_0_X0) * percent) / 100;
-	uint16_t p1 = PROGRESS_BAR_1_X0 + uint16_t((PROGRESS_BAR_1_X1 - PROGRESS_BAR_1_X0) * percent) / 100;
-
-	if(!FILE_IS_IDLE){
-		FILL_REC(PAINT_TOOL2_ADDR, PROGRESS_BAR_0_X0, PROGRESS_BAR_0_Y0, p0, PROGRESS_BAR_0_Y1, COLOR_PRIMARY);
-		FILL_REC(PAINT_TOOL4_ADDR, PROGRESS_BAR_1_X0, PROGRESS_BAR_1_Y0, p1, PROGRESS_BAR_1_Y1, COLOR_PRIMARY);
-		dwin_update_time_info(TIME_PRINT);
-	} else {
-		DRAW_REC(PAINT_TOOL2_ADDR, PROGRESS_BAR_0_X0, PROGRESS_BAR_0_Y0, PROGRESS_BAR_0_X1, PROGRESS_BAR_0_Y1, COLOR_ASSIST);
-		DRAW_REC(PAINT_TOOL4_ADDR, PROGRESS_BAR_1_X0, PROGRESS_BAR_1_Y0, PROGRESS_BAR_0_X1, PROGRESS_BAR_1_Y1, COLOR_ASSIST);
-	}
-#endif //HAS_READER
 }
 
 #ifdef REG_SN
 void dwin_update_reg_info(){
 	dwin_update_time_info(TIME_TRIAL);
+#ifdef REG_USE_HARDWARE
+	SET_STR(SN_CAHR_ADDR, LCD_SN_CHAR_LEN, reg_c);
+#endif
 	UPDATE_LCD_32(regSN, REG_KEY_ADDR);
-	dwin_update_icon();
+	dwin_update_reg_icon();
 }
 #endif
 
+void dwin_update_progress_info(){
+#if HAS_READER
+	float percent = FILE_READER.percentDoneF();
+	UPDATE_LCD_31(percent, PERCENT_ADDR);
+
+	FILL_REC(PAINT_TOOL1_ADDR, PROGRESS_BAR_X0, PROGRESS_BAR_Y0, PROGRESS_BAR_X1, PROGRESS_BAR_Y1, COLOR_ASSIST);
+	uint16_t p0 = PROGRESS_BAR_X0 + uint32_t((PROGRESS_BAR_X1 - PROGRESS_BAR_X0) * percent) / 100;
+
+	if(!FILE_IS_IDLE){
+	  if(p0){ //如果右下角的x坐标为0,T5L屏幕将显示异常,画面铺满整个屏幕
+	    FILL_REC(PAINT_TOOL2_ADDR, PROGRESS_BAR_X0, PROGRESS_BAR_Y0, p0, PROGRESS_BAR_Y1, COLOR_PRIMARY);
+	  }else{
+	    CLEAR_CANVAS(PAINT_TOOL2_ADDR);
+	  }
+		dwin_update_time_info(TIME_PRINT);
+	}else{
+		DRAW_REC(PAINT_TOOL2_ADDR, PROGRESS_BAR_X0, PROGRESS_BAR_Y0, PROGRESS_BAR_X1, PROGRESS_BAR_Y1, COLOR_ASSIST);
+	}
+#endif //HAS_READER
+}
 
 /*******************************************************************************************************/
 
 /********************************************* Other Part **********************************************/
 
-void dwin_setup() {
+static void updateData();
+
+void dwin_setup(){
 #if HAS_READER
 	#if ENABLED(SDSUPPORT) && PIN_EXISTS(SD_DETECT)
 		SET_INPUT_PULLUP(SD_DETECT_PIN);
@@ -1401,207 +1737,224 @@ void dwin_setup() {
 	dwin_data_state = DATA_UNINIT;	// dwin lcd uninit
 	dwin_next_update_millis = 0;		// next data update time
 	return_default_page_time = 0;		// return the default page time.
-	dwin_next_page_P = nullptr;			// next dwin page is unknow.
+	lock_page_time = 0;							// lock page time.
 
 	dwin_init();										// the implement init.
 }
 
-void updateData();
-
-bool dwin_is_page_P(const char* page) {
-	if (dwin_next_page_P) {
-		char c[5] = { 0 };
-		strcpy_P(c, page);
-
-		if (strcmp_P(c, dwin_next_page_P))
-			return false;
-		else
-			return true;
-	} else {
-		return isPage_P(page);
-	}
+bool dwin_is_page_P(const char* page){
+  return isPage_P(page);
 }
 
-void dwin_change_page_P(const char* page) {
+void dwin_change_page_P(const char* page){
 	if(HAS_POPUP)		HIDE_POPUP;
 
-	dwin_next_page_P = page;
-	updateData();					// update the data of page in lcd before goto the page.
-	dwin_next_page_P = nullptr;
+  // update the data of page in lcd before goto the page.
+	uint16_t prePage = currentPage(); char rel_page[5];
+	forceSetPage((uint16_t)strtoul(strncpy_P(rel_page, page, 5), nullptr, HEX));
+	updateData();
+	forceSetPage(prePage);
+
 	setPage_P(page);
 }
 
 // execute the cmd from dwin lcd.
 void updateCmd(uint16_t cmdValue){
-	if (cmdValue) {
-		SET_INT_P(CMD_ADDR, CMD_EMPTY);
+	if(cmdValue){
+		SET_INT(CMD_ADDR, CMD_EMPTY);
 
-		switch (cmdValue) {
+		switch(cmdValue){
+		case RETURN_UP_LEVEL_BUTTON:
+			returnUpLevelButtonAction();
+			break;
 		case RETURN_DEFAULT_BUTTON:
-		#ifdef STATE_PAGE_AS_DEFAULT
-			return_default_button_action(true);
-		#else
-			return_default_button_action();
-		#endif
+			returnDefaultButtonAction();
 			break;
-		case RETURN_STATE_BUTTON:
-			return_state_button_action();
-			break;
+
 		case PAUSE_BUTTON:
-			print_pause_button_action();
+			printPauseButtonAction();
 			break;
 		case REUSE_BUTTON:
-			print_reuse_button_action();
+			printReuseButtonAction();
 			break;
 		case CANCEL_BUTTON:
-			print_cancel_button_action();
+		case STOP_PRINT_CONFIRM:
+			printCancelButtonAction();
 			break;
 		case PREHEAT_BUTTON:
-			preheat_button_action();
+			preheatButtonAction();
 			break;
-		case COOL_DWON_BUTTON:
-			dwin_cooldwon();
+		case COOLDOWN_BUTTON:
+			cooldownButtonAction();
 			break;
 		case OPEN_FILE_BUTTON:
-			lcdUpdateFiles(OPEN);
+			openFileButtonAction();
 			break;
 		case OPEN_FILAMENT_BUTTON:
-			open_filament_page_action();
+			openFilamentPageAction();
 			break;
 		case CHANGE_BUTTON:
-			print_change_button_action();
+			printChangeButtonAction();
 			break;
 		case Z_UP_BUTTON:
-			dwin_move(Z_AXIS, DWIN_Z_MOVE_SCALE, false);
+			zUpButtonAction();
 			break;
 		case Z_DOWN_BUTTON:
-			dwin_move(Z_AXIS, DWIN_Z_MOVE_SCALE, true);
+			zDownButtonAction();
 			break;
+		case SETTING_BUTTON:
+			settingButtonAction();
+			break;
+		case ADJUST_BUTTON:
+			adjustButtonAction();
+			break;
+
 		case REG_INFO_BUTTON:
-			jump_reg_action();
+			regButtonAction();
 			break;
 
 		case MOVE_HOME_ALL:
-			dwin_move_home(HOME_ALL);
+			HomeAllAction();
 			break;
 		case MOVE_HOME_X:
-			dwin_move_home(HOME_X);
+			moveHomeXAction();
 			break;
 		case MOVE_HOME_Y:
-			dwin_move_home(HOME_Y);
+			moveHomeYAction();
 			break;
 		case MOVE_HOME_Z:
-			dwin_move_home(HOME_Z);
+			moveHomeZAction();
 			break;
 		case MOVE_X_PLUS:
-			dwin_move(X_AXIS, true);
+			moveXPlusAction();
 			break;
 		case MOVE_Y_PLUS:
-			dwin_move(Y_AXIS, true);
+			moveYPlusAction();
 			break;
 		case MOVE_Z_PLUS:
-			dwin_move(Z_AXIS, true);
+			moveZPlusAction();
 			break;
 		case MOVE_X_MINUS:
-			dwin_move(X_AXIS, false);
+			moveXMinusAction();
 			break;
 		case MOVE_Y_MINUS:
-			dwin_move(Y_AXIS, false);
+			moveYMinusAction();
 			break;
 		case MOVE_Z_MINUS:
-			dwin_move(Z_AXIS, false);
+			moveZMinusAction();
 			break;
 
-		case FILAMNET_EXT:
-			dwin_filament_test(true);
+		case FILAMENT_EXT:
+			filamentExtrudeAction();
 			break;
 		case FILAMENT_REC:
-			dwin_filament_test(false);
+			filamentRetractAction();
 			break;
-		case FILAMNET_UNLOAD:
-			dwin_filament_unload();
+		case FILAMENT_UNLOAD:
+			filamentUnloadAction();
 			break;
 
 		case STORE_SETTINGS:
-			store_setting_action();
+			storeSettingsAction();
 			break;
 		case RESET_SETTINGS:
-			reset_setting_action();
+		case RESET_SETTINGS_CONFIRM:
+			resetSettingsAction();
+			break;
+		case JUMP_SETGING_MOTION:
+			jumpSettingMotionAction();
+			break;
+		case JUMP_SETTING_FAN:
+			jumpSettingFanAction();
+			break;
+		case JUMP_SETTING_PREHEAT:
+			jumpSettingPreheatAction();
+			break;
+		case JUMP_SETTING_WIFI:
+			jumpSettingWifiAction();
+			break;
+		case JUMP_SETTING_LEVELING:
+			jumpSettingLevelingAction();
 			break;
 
 		case FILE_NEXT_PAGE:
-			lcdUpdateFiles(NEXT_PAGE);
+			fileNextPageAction();
 			break;
 		case FILE_LAST_PAGE:
-			lcdUpdateFiles(LAST_PAGE);
+			fileLastPageAction();
 			break;
 		case FILE_UP_LEVEL:
-			lcdUpdateFiles(UP_LEVEL);
+			fileUpLevelAction();
+			break;
+
+		case WIFI_SWITCH_TOGGLE:
+			wifiSwitchToggleAction();
+			break;
+//		case WIFI_SWITCH_MODE:
+//			wifiSwitchModeAction();
+//			break;
+		case WIFI_RESET:
+			wifiResetAction();
+			break;
+		case WIFI_SCAN:
+			wifiScanAction();
+			break;
+		case WIFI_NEXT_PAGE:
+			wifiNextPageAction();
+			break;
+		case WIFI_LAST_PAGE:
+			wifiLastPageAction();
+			break;
+		case WIFI_MODE_STA:
+			wifiModeStaAction();
+			break;
+		case WIFI_MODE_AP:
+			wifiModeApAction();
+			break;
+		case WIFI_SETTING_ENTRY:
+			wifiSettingEntryAction();
+			break;
+
+		case LEVELING_SWITCH_TOGGLE:
+			levelingSwitchToggleAction();
+			break;
+		case LEVELING_PROBE:
+		case LEVELING_AGAIN_CONFIRM:
+			levelingProbeAction();
+			break;
+		case LEVELING_SKIP_CONFIRM:
+			levelingEnableAction();
 			break;
 
 
 		case FILE_ITEM_0_ACTION:
-			fileItemAciton(0);
+			fileItemAction(0);
 			break;
 		case FILE_ITEM_1_ACTION:
-			fileItemAciton(1);
+			fileItemAction(1);
 			break;
 		case FILE_ITEM_2_ACTION:
-			fileItemAciton(2);
+			fileItemAction(2);
 			break;
 		case FILE_ITEM_3_ACTION:
-			fileItemAciton(3);
+			fileItemAction(3);
 			break;
 		case FILE_ITEM_4_ACTION:
-			fileItemAciton(4);
+			fileItemAction(4);
 			break;
 		case FILE_ITEM_5_ACTION:
-			fileItemAciton(5);
+			fileItemAction(5);
 			break;
 		case FILE_ITEM_6_ACTION:
-			fileItemAciton(6);
+			fileItemAction(6);
 			break;
 		case FILE_ITEM_7_ACTION:
-			fileItemAciton(7);
+			fileItemAction(7);
 			break;
 		case FILE_ITEM_8_ACTION:
-			fileItemAciton(8);
+			fileItemAction(8);
 			break;
 
-
-		case FILE_ACTION_PRINT:
-			afterFileItemAction(PRINT);
-			break;
-		//case FILE_ACTION_OPEN:
-		//	afterSdItemAction(OPEN_DIR);
-		//	break;
-		case FILE_ACTION_CANCEL:
-			afterFileItemAction(CANCEL);
-			break;
-		case SHUTTING_CANCEL:
-			shuttingCancelAction();
-			break;
-		case ACCIDENT_REUSE:
-			accidentReuseAction();
-			break;
-		case ACCIDENT_CANCEL:
-			accidentCancelAction();
-			break;
-		case CHANGE_DONE:
-			changeDoneAction();
-			break;
-
-		case JUMP_SETGINS:
-			jump_settting();
-			break;
-		case JUMP_SETGINS_2:
-			jump_setting_2();
-			break;
-		case JUMP_LEVELING:
-			jump_leveling_page();
-			break;
-
-	#ifdef WIFI_SUPPORT
 		case WIFI_ITEM_0_ACTION:
 			wifiItemAction(0);
 			break;
@@ -1618,40 +1971,36 @@ void updateCmd(uint16_t cmdValue){
 			wifiItemAction(4);
 			break;
 
-		case WIFI_SWITCH_TOGGLE:
-			wifiFuncAction(WIFI_ACTION_SWITCH_TOGGLE);
+//		case FILE_ACTION_OPEN:
+//			fileOpenAction();
+//			break;
+		case FILE_ACTION_PRINT:
+			filePrintAction();
 			break;
+		case FILE_ACTION_CANCEL:
+			fileCancelAction();
+			break;
+		case SHUTTING_CANCEL:
+			shuttingCancelAction();
+			break;
+		case ACCIDENT_REUSE:
+			accidentReuseAction();
+			break;
+		case ACCIDENT_CANCEL:
+			accidentCancelAction();
+			break;
+		case CHANGE_DONE:
+			changeDoneAction();
+			break;
+//		case ONLINE_RETURN:
+//			onlineReturnAction();
+//			break;
 		case WIFI_CONNECT:
-			wifiFuncAction(WIFI_ACTION_CONNECT);
+			wifiConnectAction();
 			break;
 		case WIFI_CANCEL:
-			wifiFuncAction(WIFI_ACTION_CANCEL);
+			wifiCancelAction();
 			break;
-		case WIFI_SWITCH_MODE:
-			wifiFuncAction(WIFI_ACTION_SWITCH_MODE);
-			break;
-		case WIFI_RESET:
-			wifiFuncAction(WIFI_ACTION_RESET);
-			break;
-		case WIFI_SCAN:
-			wifiFuncAction(WIFI_ACTION_SCAN);
-			break;
-		case WIFI_NEXT_PAGE:
-			wifiFuncAction(WIFI_ACTION_NEXT);
-			break;
-		case WIFI_LAST_PAGE:
-			wifiFuncAction(WIFI_ACTION_LAST);
-			break;
-	#endif
-
-
-		case LEVELING_SWITCH_TOGGLE:
-			leveling_toggle();
-			break;
-		case LEVELING_PROBE:
-			leveling_probe();
-			break;
-
 
 		default:
 			//SERIAL_ECHOLN(cmdValue);
@@ -1660,244 +2009,376 @@ void updateCmd(uint16_t cmdValue){
 	}
 }
 
+void resetTimeout(){
+	unsigned long curTime = millis();
+	return_default_page_time = curTime + LCD_TIMEOUT_TO_STATUS;
+	lock_page_time = curTime + LCD_TIMEOUT_TO_LOCK;
+}
+
+#ifdef DWIN_USE_OS
+void dwin_hide_popup(){
+	setPop((uint16_t)POPUP_INDEX_HIDE_POP, POPUP_DELAY_NO_DELAY);
+	resetTimeout();
+}
+#endif
 /*******************************************************************************************************/
 
 
-
-
 // scan the dwin lcd to receive the possible BackData and check if connect ready.
-void dwin_scan() {
+static void dwin_scan(){
 	dwin_loop();
 
-	if (dwin_isExist()) {
-		if ((currentPage() + 1)) {		// current page is valid.
-			if(!IS_DWIN_DATA_READY){
-				millis_t ms = millis();
-				if (currentPage() > LCD_SETUP_LOOP_END) {
-					if (dwin_data_state == DATA_UNINIT) {
-						if (ms > dwin_next_update_millis) {
-							dwin_next_update_millis = ms + LCD_RUN_CYCLE;
-							GO_PAGE(LCD_SETUP_FIRST);
-						}
-					} else if (dwin_data_state == DATA_INIT) {
-						dwin_data_state = DATA_READY;
-					}
-				} else {
-					if (ms > dwin_next_update_millis) {
-						dwin_next_update_millis = ms + LCD_RUN_CYCLE;
+	if(dwin_isExist()){
+	  uint16_t curPage = currentPage();
+		if((curPage + 1)){		// current page is valid.
+      millis_t ms = millis();
 
-						dwin_update_version();
-						dwin_update_index();
-						updateStateStrings();
-						return_default_button_action();
-						dwin_data_state = DATA_INIT;
-					}
-				}
-			} else{
-				if(currentPage() <= LCD_SETUP_LOOP_END) {
-					dwin_data_state = DATA_UNINIT;
-				}
+		  //页面跳转和数据更新
+			switch(dwin_data_state){
+			  case DATA_UNINIT:
+          if(curPage > LCD_SETUP_LOOP_END){
+            if(ms > dwin_next_update_millis){
+              dwin_next_update_millis = ms + LCD_RUN_CYCLE * 2;
+              GO_PAGE(LCD_SETUP_FIRST);
+            }
+          }
+			    break;
+			  case DATA_INIT:
+          if(ms > dwin_next_update_millis){
+            dwin_next_update_millis = ms + LCD_RUN_CYCLE * LCD_SETUP_NUM;
+
+          #ifdef WIFI_MODULE_ESP8266_12
+            myWifi.getStationInfo();
+          #endif
+
+            enableTouch();
+            dwin_update_version();
+            dwin_update_index();
+            dwin_update_strings();
+          }
+          break;
+			  case DATA_GIF_START:
+			    break;
+			  case DATA_GIF_END:
+          if(ms > dwin_next_update_millis){
+            dwin_next_update_millis = ms + LCD_RUN_CYCLE * 2;
+            returnDefaultButtonAction();
+          }
+			    break;
+			  case DATA_READY:
+          break;
+			  default:
+			    break;
+			}
+
+			//状态切换
+			switch(dwin_data_state){
+			  case DATA_UNINIT:
+			    if(curPage <= LCD_SETUP_LOOP_END){
+	          dwin_next_update_millis = 0;
+	          dwin_data_state = DATA_INIT;
+			    }
+          break;
+			  case DATA_INIT:
+			    if(curPage == LCD_SETUP_LOOP_STRAT){
+            dwin_next_update_millis = 0;
+            dwin_data_state = DATA_GIF_START;
+			    }
+			  case DATA_GIF_START:
+          if(curPage == LCD_SETUP_LOOP_END){
+            dwin_next_update_millis = 0;
+            dwin_data_state = DATA_GIF_END;
+          }
+			  case DATA_GIF_END:
+          if(curPage > LCD_SETUP_LOOP_END){
+            dwin_next_update_millis = ms + 1000L;
+            dwin_data_state = DATA_READY;
+            resetTimeout();
+          }
+          break;
+        case DATA_READY:
+          if(curPage <= LCD_SETUP_LOOP_END){
+            dwin_next_update_millis = 0;
+            dwin_data_state = DATA_UNINIT;
+          }
+          break;
+        default:
+          break;
 			}
 		}
-	} else {
+	}else{
 		dwin_data_state = DATA_UNINIT;
 	}
 }
 
 // resolve the back data.
-void resolveVar() {
+static void resolveVar(){
 
+#define VAR_IS_ADDR(addr) (uint16_tCompHex_P(addr, dwin_getVar()->varAddr))
+#define VAR_IS_LEN(len)   (dwin_getVar()->dataLen == len)
+#define IS_VAR(len, addr) (VAR_IS_LEN(len) && VAR_IS_ADDR(addr))
 
-#ifdef DEBUG_FREE
-	SERIAL_ECHOLNPAIR("resolver: ", freeMemory());
-#endif
-
-#define VAR_IS_ADDR(addr)	(uint16_tCompHex_P(PSTR(addr), dwin_getVar()->varAddr))
-#define VAR_IS_LEN(len)		(dwin_getVar()->dataLen == len)
-#define IS_VAR(len, addr)	(VAR_IS_LEN(len) && VAR_IS_ADDR(addr))
-
-	if (VAR_IS_LEN(2)) {
+#ifdef WIFI_SUPPORT
+  if(VAR_IS_ADDR(WIFI_KEY_ADDR) || VAR_IS_ADDR(WIFI_SSID_SET_ADDR) ){
+    uint8_t i;
+    for(i = 0; dwin_getVar()->data[i] != 0xFF; i++);
+    dwin_getVar()->data[i] = 0x00;
+    if(VAR_IS_ADDR(WIFI_KEY_ADDR)){
+      strcpy(dwinWifiConnKey, (char *)dwin_getVar()->data);
+    }
+  #ifdef WIFI_MODULE_ESP8266_12
+    else {
+      strcpy(dwinWifiConnSSID, (char *)dwin_getVar()->data);
+    }
+  #endif
+  } else
+#endif //WIFI_SUPPORT
+	if(VAR_IS_LEN(2)){
 		uint16_t varValue = ((uint16_t)dwin_getVar()->data[0] << 8) | ((uint16_t)dwin_getVar()->data[1]);
 
-		if (VAR_IS_ADDR(CMD_ADDR)) {								// dwin_700_cmd
+		if(VAR_IS_ADDR(CMD_ADDR)){								// dwin_700_cmd
 			updateCmd(varValue);
-		} else if (VAR_IS_ADDR(MOVE_DISTANCE_INDEX_ADDR)) {			// axis_move_distance
+		}else if(VAR_IS_ADDR(MOVE_DISTANCE_INDEX_ADDR)){			// axis_move_distance
 			move_distance_index = (uint8_t)varValue;
-		} else if (VAR_IS_ADDR(FILAMENT_EXT_DISTANCE_ADDR)) {		// filament_test_distance
+		}else if(VAR_IS_ADDR(FILAMENT_EXT_DISTANCE_ADDR)){		// filament_test_distance
 			extrude_distance = varValue;
-		} else if (VAR_IS_ADDR(FILAMENT_EXT_INDEX_ADDR)) {			// extruder index
-			extrude_index = (uint8_t)varValue;
-		} else if (VAR_IS_ADDR(SET_EX0_TAR_ADDR)) {							// extruder 0 target temp.
+		}else if(VAR_IS_ADDR(FILAMENT_EXT_INDEX_ADDR)){				// extruder index
+		  dwin_update_hotend(varValue);
+		}else if(VAR_IS_ADDR(SET_EX0_TAR_ADDR)){							// extruder 0 target temp.
+			NOMORE(varValue, HEATER_0_MAXTEMP - 15);
 			thermalManager.setTargetHotend(varValue, 0);
+			returnDefaultButtonAction();
 		}
-		#if EXTRUDERS > 1
-		else if (VAR_IS_ADDR(SET_EX1_TAR_ADDR)) {								// extruder 1 target temp.
+	#if EXTRUDERS > 1
+		else if (VAR_IS_ADDR(SET_EX1_TAR_ADDR)){							// extruder 1 target temp.
+			NOMORE(varValue, HEATER_1_MAXTEMP - 15);
 			thermalManager.setTargetHotend(varValue, 1);
+			returnDefaultButtonAction();
 		}
-		#endif
-		#if EXTRUDERS > 2
-		else if (VAR_IS_ADDR(SET_EX2_TAR_ADDR)) {								// extruder 2 target temp.
+	#endif
+	#if EXTRUDERS > 2
+		else if (VAR_IS_ADDR(SET_EX2_TAR_ADDR)){							// extruder 2 target temp.
+			NOMORE(varValue, HEATER_2_MAXTEMP - 15);
 			thermalManager.setTargetHotend(varValue, 2);
+			returnDefaultButtonAction();
 		}
-		#endif
-		else if (VAR_IS_ADDR(SET_CHAMBER_TAR_ADDR)){						// chamber target temp.
-			thermalManager.setTargetChamber(varValue);
-		}
-		else if (VAR_IS_ADDR(SET_BED_TAR_ADDR)) {								// bed target temp.
+	#endif
+		else if(VAR_IS_ADDR(SET_BED_TAR_ADDR)){							// bed target temp.
+			NOMORE(varValue, BED_MAXTEMP - 15);
 			thermalManager.setTargetBed(varValue);
-		} else if (VAR_IS_ADDR(SET_SPEED_GLOBAL_ADDR)) {				// print speed
+			returnDefaultButtonAction();
+		}
+	#ifdef HOTWIND_SYSTEM
+		else if(VAR_IS_ADDR(SET_CHAMBER_TAR_ADDR)){						// chamber target temp.
+			NOMORE(varValue, CHAMBER_MAXTEMP - 5);
+			thermalManager.setTargetChamber(varValue);
+			returnDefaultButtonAction();
+		}
+	#endif
+		else if(VAR_IS_ADDR(SET_SPEED_GLOBAL_ADDR)){					// print speed
 			feedrate_percentage = varValue;
-		} else if (VAR_IS_ADDR(SET_FAN_SPEED_ADDR)) {						// fan speed
-			#if FAN_COUNT > 0
-				#if FAN_COUNT > 1
-					fanSpeeds[active_extruder < FAN_COUNT ? active_extruder : 0]
-				#else
-					fanSpeeds[0]
-				#endif
-										 = varValue * 2.55;
-			#endif
-		} else if (VAR_IS_ADDR(SET_EXT_MULTIPLY_ADDR)) {				// flow
+		}
+	#if FAN_COUNT > 0
+		else if(VAR_IS_ADDR(SET_FAN_SPEED_ADDR)){							// fan speed
+		#if FAN_COUNT > 1
+			fanSpeeds[active_extruder < FAN_COUNT ? active_extruder : 0]
+		#else
+			fanSpeeds[0]
+		#endif
+			= varValue * 2.55;
+		}
+	#endif
+		else if(VAR_IS_ADDR(SET_EXT_MULTIPLY_ADDR)){					// flow
 			flow_percentage[active_extruder] = varValue;
-		} else if (VAR_IS_ADDR(SET_PREHEAT_FAN_SPEED_ADDR)) {		// preheat fan speed
+		}else if (VAR_IS_ADDR(SET_PREHEAT_FAN_SPEED_ADDR)) {	// preheat fan speed
 			lcd_preheat_fan_speed = varValue * 2.55;
-		} else if (VAR_IS_ADDR(SET_PREHEAT_EXT_TEMP_ADDR_0)) {	// preheat extruder 0 temp.
+		}else if (VAR_IS_ADDR(SET_PREHEAT_EXT_TEMP_ADDR_0)) {	// preheat extruder 0 temp.
+			NOMORE(varValue, HEATER_0_MAXTEMP - 15);
 			lcd_preheat_hotend_temp[0] = varValue;
 		}
 		#if EXTRUDERS > 1
-		else if (VAR_IS_ADDR(SET_PREHEAT_EXT_TEMP_ADDR_1)) {		// preheat extruder 1 temp.
+		else if(VAR_IS_ADDR(SET_PREHEAT_EXT_TEMP_ADDR_1)) {		// preheat extruder 1 temp.
+			NOMORE(varValue, HEATER_1_MAXTEMP - 15);
 			lcd_preheat_hotend_temp[1] = varValue;
 		}
 		#endif
 		#if EXTRUDERS > 2
-		else if (VAR_IS_ADDR(SET_PREHEAT_EXT_TEMP_ADDR_2)) {		// preheat extruder 2 temp.
+		else if(VAR_IS_ADDR(SET_PREHEAT_EXT_TEMP_ADDR_2)) {		// preheat extruder 2 temp.
+			NOMORE(varValue, HEATER_2_MAXTEMP - 15);
 			lcd_preheat_hotend_temp[2] = varValue;
 		}
 		#endif
-		else if (VAR_IS_ADDR(SET_PREHEAT_BED_TEMP_ADDR)) {			// preheat bed temp.
+		else if(VAR_IS_ADDR(SET_PREHEAT_BED_TEMP_ADDR)){			// preheat bed temp.
+			NOMORE(varValue, BED_MAXTEMP - 15);
 			lcd_preheat_bed_temp = varValue;
 		}
-		#ifdef HOTWIND_SYSTEM
-		else if (VAR_IS_ADDR(SET_PREHEAT_CHAMBER_TEMP_ADDR)){		// perheat chamber temp.
+	#ifdef HOTWIND_SYSTEM
+		else if (VAR_IS_ADDR(SET_PREHEAT_CHAMBER_TEMP_ADDR)){	// perheat chamber temp.
+			NOMORE(varValue, CHAMBER_MAXTEMP - 5);
 			lcd_preheat_chamber_temp = varValue;
 		}
-		#endif
-		#ifdef REG_SN
-		else if (VAR_IS_ADDR(SET_REG_KEY_ADDR)) {								// register key
-			regSN = (float)varValue / 100;
-			dwin_update_reg_info();
-			dwin_update_icon();
-			if(REG_PASS){
-				updateStateStrings();
-				return_default_button_action();
-			}
-			STORE_SETTING(regSN);
+	#endif
+	#ifdef REG_SN
+	else if (VAR_IS_ADDR(SET_REG_KEY_ADDR)) {								// register key
+		regSN = (float)varValue / 100;
+		dwin_update_reg_info();
+		if(REG_PASS){
+			updateStateStrings();
+			returnDefaultButtonAction();
 		}
-		#endif
-		#if HAS_AUTO_FAN
-		else if (VAR_IS_ADDR(SET_TEMP_FAN_SPEED_ADDR)) {			// temp. fan speed
+		STORE_SETTING(regSN);
+	}
+	#endif
+	#if HAS_AUTO_FAN
+		else if(VAR_IS_ADDR(SET_TEMP_FAN_SPEED_ADDR)){				// temp. fan speed
 			extruder_auto_fan_speed = varValue * 2.55;
 		}
-		#endif
-		else if (VAR_IS_ADDR(SET_AIR_FAN_SPEED_ADDR)) {				// air fan speed
-			#ifdef HAS_AIR_FAN
+	#endif
+	#ifdef HAS_AIR_FAN
+		else if(VAR_IS_ADDR(SET_AIR_FAN_SPEED_ADDR)){					// air fan speed
 			air_fan_speed = varValue * 2.55;
-			#endif
 		}
+	#endif
 	#if HAS_BED_PROBE
-		else if (VAR_IS_ADDR(SET_SERVO_Z_OFFSET_ADDR)) {				// servo Z offset
+		else if(VAR_IS_ADDR(SET_SERVO_Z_OFFSET_ADDR)){				// servo Z offset
 			zprobe_zoffset = -(float)(int16_t)varValue / 100;
 			refresh_zprobe_zoffset();
 			STORE_SETTING(zprobe_zoffset);
 		}
 	#endif
 	#if	ENABLED(ENABLE_LEVELING_FADE_HEIGHT)
-		else if (VAR_IS_ADDR(SET_FADE_HEIGHT_ADDR)) {						// fade height
+		else if(VAR_IS_ADDR(SET_FADE_HEIGHT_ADDR)){						// fade height
 			if(leveling_is_active()){
 				float fade_height = (float)varValue / 10;
 				set_z_fade_height(fade_height);
-				EEPROM_STORE(planner.z_fade_height, setting_z_fade_height);
+				STORE_PLAN(z_fade_height);
 			}
 		}
 	#endif
-		else if (false) {
-		} else {
-			SERIAL_PROTOCOL_F(dwin_getVar()->varAddr, HEX);
+		else if(false){
+		}else{
+			SERIAL_ECHO_F(dwin_getVar()->varAddr, HEX);
 			SERIAL_EOL();
 		}
-	} else if (VAR_IS_LEN(4)) {
-		uint32_t varValue = ((uint32_t)dwin_getVar()->data[0] << 24) | ((uint32_t)dwin_getVar()->data[1] << 16) | ((uint32_t)dwin_getVar()->data[2] << 8) | ((uint32_t)dwin_getVar()->data[3]);
+	}else if(VAR_IS_LEN(4)){
+		uint32_t varValue = ((uint32_t)dwin_getVar()->data[0] << 24) | ((uint32_t)dwin_getVar()->data[1] << 16)
+				| ((uint32_t)dwin_getVar()->data[2] << 8) | ((uint32_t)dwin_getVar()->data[3]);
 
-		if (VAR_IS_ADDR(SET_X_STEP_ADDR)) {
-			planner.axis_steps_per_mm[X_AXIS] = (float)varValue / 10000;	// axis X motor step
+		if(VAR_IS_ADDR(SET_X_STEP_ADDR)){
+			planner.axis_steps_per_mm[X_AXIS] = (float)varValue / 10000;						// axis X motor step
 			planner.refresh_positioning();
-		} else if (VAR_IS_ADDR(SET_Y_STEP_ADDR)) {
-			planner.axis_steps_per_mm[Y_AXIS] = (float)varValue / 10000;	// axis Y motor step
+		}else if(VAR_IS_ADDR(SET_Y_STEP_ADDR)){
+			planner.axis_steps_per_mm[Y_AXIS] = (float)varValue / 10000;						// axis Y motor step
 			planner.refresh_positioning();
-		} else if (VAR_IS_ADDR(SET_Z_STEP_ADDR)) {
-			planner.axis_steps_per_mm[Z_AXIS] = (float)varValue / 10000;	// axis Z motor step
+		}else if(VAR_IS_ADDR(SET_Z_STEP_ADDR)){
+			planner.axis_steps_per_mm[Z_AXIS] = (float)varValue / 1000;						// axis Z motor step
 			planner.refresh_positioning();
-		} else if (VAR_IS_ADDR(SET_E_STEP_ADDR)) {
-			planner.axis_steps_per_mm[E_AXIS] = (float)varValue / 10000;	// axis E motor step
+		}else if(VAR_IS_ADDR(SET_E_STEP_ADDR)){
+			planner.axis_steps_per_mm[E_AXIS] = (float)varValue / 10000;						// axis E motor step
 			planner.refresh_positioning();
-		} else {
-			SERIAL_PROTOCOL_F(dwin_getVar()->varAddr, HEX);
-			SERIAL_EOL();
-		}
-	} else if (VAR_IS_LEN((DEFAULT_STR_LEN * 2))) {
-		if(false){
-			;
-		}
-	#if HAS_READER
-		else if (VAR_IS_ADDR(FILE_ITEM_0) || VAR_IS_ADDR(FILE_ITEM_1) || VAR_IS_ADDR(FILE_ITEM_2) || VAR_IS_ADDR(FILE_ITEM_3) || VAR_IS_ADDR(FILE_ITEM_4) ||
-			VAR_IS_ADDR(FILE_ITEM_5) || VAR_IS_ADDR(FILE_ITEM_6) || VAR_IS_ADDR(FILE_ITEM_7) || VAR_IS_ADDR(FILE_ITEM_8)) {
-				char name[FILE_NAME_LEN + 1];
-				strcpy(name, (char *)dwin_getVar()->data);
-
-				// show the string in the center of LCD.
-				centerString(name, LCD_FILE_CHAR_LEN);
-				SET_STR_P(FILE_SELECT, LCD_FILE_CHAR_LEN, name);
-		}
-	#endif
-	#ifdef WIFI_SUPPORT
-		else if(VAR_IS_ADDR(WIFI_KEY_ADDR)){
-				strcpy(dwinWifiConnKey, (char *)dwin_getVar()->data);
-				wifiFuncAction(WIFI_ACTION_JOIN);
-		}
-	#endif
-		else {
-			SERIAL_ECHOLNPGM("unknown var");
-			SERIAL_PROTOCOL_F(dwin_getVar()->varAddr, HEX);
+		}else{
+			SERIAL_ECHO_F(dwin_getVar()->varAddr, HEX);
 			SERIAL_EOL();
 		}
 	}
-	else {
+#if HAS_READER
+	else if(VAR_IS_LEN(LCD_FILE_CHAR_LEN)){
+		if(VAR_IS_ADDR(FILE_ITEM_STR_0)
+		#if LCD_FILE_ITEM_PER_PAGE > 1
+			|| VAR_IS_ADDR(FILE_ITEM_STR_1)
+		#endif
+		#if LCD_FILE_ITEM_PER_PAGE > 2
+			|| VAR_IS_ADDR(FILE_ITEM_STR_2)
+		#endif
+		#if LCD_FILE_ITEM_PER_PAGE > 3
+			|| VAR_IS_ADDR(FILE_ITEM_STR_3)
+		#endif
+		#if LCD_FILE_ITEM_PER_PAGE > 4
+			|| VAR_IS_ADDR(FILE_ITEM_STR_4)
+		#endif
+		#if LCD_FILE_ITEM_PER_PAGE > 5
+			|| VAR_IS_ADDR(FILE_ITEM_STR_5)
+		#endif
+		#if LCD_FILE_ITEM_PER_PAGE > 6
+			|| VAR_IS_ADDR(FILE_ITEM_STR_6)
+		#endif
+		#if LCD_FILE_ITEM_PER_PAGE > 7
+			|| VAR_IS_ADDR(FILE_ITEM_STR_7)
+		#endif
+		#if LCD_FILE_ITEM_PER_PAGE > 8
+			|| VAR_IS_ADDR(FILE_ITEM_STR_8)
+		#endif
+		){
+			char name[LCD_FILE_CHAR_LEN + NULL_CHAR_LENGTH];
+			// show the string in the center of LCD.
+		#ifdef FILE_UNICODE_SUPPORT
+			ZERO(name);
+			char* ustr = (char *)dwin_getVar()->data;
+			memcpy(name, ustr, unicodeStrlen(ustr));
+			#ifndef LCD_FILE_CHAR_MAXIMIZE
+				centerUString(name, LCD_FILE_CHAR_LEN);
+			#endif
+			SET_USTR(FILE_SELECT, LCD_FILE_CHAR_LEN, name);
+		#else
+			strcpy(name, (char *)dwin_getVar()->data);
+			centerString(name, LCD_FILE_CHAR_LEN);
+			SET_STR(FILE_SELECT, LCD_FILE_CHAR_LEN, name);
+		#endif
+		}
+	}
+#endif //HAS_READER
+	else if(VAR_IS_LEN((DEFAULT_STR_LEN * 2))){
+		if(false){
+			;
+		} else{
+			SERIAL_ECHOLNPGM("unknown var");
+			SERIAL_ECHO_F(dwin_getVar()->varAddr, HEX);
+			SERIAL_EOL();
+		}
+	}else{
 		SERIAL_ECHOLNPGM("unknown var_len");
-		SERIAL_PROTOCOL_F(dwin_getVar()->varAddr, HEX);
+		SERIAL_ECHO_F(dwin_getVar()->varAddr, HEX);
 		SERIAL_ECHOLNPAIR(":	", (int)dwin_getVar()->dataLen);
 	}
 }
 
 // control the dwin lcd page.
-void pageControl() {
+static void pageControl(){
 	bool touchLCD = DWIN_TOUCH;
 
-	if (touchLCD) return_default_page_time = millis() + LCD_TIMEOUT_TO_STATUS;
+	if(touchLCD) resetTimeout();
 
 #ifdef ACCIDENT_DETECT
-	if (isAccident && (powerState > POWER_COOLING) && !DWIN_IS_PAGE(PAGE_UNFINISH_CHOOSE)){
+	if(isAccident && (powerState > POWER_COOLING) && !DWIN_IS_PAGE(PAGE_UNFINISH_CHOOSE)){
 		GO_PAGE(PAGE_UNFINISH_CHOOSE);
 	}
 #endif //ACCIDENT_DETECT
 
 #if HAS_BED_PROBE
-	if (IS_PROBE_PAGE && HAS_POPUP && probeDone){
+	if(probeDone && IS_POPUP(POP_ICO_PROBING)){
 		HIDE_POPUP;
-		jump_leveling_page();
-		return_default_page_time = millis() + LCD_TIMEOUT_TO_STATUS;
+		jumpSettingLevelingAction();
 	}
 #endif
 
-	if (DWIN_IS_PAGE(PAGE_FILAMENT) && HAS_POPUP && !planner.blocks_queued())	HIDE_POPUP;
+	if(!planner.blocks_queued()){
+		if(IS_FILAMENT_PAGE && (IS_POPUP(POP_ICO_EXTRUDE_FILAMENT) || IS_POPUP(POP_ICO_RECRACT_FILAMENT))){
+			HIDE_POPUP;
+		}else if(IS_MOVE_PAGE && IS_POPUP(POP_ICO_MOVING)){			// Moving
+			HIDE_POPUP;
+		}else if(IS_PRINT_PAGE && IS_POPUP(POP_ICO_PARKING)){		// Parking
+			HIDE_POPUP;
+		}
+	}
+
+#ifdef WIFI_SUPPORT
+#ifdef WIFI_MODULE_ESP8266_01
+	if(IS_WIFI_PAGE && IS_POPUP(POP_ICO_WAITING) && myWifi.isAction(ACTION_NULL)){
+    updateData();
+//    HIDE_POPUP;
+	}
+#endif
+#endif
 
 #if HAS_READER
 	if(dwinReaderState != READER_STATE){
@@ -1921,7 +2402,7 @@ void pageControl() {
 					DWIN_MSG_P(DWIN_MSG_READER_CONN);
 				}
 			}
-		} else {
+		}else{
 		#if ENABLED(QUICK_PAUSE)
 			quickPausePrintJob();
 		#endif //QUICK_PAUSE
@@ -1934,62 +2415,93 @@ void pageControl() {
 			#endif
 			}
 		}
-		if (IS_MENU_PAGE || IS_PRINT_DEFAULT_PAGE || IS_FILE_PAGE) {
-			return_default_button_action();
+		if(IS_DEFAULT_PAGE || IS_FILE_PAGE){
+			returnDefaultButtonAction();
 		}
 
 		dwinReaderState = READER_STATE;
 	}
 #endif	//HAS_READER
 
-	if(isSerialPrinting){		// the default page is state page while printing from serial.
-		if (return_default_page_time && (millis() > return_default_page_time) && !HAS_POPUP && IS_TIMEOUT_PAGE_SERIAL) return_state_button_action();
-	}else{
-		if (return_default_page_time && (millis() > return_default_page_time) && !HAS_POPUP && IS_TIMEOUT_PAGE)	return_default_button_action();
+
+	if(return_default_page_time && !HAS_POPUP && !IS_HOLDING_PAGE){
+		unsigned long curTime = millis();
+
+		if(ELAPSED(curTime, return_default_page_time) & (curTime > dwin_next_update_millis)){
+      if(!IS_DEFAULT_PAGE) returnDefaultButtonAction();
+		}
 	}
 
 }
 
 // update the dwin lcd data.
-void updateData() {
-	if (IS_STATE_PAGE) {
-		dwin_update_state_info();
+static void updateData(){
+	if(IS_DEFAULT_PAGE){
+		dwin_update_temp_info();
+  #ifdef WIFI_SUPPORT
+		dwin_update_wifi_home_icon();
+  #endif
 	}
 
-	if (DWIN_IS_PAGE(PAGE_SHUTDOWN_HOTEND)) {
+	if(DWIN_IS_PAGE(PAGE_SHUTDOWN_HOTTEMP)){
 		dwin_update_max_temp_info();
 	}
 
-	if (DWIN_IS_PAGE(PAGE_MOVE) || IS_STATE_PAGE) {
+	if(IS_AXIS_INFO_PAGE){
 		dwin_update_axis_info();
 	}
 
-	if (IS_SETTING_PAGE) {
-		dwin_update_setting_info();
+	if(DWIN_IS_PAGE(PAGE_ADJUST)){
+		dwin_update_adjust_info();
+	}
+
+	if(DWIN_IS_PAGE(PAGE_MOTION_SETTING)){
+		dwin_update_setting_motion_info();
+	}
+
+#ifdef HAS_AIR_FAN
+	if(DWIN_IS_PAGE(PAGE_FANSPEED_SETTING_FILTER))
+#else
+	if(DWIN_IS_PAGE(PAGE_FANSPEED_SETTING))
+#endif
+	{
+		dwin_update_setting_fan_info();
+	}
+
+#ifdef HOTWIND_SYSTEM
+	if(DWIN_IS_PAGE(PAGE_PREHEAT_SETTING_CHAMBER))
+#else
+	if(DWIN_IS_PAGE(PAGE_PREHEAT_SETTING))
+#endif
+	{
+		dwin_update_setting_preheat_info();
 	}
 
 #ifdef WIFI_SUPPORT
-	if (IS_WIFI_INFO_PAGE) {
-		dwin_update_wifi_info();
+  if(IS_WIFI_SETTING_PAGE){
+    dwin_update_wifi_icon();
+  }
+	if(IS_WIFI_INFO_PAGE){
+		dwin_update_setting_wifi_info();
 	}
 #endif
 
 #if HAS_LEVELING
-	if (IS_LEVELING_PAGE){
-		dwin_update_leveling_info();
+	if(IS_LEVELING_PAGE){
+		dwin_update_setting_leveling_info();
 	}
 #endif
 
-	if (IS_PRINT_PAGE) {
+	if(IS_PRINT_PAGE){
 		dwin_update_progress_info();
 	}
 
-	if (DWIN_IS_PAGE(PAGE_INFO)) {
+	if(DWIN_IS_PAGE(PAGE_INFO_PRINTER)){
 		dwin_update_time_info(TIME_USED);
 	}
 	
 #ifdef REG_SN
-	if (IS_REG_PAGE) {
+	if(IS_REG_PAGE) {
 		dwin_update_reg_info();
 	}
 #endif
@@ -2004,24 +2516,20 @@ void updateData() {
 #endif
 }
 
-
 // dwin loop run.
 void dwin_run(){
 	manual_move_delay();
 	dwin_scan();		// must at the first.
-	
-	if (IS_DWIN_DATA_READY) {
-		if (dwin_getVar()->valid) {
-		#ifdef DEBUG_FREE
-			SERIAL_ECHOLNPAIR("dwin_run: ", freeMemory());
-		#endif
+
+	if(IS_DWIN_DATA_READY){
+		if(dwin_getVar()->valid){
 			resolveVar();
 		}
 
 		pageControl();
 
-		if (millis() > dwin_next_update_millis) {
-			dwin_next_update_millis = millis() + 1000L;		// update the lcd every one second.
+		if(millis() > dwin_next_update_millis){
+			dwin_next_update_millis = millis() + 1000L;	// update the lcd every one second.
 			updateData();
 		}
 	}

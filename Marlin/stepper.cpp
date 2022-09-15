@@ -368,7 +368,7 @@ void Stepper::isr() {
   #define ENDSTOP_NOMINAL_OCR_VAL 3000    // check endstops every 1.5ms to guarantee two stepper ISRs within 5ms for BLTouch
   #define OCR_VAL_TOLERANCE 1000          // First max delay is 2.0ms, last min delay is 0.5ms, all others 1.5ms
 
-  #if DISABLED(LIN_ADVANCE)
+  #if DISABLED(LIN_ADVANCE) && DISABLED(ULTRA_SERIAL)    // By LYN, ULTRT_SERIAL will takes longer time in UART events, we cant into any isr else.
     // Disable Timer0 ISRs and enable global ISR again to capture UART events (incoming chars)
     CBI(TIMSK0, OCIE0B); // Temperature ISR
     DISABLE_STEPPER_DRIVER_INTERRUPT();
@@ -772,7 +772,7 @@ void Stepper::isr() {
   	// Eg. Filament broken while toggle dual extruder.
   	if((planner.movesplanned() == 1) && (current_block->filePos)){
   		pauseSpeed = current_block->block_speed;
-  		pauseByte = current_block->filePos;
+  		pauseByteOrLineN = current_block->filePos;
   	}
 
   	count_position[E_AXIS] = current_block->block_realE;	//reset the real E position.
