@@ -41,7 +41,9 @@ void GcodeSuite::G6() {
     if (parser.seen('X')) planner.last_page_dir.x = !!parser.value_byte();
     if (parser.seen('Y')) planner.last_page_dir.y = !!parser.value_byte();
     if (parser.seen('Z')) planner.last_page_dir.z = !!parser.value_byte();
-    if (parser.seen('E')) planner.last_page_dir.e = !!parser.value_byte();
+    #if HAS_EXTRUDERS
+      if (parser.seen('E')) planner.last_page_dir.e = !!parser.value_byte();
+    #endif
   }
 
   // No index means we just set the state
