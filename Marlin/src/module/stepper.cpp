@@ -1730,7 +1730,7 @@ void Stepper::pulse_phase_isr() {
               PAGE_SEGMENT_UPDATE(X, (b >> 6) & 0x3);
               PAGE_SEGMENT_UPDATE(Y, (b >> 4) & 0x3);
               PAGE_SEGMENT_UPDATE(Z, (b >> 2) & 0x3);
-              PAGE_SEGMENT_UPDATE(E, (b >> 0) & 0x3);
+              TERN_(HAS_EXTRUDERS, PAGE_SEGMENT_UPDATE(E, (b >> 0) & 0x3));
             } break;
             default: break;
           }
@@ -1994,7 +1994,7 @@ uint32_t Stepper::block_phase_isr() {
           PAGE_SEGMENT_UPDATE_POS(X);
           PAGE_SEGMENT_UPDATE_POS(Y);
           PAGE_SEGMENT_UPDATE_POS(Z);
-          PAGE_SEGMENT_UPDATE_POS(E);
+          TERN_(HAS_EXTRUDERS, PAGE_SEGMENT_UPDATE_POS(E));
         }
       #endif
       TERN_(HAS_FILAMENT_RUNOUT_DISTANCE, runout.block_completed(current_block));

@@ -3219,7 +3219,9 @@ bool Planner::buffer_line(const xyze_pos_t &cart, const_feedRate_t fr_mm_s
       PAGE_UPDATE_DIR(X);
       PAGE_UPDATE_DIR(Y);
       PAGE_UPDATE_DIR(Z);
-      PAGE_UPDATE_DIR(E);
+      #if HAS_EXTRUDERS
+        PAGE_UPDATE_DIR(E);
+      #endif
     }
 
     // If this is the first added movement, reload the delay, otherwise, cancel it.

@@ -770,7 +770,7 @@
 //
 
 #elif MB(CUSTOM)
-  #include "pins_custom.h"                      //                                        env:custom
+  #include "pins_custom.h"                      //                                        env:mega2560
 
 //
 // Linux Native Debug board
