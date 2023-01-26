@@ -315,6 +315,10 @@
   #include "Wire.h"
 #endif
 
+#if ENABLED(LASER_FILAMENT_MONITOR)
+  #include "Filament_sensor.h"
+#endif
+
 #if ENABLED(PCA9632)
   #include "pca9632.h"
 #endif
@@ -8594,6 +8598,9 @@ inline void gcode_M92() {
           planner.max_acceleration_steps_per_s2[E_AXIS + TARGET_EXTRUDER] *= factor;
         }
         planner.axis_steps_per_mm[E_AXIS + TARGET_EXTRUDER] = value;
+        #if ENABLED(LASER_FILAMENT_MONITOR)
+        fsensor.init();
+        #endif
       }
       else {
         planner.axis_steps_per_mm[i] = parser.value_per_axis_unit((AxisEnum)i);
@@ -10675,6 +10682,10 @@ inline void gcode_M907() {
     LOOP_XYZE(i) if (parser.seen(axis_codes[i])) stepper.microstep_mode(i, parser.value_byte());
     if (parser.seen('B')) stepper.microstep_mode(4, parser.value_byte());
     stepper.microstep_readings();
+    #if ENABLED(LASER_FILAMENT_MONITOR)
+    if (parser.seen(axis_codes[E_AXIS]))
+      fsensor.init();
+    #endif
   }
 
   /**
@@ -14884,6 +14895,10 @@ void customDetect() {
  */
 void manage_inactivity(bool ignore_stepper_queue/*=false*/) {
 
+  #if ENABLED(LASER_FILAMENT_MONITOR)
+    fsensor.update();
+  #endif
+
   #if ENABLED(FILAMENT_RUNOUT_SENSOR)
     if (isSerialPrinting && !wait_for_user && print_job_timer.isRunning() && (
       (READ(FIL_RUNOUT_PIN) == FIL_RUNOUT_INVERTING)
@@ -15228,6 +15243,10 @@ void setup() {
 
   #if ENABLED(FILAMENT_RUNOUT_SENSOR)
     setup_filrunoutpin();
+  #endif
+
+  #if ENABLED(LASER_FILAMENT_MONITOR)
+    fsensor.init();
   #endif
 
   setup_killpin();

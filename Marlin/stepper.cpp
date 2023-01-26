@@ -58,6 +58,10 @@
   #include <SPI.h>
 #endif
 
+#if ENABLED(LASER_FILAMENT_MONITOR)
+  #include "Filament_sensor.h"
+#endif
+
 Stepper stepper; // Singleton
 
 // public:
@@ -481,6 +485,9 @@ void Stepper::isr() {
           // Don't step E here for mixing extruder
           count_position[E_AXIS] += count_direction[E_AXIS];
           motor_direction(E_AXIS) ? --e_steps[TOOL_E_INDEX] : ++e_steps[TOOL_E_INDEX];
+          #if ENABLED(LASER_FILAMENT_MONITOR)
+          fsensor.stStep(count_direction[E_AXIS] < 0);
+          #endif //ENABLED(LASER_FILAMENT_MONITOR)
         #endif
       }
 
@@ -606,6 +613,9 @@ void Stepper::isr() {
         }
       #else // !MIXING_EXTRUDER
         PULSE_START(E);
+        #if ENABLED(LASER_FILAMENT_MONITOR)
+        fsensor.stStep(count_direction[E_AXIS] < 0);
+        #endif //ENABLED(LASER_FILAMENT_MONITOR)
       #endif
     #endif // !LIN_ADVANCE
 
@@ -633,6 +643,9 @@ void Stepper::isr() {
         if (counter_E > 0) {
           counter_E -= current_block->step_event_count;
           count_position[E_AXIS] += count_direction[E_AXIS];
+          #if ENABLED(LASER_FILAMENT_MONITOR)
+          fsensor.stStep(count_direction[E_AXIS] < 0);
+          #endif //ENABLED(LASER_FILAMENT_MONITOR)
         }
         MIXING_STEPPERS_LOOP(j) {
           if (counter_m[j] > 0) {
