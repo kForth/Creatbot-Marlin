@@ -42,12 +42,3 @@
 #endif
 
 #include "pins_BTT_OCTOPUS_V1_common.h"
-
-//
-// Heated Chamber
-//
-#define TEMP_CHAMBER_PIN TEMP_3_PIN
-#define HEATER_CHAMBER_PIN HEATER_3_PIN
-
-// Suppress warning about diag jumpers
-#define DIAG_JUMPERS_REMOVED
