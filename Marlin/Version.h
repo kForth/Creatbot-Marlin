@@ -41,12 +41,12 @@
  * here we define this default string as the date where the latest release
  * version was tagged.
  */
-//#define STRING_DISTRIBUTION_DATE "2023-05-16"
+#define STRING_DISTRIBUTION_DATE __DATE__
 
 /**
  * Defines a generic printer name to be output to the LCD after booting Marlin.
  */
-//#define MACHINE_NAME "3D Printer"
+#define MACHINE_NAME "CreatBot F430"
 
 /**
  * The SOURCE_CODE_URL is the location where users will find the Marlin Source
@@ -59,7 +59,7 @@
 /**
  * Default generic printer UUID.
  */
-//#define DEFAULT_MACHINE_UUID "cede2a2f-41a2-4748-9b12-c55c62f367ff"
+#define DEFAULT_MACHINE_UUID "d3e4ce49-f5c5-4f52-9870-316346b39fee"
 
 /**
  * The WEBSITE_URL is the location where users can get more information such as
