@@ -1727,6 +1727,8 @@ void Temperature::mintemp_error(const heater_id_t heater_id) {
             if (temp_chamber.soft_pwm_amount) fan_chamber_pwm += (CHAMBER_FAN_FACTOR) * 2;
           #elif CHAMBER_FAN_MODE == 3
             fan_chamber_pwm = (CHAMBER_FAN_BASE) + _MAX((CHAMBER_FAN_FACTOR) * (temp_chamber.celsius - temp_chamber.target), 0);
+          #elif CHAMBER_FAN_MODE == 4
+            fan_chamber_pwm = temp_chamber.is_above_target() ? (CHAMBER_FAN_BASE) + (CHAMBER_FAN_FACTOR) * (temp_chamber.celsius - temp_chamber.target) : CHAMBER_FAN_IDLE;
           #endif
           NOMORE(fan_chamber_pwm, 255);
           set_fan_speed(CHAMBER_FAN_INDEX, fan_chamber_pwm);
