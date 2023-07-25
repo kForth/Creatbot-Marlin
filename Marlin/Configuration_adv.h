@@ -241,9 +241,9 @@
       #define CHAMBER_FAN_BASE  128   // Base chamber fan PWM (0-255)
       #define CHAMBER_FAN_FACTOR 25   // PWM increase per °C above target
     #elif CHAMBER_FAN_MODE == 4
-      #define CHAMBER_FAN_IDLE   50   // Base chamber fan PWM (0-255)
-      #define CHAMBER_FAN_BASE  128   // Chamber fan PWM (0-255) when chamber temperature is above the target
-      #define CHAMBER_FAN_FACTOR 25   // PWM increase per °C above target
+      #define CHAMBER_FAN_IDLE    0   // Base chamber fan PWM (0-255)
+      #define CHAMBER_FAN_BASE  255   // Chamber fan PWM (0-255) when chamber temperature is above the target
+      #define CHAMBER_FAN_FACTOR  0   // PWM increase per °C above target
     #endif
   #endif
 
