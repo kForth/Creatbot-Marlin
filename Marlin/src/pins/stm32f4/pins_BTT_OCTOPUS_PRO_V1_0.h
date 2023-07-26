@@ -42,3 +42,7 @@
 #endif
 
 #include "pins_BTT_OCTOPUS_V1_common.h"
+
+// Use Heater 2 for the bed relay
+#undef HEATER_BED_PIN
+#define HEATER_BED_PIN HEATER_2_PIN
