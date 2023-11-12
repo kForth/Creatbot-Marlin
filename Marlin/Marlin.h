@@ -276,7 +276,7 @@ extern float current_position[NUM_AXIS];
 #endif
 
 // Software Endstops
-extern float soft_endstop_min[XYZ], soft_endstop_max[XYZ];
+extern volatile float soft_endstop_min[XYZ], soft_endstop_max[XYZ];
 
 #if HAS_SOFTWARE_ENDSTOPS
   extern bool soft_endstops_enabled;
