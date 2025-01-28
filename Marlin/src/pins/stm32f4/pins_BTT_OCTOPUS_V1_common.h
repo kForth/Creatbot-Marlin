@@ -195,18 +195,18 @@
   #define Z_CS_PIN                          PC6
 #endif
 
-#define Z2_STEP_PIN                         PG4   // MOTOR 3
-#define Z2_DIR_PIN                          PC1
-#define Z2_ENABLE_PIN                       PA0
-#ifndef Z2_CS_PIN
-  #define Z2_CS_PIN                         PC7
+#define E0_STEP_PIN                         PG4   // MOTOR 3
+#define E0_DIR_PIN                          PC1
+#define E0_ENABLE_PIN                       PA0
+#ifndef E0_CS_PIN
+  #define E0_CS_PIN                         PC7
 #endif
 
-#define E0_STEP_PIN                         PF9   // MOTOR 4
-#define E0_DIR_PIN                          PF10
-#define E0_ENABLE_PIN                       PG2
-#ifndef E0_CS_PIN
-  #define E0_CS_PIN                         PF2
+#define X2_STEP_PIN                         PF9   // MOTOR 4
+#define X2_DIR_PIN                          PF10
+#define X2_ENABLE_PIN                       PG2
+#ifndef X2_CS_PIN
+  #define X2_CS_PIN                         PF2
 #endif
 
 #define E1_STEP_PIN                         PC13  // MOTOR 5
